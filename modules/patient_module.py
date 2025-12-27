@@ -82,6 +82,9 @@ class PatientModule:
         scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview)
         self.tree.configure(yscrollcommand=scrollbar.set)
         
+        # Ensure tree can receive focus and clicks immediately after dialog closes
+        self.tree.configure(takefocus=1)
+        
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
@@ -128,6 +131,26 @@ class PatientModule:
             cursor='hand2'
         ).pack(side=tk.LEFT, padx=5)
     
+    def _focus_tree(self):
+        """Ensure tree widget is immediately interactive for selection"""
+        try:
+            # Ensure root window has focus first
+            self.root.focus_force()
+            self.root.update_idletasks()
+            self.root.update()
+            
+            # For Treeview, focus the widget to make it immediately interactive
+            # Treeview widgets can receive clicks even without focus, but setting focus
+            # ensures the widget is ready to receive events immediately
+            self.tree.focus_set()
+            
+            # Force event processing to ensure tree is interactive
+            self.root.update_idletasks()
+            self.root.update()
+            log_debug("Tree widget focused and ready for immediate selection")
+        except Exception as e:
+            log_debug(f"Could not focus tree: {e}")
+    
     def refresh_list(self):
         """Refresh patient list - optimized for performance"""
         log_info("Refreshing patient list...")
@@ -150,6 +173,9 @@ class PatientModule:
                 patient['email']
             ))
         log_info("Patient list refreshed successfully")
+        
+        # Return focus to tree after refresh for immediate selection
+        self.root.after(10, self._focus_tree)
     
     def search_patients(self):
         """Search patients - optimized"""
@@ -399,10 +425,19 @@ class PatientModule:
                         self.root.update_idletasks()
                         self.root.update()
                         
-                        # Show message after dialog is closed (non-blocking) - delayed to not interfere
-                        self.root.after(150, lambda: messagebox.showinfo("Success", "Patient updated successfully"))
-                        # Refresh list asynchronously
-                        self.root.after(250, self.refresh_list)
+                        # Focus tree immediately so user can select another patient right away
+                        self._focus_tree()
+                        
+                        # Refresh list asynchronously (before showing messagebox to avoid focus issues)
+                        self.root.after(50, self.refresh_list)
+                        
+                        # Show message after dialog is closed and list refreshed - delayed to not interfere
+                        def show_success_and_refocus():
+                            messagebox.showinfo("Success", "Patient updated successfully")
+                            # Return focus to tree after messagebox closes
+                            self._focus_tree()
+                        self.root.after(300, show_success_and_refocus)
+                        
                         log_info("Patient update process completed")
                     else:
                         log_database_operation("UPDATE", "patients", False, f"Patient ID: {patient_id}")
@@ -460,10 +495,19 @@ class PatientModule:
                         self.root.update_idletasks()
                         self.root.update()
                         
-                        # Show message after dialog is closed (non-blocking) - delayed to not interfere
-                        self.root.after(150, lambda: messagebox.showinfo("Success", "Patient added successfully"))
-                        # Refresh list asynchronously
-                        self.root.after(250, self.refresh_list)
+                        # Focus tree immediately so user can select another patient right away
+                        self._focus_tree()
+                        
+                        # Refresh list asynchronously (before showing messagebox to avoid focus issues)
+                        self.root.after(50, self.refresh_list)
+                        
+                        # Show message after dialog is closed and list refreshed - delayed to not interfere
+                        def show_success_and_refocus():
+                            messagebox.showinfo("Success", "Patient added successfully")
+                            # Return focus to tree after messagebox closes
+                            self._focus_tree()
+                        self.root.after(300, show_success_and_refocus)
+                        
                         log_info("Patient add process completed")
                     else:
                         log_database_operation("INSERT", "patients", False, f"Patient ID: {patient_id} - ID might already exist")

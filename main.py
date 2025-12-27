@@ -30,12 +30,7 @@ class HospitalManagementSystem:
         log_info("Hospital Management System Starting")
         log_info("=" * 60)
         
-        # Initialize database
-        log_info("Initializing database...")
-        self.db = Database()
-        log_info("Database initialized successfully")
-        
-        # Create main container
+        # Create UI first to make buttons immediately responsive
         log_info("Creating main layout...")
         self.create_main_layout()
         
@@ -46,9 +41,24 @@ class HospitalManagementSystem:
         for button_name, btn in self.nav_buttons.items():
             btn.config(state=tk.NORMAL)
         
-        # Force UI update to ensure everything is rendered
+        # Show window and process events immediately so buttons work RIGHT AWAY
         self.root.update_idletasks()
         self.root.update()
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+        
+        # Process events multiple times to ensure UI is fully rendered and interactive
+        self.root.update_idletasks()
+        self.root.update()
+        self.root.update_idletasks()
+        self.root.update()
+        
+        # Initialize database - must be done before modules can load
+        # SQLite is fast, but we show window first so UI appears immediately
+        log_info("Initializing database...")
+        self.db = Database()
+        log_info("Database initialized successfully")
         
         # Schedule dashboard loading after UI is fully ready
         # This ensures buttons are responsive immediately
@@ -58,7 +68,11 @@ class HospitalManagementSystem:
         # Start periodic event processing to ensure buttons always work
         self._start_periodic_event_processing()
         
-        log_info("Application startup complete - buttons ready")
+        # Final event processing to ensure everything is interactive
+        self.root.update_idletasks()
+        self.root.update()
+        
+        log_info("Application startup complete - buttons ready immediately")
     
     def _load_dashboard_after_startup(self):
         """Load dashboard after UI is fully initialized"""
@@ -93,13 +107,22 @@ class HospitalManagementSystem:
             log_debug("Window lost focus")
             return True
         
+        def on_map(event):
+            """Handle window being mapped - ensure buttons are ready immediately"""
+            log_debug("Window mapped - ensuring buttons are ready")
+            # Ensure all buttons are enabled when window becomes visible
+            for button_name, btn in self.nav_buttons.items():
+                if btn['state'] != tk.NORMAL:
+                    btn.config(state=tk.NORMAL)
+            # Process events to ensure buttons are interactive
+            self.root.update_idletasks()
+            return True
+        
         # Bind focus events
         self.root.bind('<FocusIn>', on_focus_in)
         self.root.bind('<FocusOut>', on_focus_out)
-        
-        # Note: Removed <Map> binding as it fires too frequently during initialization
-        # causing excessive logging. FocusIn event and periodic processing are sufficient
-        # to ensure buttons work when window is active.
+        # Bind map event to ensure buttons work as soon as window is visible
+        self.root.bind('<Map>', on_map)
     
     def _start_periodic_event_processing(self):
         """Start periodic event processing to ensure buttons always work"""
@@ -188,12 +211,18 @@ class HospitalManagementSystem:
                 pady=10,
                 cursor='hand2',
                 highlightthickness=0,
-                state=tk.NORMAL
+                state=tk.NORMAL,
+                takefocus=0  # Allow buttons to work without keyboard focus
             )
             btn.pack(side=tk.LEFT, padx=3)
             self.nav_buttons[text] = btn
             # Ensure button is immediately enabled and ready
             btn.config(state=tk.NORMAL)
+            # Force button widget to process its configuration immediately
+            try:
+                btn.update_idletasks()
+            except:
+                pass  # Ignore errors during initialization
             log_debug(f"Navigation button '{text}' created and bound to {command.__name__}")
         
         log_info("Main layout created successfully")
@@ -485,6 +514,7 @@ def main():
         # Store app instance in root for easy access from modules
         root.app_instance = app
         root.protocol("WM_DELETE_WINDOW", app.on_closing)
+        # Start mainloop immediately - window is already shown in __init__
         root.mainloop()
     except KeyboardInterrupt:
         log_info("Application interrupted by user")
