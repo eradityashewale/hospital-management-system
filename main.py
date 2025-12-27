@@ -39,26 +39,91 @@ class HospitalManagementSystem:
         log_info("Creating main layout...")
         self.create_main_layout()
         
-        # Force UI update to ensure everything is rendered
-        self.root.update_idletasks()
+        # Set up focus and event processing handlers
+        self._setup_focus_handlers()
         
-        # Load dashboard
-        log_info("Loading dashboard...")
-        self.show_dashboard()
-        
-        # Final UI update
-        self.root.update_idletasks()
-        self.root.update()
-        
-        # Ensure all navigation buttons are enabled and ready
+        # Ensure all navigation buttons are enabled immediately
         for button_name, btn in self.nav_buttons.items():
             btn.config(state=tk.NORMAL)
-            btn.update_idletasks()
         
-        # Final update to ensure everything is ready
+        # Force UI update to ensure everything is rendered
         self.root.update_idletasks()
         self.root.update()
-        log_info("Application startup complete")
+        
+        # Schedule dashboard loading after UI is fully ready
+        # This ensures buttons are responsive immediately
+        log_info("Scheduling dashboard load...")
+        self.root.after(10, self._load_dashboard_after_startup)
+        
+        # Start periodic event processing to ensure buttons always work
+        self._start_periodic_event_processing()
+        
+        log_info("Application startup complete - buttons ready")
+    
+    def _load_dashboard_after_startup(self):
+        """Load dashboard after UI is fully initialized"""
+        try:
+            log_info("Loading dashboard...")
+            self.show_dashboard()
+            # Ensure buttons remain enabled after dashboard loads
+            for button_name, btn in self.nav_buttons.items():
+                btn.config(state=tk.NORMAL)
+            self.root.update_idletasks()
+            log_info("Dashboard loaded successfully")
+        except Exception as e:
+            log_error("Failed to load dashboard during startup", e)
+    
+    def _setup_focus_handlers(self):
+        """Set up focus event handlers to ensure buttons work when window is active"""
+        def on_focus_in(event):
+            """Handle window gaining focus - process pending events and ensure buttons work"""
+            log_debug("Window gained focus - processing events")
+            # Process all pending events
+            self.root.update_idletasks()
+            # Ensure all buttons are enabled
+            for button_name, btn in self.nav_buttons.items():
+                if btn['state'] != tk.NORMAL:
+                    btn.config(state=tk.NORMAL)
+            # Process events again
+            self.root.update_idletasks()
+            return True
+        
+        def on_focus_out(event):
+            """Handle window losing focus"""
+            log_debug("Window lost focus")
+            return True
+        
+        # Bind focus events
+        self.root.bind('<FocusIn>', on_focus_in)
+        self.root.bind('<FocusOut>', on_focus_out)
+        
+        # Note: Removed <Map> binding as it fires too frequently during initialization
+        # causing excessive logging. FocusIn event and periodic processing are sufficient
+        # to ensure buttons work when window is active.
+    
+    def _start_periodic_event_processing(self):
+        """Start periodic event processing to ensure buttons always work"""
+        def process_events_periodically():
+            """Periodically process events to ensure buttons remain responsive"""
+            try:
+                # Process pending idle tasks
+                self.root.update_idletasks()
+                
+                # Ensure all buttons are enabled
+                for button_name, btn in self.nav_buttons.items():
+                    if btn['state'] != tk.NORMAL:
+                        btn.config(state=tk.NORMAL)
+                
+                # Schedule next processing (every 500ms - frequent enough but not too heavy)
+                self.root.after(500, process_events_periodically)
+            except Exception as e:
+                # If there's an error, still schedule next processing
+                log_debug(f"Error in periodic event processing: {e}")
+                self.root.after(500, process_events_periodically)
+        
+        # Start periodic processing after a short delay
+        self.root.after(100, process_events_periodically)
+        log_info("Periodic event processing started")
     
     def create_main_layout(self):
         """Create main application layout"""
@@ -127,6 +192,8 @@ class HospitalManagementSystem:
             )
             btn.pack(side=tk.LEFT, padx=3)
             self.nav_buttons[text] = btn
+            # Ensure button is immediately enabled and ready
+            btn.config(state=tk.NORMAL)
             log_debug(f"Navigation button '{text}' created and bound to {command.__name__}")
         
         log_info("Main layout created successfully")
@@ -137,6 +204,9 @@ class HospitalManagementSystem:
     
     def _handle_navigation(self, button_name):
         """Handle navigation button clicks"""
+        # Process events immediately when button is clicked - ensures responsiveness
+        self.root.update_idletasks()
+        
         log_button_click(button_name, "Navigation")
         log_info(f"Button '{button_name}' clicked - executing command")
         log_navigation(self.current_module, button_name)
@@ -153,7 +223,7 @@ class HospitalManagementSystem:
             messagebox.showerror("Error", f"Command for '{button_name}' is None")
             return
         
-        # Check if button is disabled
+        # Check if button is disabled and re-enable it
         if button_name in self.nav_buttons:
             btn = self.nav_buttons[button_name]
             if btn['state'] != tk.NORMAL:
@@ -161,11 +231,13 @@ class HospitalManagementSystem:
                 # Re-enable the button
                 btn.config(state=tk.NORMAL)
                 self.root.update_idletasks()
+                self.root.update()
             
         try:
             log_info(f"Loading {button_name} module...")
             # Ensure UI is ready before executing command
             self.root.update_idletasks()
+            self.root.update()
             command()
             self.current_module = button_name
             # Force UI update after module loads
@@ -187,6 +259,9 @@ class HospitalManagementSystem:
             # Ensure buttons remain enabled after error
             if button_name in self.nav_buttons:
                 self.nav_buttons[button_name].config(state=tk.NORMAL)
+            # Process events after error
+            self.root.update_idletasks()
+            self.root.update()
     
     def clear_content(self):
         """Clear content frame"""
@@ -407,6 +482,8 @@ def main():
     try:
         root = tk.Tk()
         app = HospitalManagementSystem(root)
+        # Store app instance in root for easy access from modules
+        root.app_instance = app
         root.protocol("WM_DELETE_WINDOW", app.on_closing)
         root.mainloop()
     except KeyboardInterrupt:

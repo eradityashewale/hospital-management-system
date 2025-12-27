@@ -315,8 +315,17 @@ class PatientModule:
         
         if not view_only:
             def save_patient():
+                # CRITICAL: Process events immediately when save button is clicked
+                # This ensures the button click event is fully processed
+                dialog.update_idletasks()
+                dialog.update()
+                dialog.update_idletasks()
+                
                 log_button_click("Save Patient", "PatientDialog")
-                log_info(f"Attempting to save patient: {patient_id}")
+                log_info(f"Save button clicked - attempting to save patient: {patient_id}")
+                
+                # Additional event processing to ensure everything is ready
+                dialog.update_idletasks()
                 
                 data = {'patient_id': patient_id}
                 for field, widget in entries.items():
@@ -370,6 +379,26 @@ class PatientModule:
                         self.root.update()
                         self.root.update_idletasks()
                         
+                        # CRITICAL: Explicitly ensure all navigation buttons are enabled
+                        # Access the main app instance through root
+                        try:
+                            if hasattr(self.root, 'app_instance'):
+                                app = self.root.app_instance
+                                if hasattr(app, 'nav_buttons'):
+                                    for button_name, btn in app.nav_buttons.items():
+                                        if btn['state'] != tk.NORMAL:
+                                            btn.config(state=tk.NORMAL)
+                                    log_debug("Navigation buttons explicitly enabled after patient update")
+                                    # Force one more update after enabling buttons
+                                    self.root.update_idletasks()
+                                    self.root.update()
+                        except Exception as e:
+                            log_debug(f"Could not access nav_buttons: {e}")
+                        
+                        # Additional event processing to ensure buttons are ready
+                        self.root.update_idletasks()
+                        self.root.update()
+                        
                         # Show message after dialog is closed (non-blocking) - delayed to not interfere
                         self.root.after(150, lambda: messagebox.showinfo("Success", "Patient updated successfully"))
                         # Refresh list asynchronously
@@ -411,6 +440,26 @@ class PatientModule:
                         self.root.update()
                         self.root.update_idletasks()
                         
+                        # CRITICAL: Explicitly ensure all navigation buttons are enabled
+                        # Access the main app instance through root
+                        try:
+                            if hasattr(self.root, 'app_instance'):
+                                app = self.root.app_instance
+                                if hasattr(app, 'nav_buttons'):
+                                    for button_name, btn in app.nav_buttons.items():
+                                        if btn['state'] != tk.NORMAL:
+                                            btn.config(state=tk.NORMAL)
+                                    log_debug("Navigation buttons explicitly enabled after patient add")
+                                    # Force one more update after enabling buttons
+                                    self.root.update_idletasks()
+                                    self.root.update()
+                        except Exception as e:
+                            log_debug(f"Could not access nav_buttons: {e}")
+                        
+                        # Additional event processing to ensure buttons are ready
+                        self.root.update_idletasks()
+                        self.root.update()
+                        
                         # Show message after dialog is closed (non-blocking) - delayed to not interfere
                         self.root.after(150, lambda: messagebox.showinfo("Success", "Patient added successfully"))
                         # Refresh list asynchronously
@@ -420,10 +469,21 @@ class PatientModule:
                         log_database_operation("INSERT", "patients", False, f"Patient ID: {patient_id} - ID might already exist")
                         messagebox.showerror("Error", "Failed to add patient (ID might already exist)")
             
+            # Create wrapper to ensure events are processed
+            def on_save_button_click():
+                """Wrapper to ensure events are processed before save"""
+                log_info("Save button wrapper called - processing events")
+                # Process events immediately
+                dialog.update_idletasks()
+                dialog.update()
+                dialog.update_idletasks()
+                # Call the actual save function
+                save_patient()
+            
             save_btn = tk.Button(
                 button_frame,
                 text="Save",
-                command=save_patient,
+                command=on_save_button_click,
                 font=('Arial', 11, 'bold'),
                 bg='#27ae60',
                 fg='black',
@@ -437,6 +497,20 @@ class PatientModule:
                 bd=2
             )
             save_btn.pack(side=tk.LEFT, padx=10)
+            
+            # Also bind to Button-1 event as backup to ensure it works
+            def on_save_click_event(event):
+                """Handle Button-1 click on save button"""
+                log_info("Save button Button-1 event triggered")
+                dialog.update_idletasks()
+                dialog.update()
+                on_save_button_click()
+                return "break"  # Prevent default behavior
+            
+            save_btn.bind('<Button-1>', on_save_click_event)
+            
+            # Store save_btn reference for focus handlers
+            dialog._save_btn = save_btn
         
         def close_dialog():
             log_button_click("Close Dialog", "PatientDialog")
@@ -634,6 +708,62 @@ class PatientModule:
             # Ensure all events are processed and UI is ready
             self.root.update_idletasks()
         dialog.protocol("WM_DELETE_WINDOW", on_close)
+        
+        # Set up focus event handlers for dialog to ensure buttons work when dialog is active
+        # Track last focus processing time to avoid excessive logging and processing
+        dialog._last_focus_process = 0
+        
+        def on_dialog_focus_in(event):
+            """Handle dialog gaining focus - process pending events"""
+            import time
+            current_time = time.time()
+            # Only process if it's been at least 0.3 seconds since last processing
+            if current_time - dialog._last_focus_process > 0.3:
+                log_debug("Dialog gained focus - processing events")
+                dialog._last_focus_process = current_time
+                dialog.update_idletasks()
+                # Ensure save button is enabled
+                if not view_only and hasattr(dialog, '_save_btn'):
+                    if dialog._save_btn['state'] != tk.NORMAL:
+                        dialog._save_btn.config(state=tk.NORMAL)
+                dialog.update_idletasks()
+            return True
+        
+        def on_dialog_focus_out(event):
+            """Handle dialog losing focus"""
+            # Don't log every focus out event to reduce log spam
+            return True
+        
+        # Bind focus events to dialog
+        dialog.bind('<FocusIn>', on_dialog_focus_in)
+        dialog.bind('<FocusOut>', on_dialog_focus_out)
+        
+        # Start periodic event processing for dialog to ensure save button always works
+        def process_dialog_events_periodically():
+            """Periodically process events in dialog to ensure buttons remain responsive"""
+            try:
+                # Check if dialog still exists
+                if not dialog.winfo_exists():
+                    return
+                
+                # Process pending idle tasks
+                dialog.update_idletasks()
+                
+                # Ensure save button is enabled
+                if not view_only and hasattr(dialog, '_save_btn'):
+                    if dialog._save_btn['state'] != tk.NORMAL:
+                        dialog._save_btn.config(state=tk.NORMAL)
+                
+                # Schedule next processing (every 300ms for dialog - more frequent than main window)
+                dialog.after(300, process_dialog_events_periodically)
+            except Exception as e:
+                # If dialog is destroyed, stop processing
+                log_debug(f"Dialog event processing stopped: {e}")
+        
+        # Start periodic processing after a short delay
+        if not view_only:
+            dialog.after(100, process_dialog_events_periodically)
+            log_info("Dialog periodic event processing started")
         
         # Final update to ensure everything is interactive
         dialog.update()
