@@ -5,7 +5,7 @@ Offline Desktop Application for Hospital Management
 import tkinter as tk
 from tkinter import ttk, messagebox
 from database import Database
-from logger import log_button_click, log_navigation, log_error, log_info, log_debug
+from logger import log_button_click, log_navigation, log_error, log_info, log_debug, log_warning
 import sys
 
 # Import modules
@@ -48,6 +48,16 @@ class HospitalManagementSystem:
         
         # Final UI update
         self.root.update_idletasks()
+        self.root.update()
+        
+        # Ensure all navigation buttons are enabled and ready
+        for button_name, btn in self.nav_buttons.items():
+            btn.config(state=tk.NORMAL)
+            btn.update_idletasks()
+        
+        # Final update to ensure everything is ready
+        self.root.update_idletasks()
+        self.root.update()
         log_info("Application startup complete")
     
     def create_main_layout(self):
@@ -131,6 +141,7 @@ class HospitalManagementSystem:
         log_info(f"Button '{button_name}' clicked - executing command")
         log_navigation(self.current_module, button_name)
         
+        # Check if button exists
         if button_name not in self.button_commands:
             log_error(f"Button '{button_name}' not found in button_commands", None)
             messagebox.showerror("Error", f"Button '{button_name}' command not found")
@@ -141,20 +152,49 @@ class HospitalManagementSystem:
             log_error(f"Command for '{button_name}' is None", None)
             messagebox.showerror("Error", f"Command for '{button_name}' is None")
             return
+        
+        # Check if button is disabled
+        if button_name in self.nav_buttons:
+            btn = self.nav_buttons[button_name]
+            if btn['state'] != tk.NORMAL:
+                log_warning(f"Button '{button_name}' is disabled, state: {btn['state']}")
+                # Re-enable the button
+                btn.config(state=tk.NORMAL)
+                self.root.update_idletasks()
             
         try:
             log_info(f"Loading {button_name} module...")
+            # Ensure UI is ready before executing command
+            self.root.update_idletasks()
             command()
             self.current_module = button_name
+            # Force UI update after module loads
+            self.root.update_idletasks()
+            self.root.update()
+            
+            # Ensure all navigation buttons remain enabled and responsive
+            for btn_name, btn in self.nav_buttons.items():
+                if btn['state'] != tk.NORMAL:
+                    btn.config(state=tk.NORMAL)
+            
+            # Final update to ensure buttons are ready
+            self.root.update_idletasks()
+            self.root.update()
             log_info(f"{button_name} module loaded successfully")
         except Exception as e:
             log_error(f"Error executing {button_name}", e)
             messagebox.showerror("Error", f"Error executing {button_name}: {str(e)}")
+            # Ensure buttons remain enabled after error
+            if button_name in self.nav_buttons:
+                self.nav_buttons[button_name].config(state=tk.NORMAL)
     
     def clear_content(self):
         """Clear content frame"""
         for widget in self.content_frame.winfo_children():
             widget.destroy()
+        # Force immediate UI update after clearing
+        self.root.update_idletasks()
+        self.root.update()
     
     def show_dashboard(self):
         """Show dashboard with statistics"""
@@ -162,6 +202,8 @@ class HospitalManagementSystem:
             log_info("show_dashboard() called")
             self.clear_content()
             log_info("Dashboard content cleared")
+            # Ensure UI is ready
+            self.root.update_idletasks()
             
             # Dashboard title
             title = tk.Label(
@@ -268,18 +310,16 @@ All data is stored locally on your computer - no internet connection required.
         """Show patient management module"""
         try:
             log_info("Loading Patients module...")
-            # Ensure root has focus first
-            self.root.focus_force()
             self.clear_content()
             self.root.update_idletasks()
             PatientModule(self.content_frame, self.db)
-            # Ensure root maintains focus
-            self.root.after(50, lambda: self.root.focus_force())
+            # Update UI after module creation
+            self.root.update_idletasks()
+            self.root.update()
             log_info("Patients module loaded successfully")
         except Exception as e:
             log_error("Failed to load Patients module", e)
             messagebox.showerror("Error", f"Failed to load Patients module: {str(e)}")
-            self.root.focus_force()
     
     def show_doctors(self):
         """Show doctor management module"""
@@ -288,6 +328,8 @@ All data is stored locally on your computer - no internet connection required.
             self.clear_content()
             self.root.update_idletasks()
             DoctorModule(self.content_frame, self.db)
+            self.root.update_idletasks()
+            self.root.update()
             log_info("Doctors module loaded successfully")
         except Exception as e:
             log_error("Failed to load Doctors module", e)
@@ -300,6 +342,8 @@ All data is stored locally on your computer - no internet connection required.
             self.clear_content()
             self.root.update_idletasks()
             AppointmentModule(self.content_frame, self.db)
+            self.root.update_idletasks()
+            self.root.update()
             log_info("Appointments module loaded successfully")
         except Exception as e:
             log_error("Failed to load Appointments module", e)
@@ -312,6 +356,8 @@ All data is stored locally on your computer - no internet connection required.
             self.clear_content()
             self.root.update_idletasks()
             PrescriptionModule(self.content_frame, self.db)
+            self.root.update_idletasks()
+            self.root.update()
             log_info("Prescriptions module loaded successfully")
         except Exception as e:
             log_error("Failed to load Prescriptions module", e)
@@ -324,6 +370,8 @@ All data is stored locally on your computer - no internet connection required.
             self.clear_content()
             self.root.update_idletasks()
             BillingModule(self.content_frame, self.db)
+            self.root.update_idletasks()
+            self.root.update()
             log_info("Billing module loaded successfully")
         except Exception as e:
             log_error("Failed to load Billing module", e)
@@ -336,6 +384,8 @@ All data is stored locally on your computer - no internet connection required.
             self.clear_content()
             self.root.update_idletasks()
             ReportsModule(self.content_frame, self.db)
+            self.root.update_idletasks()
+            self.root.update()
             log_info("Reports module loaded successfully")
         except Exception as e:
             log_error("Failed to load Reports module", e)

@@ -116,7 +116,7 @@ class AppointmentModule:
             command=self.view_appointment,
             font=('Arial', 10),
             bg='#3498db',
-            fg='white',
+            fg='black',
             padx=15,
             pady=5,
             cursor='hand2'
@@ -224,7 +224,18 @@ class AppointmentModule:
         dialog.geometry("500x400")
         dialog.configure(bg='#f0f0f0')
         dialog.transient(self.parent)
-        dialog.grab_set()
+        
+        # Get root window for focus management
+        root = self.parent.winfo_toplevel()
+        
+        # Make dialog modal but ensure input works
+        dialog.lift()
+        dialog.focus_force()
+        # Use grab_set_global=False to allow other windows to work
+        try:
+            dialog.grab_set_global(False)
+        except:
+            dialog.grab_set()  # Fallback for older tkinter versions
         
         fields_frame = tk.Frame(dialog, bg='#f0f0f0')
         fields_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
@@ -286,9 +297,35 @@ class AppointmentModule:
                 return
             
             if self.db.add_appointment(data):
-                messagebox.showinfo("Success", "Appointment scheduled successfully")
+                # Release grab BEFORE destroying dialog
+                try:
+                    dialog.grab_release()
+                except:
+                    pass
+                
                 dialog.destroy()
-                self.refresh_list()
+                
+                # Process all pending events immediately - CRITICAL for immediate button response
+                root.update_idletasks()
+                root.update()
+                root.update_idletasks()
+                
+                # Return focus to main window
+                root.focus_force()
+                root.update_idletasks()
+                root.update()
+                
+                # Ensure all events are processed and UI is ready
+                root.update_idletasks()
+                
+                # Final update to ensure buttons are immediately responsive
+                root.update()
+                root.update_idletasks()
+                
+                # Show message after dialog is closed (non-blocking) - delayed to not interfere
+                root.after(150, lambda: messagebox.showinfo("Success", "Appointment scheduled successfully"))
+                # Refresh list asynchronously
+                root.after(250, self.refresh_list)
             else:
                 messagebox.showerror("Error", "Failed to schedule appointment")
         
@@ -301,16 +338,38 @@ class AppointmentModule:
             command=save_appointment,
             font=('Arial', 11, 'bold'),
             bg='#27ae60',
-            fg='white',
+            fg='black',
             padx=30,
             pady=8,
             cursor='hand2'
         ).pack(side=tk.LEFT, padx=10)
         
+        def close_dialog():
+            # Release grab BEFORE destroying
+            try:
+                dialog.grab_release()
+            except:
+                pass
+            
+            dialog.destroy()
+            
+            # Process all pending events immediately - CRITICAL for immediate button response
+            root.update_idletasks()
+            root.update()
+            root.update_idletasks()
+            
+            # Return focus to main window
+            root.focus_force()
+            root.update_idletasks()
+            root.update()
+            
+            # Ensure all events are processed and UI is ready
+            root.update_idletasks()
+        
         tk.Button(
             button_frame,
             text="Close",
-            command=dialog.destroy,
+            command=close_dialog,
             font=('Arial', 11),
             bg='#95a5a6',
             fg='white',
@@ -318,4 +377,23 @@ class AppointmentModule:
             pady=8,
             cursor='hand2'
         ).pack(side=tk.LEFT, padx=10)
+        
+        # Ensure dialog releases grab when closed via window close button
+        def on_close():
+            try:
+                dialog.grab_release()
+            except:
+                pass
+            dialog.destroy()
+            
+            # Process all pending events immediately
+            root.update_idletasks()
+            root.update()
+            root.update_idletasks()
+            
+            root.focus_force()
+            root.update_idletasks()
+            root.update()
+            root.update_idletasks()
+        dialog.protocol("WM_DELETE_WINDOW", on_close)
 

@@ -93,7 +93,7 @@ class PrescriptionModule:
             command=self.view_prescription,
             font=('Arial', 10),
             bg='#3498db',
-            fg='white',
+            fg='black',
             padx=15,
             pady=5,
             cursor='hand2'
@@ -514,19 +514,35 @@ class PrescriptionModule:
             }
             
             if self.db.add_prescription(data, medicines):
-                messagebox.showinfo("Success", "Prescription created successfully")
                 # Release grab before destroying
                 try:
                     dialog.grab_release()
                 except:
                     pass
                 dialog.destroy()
-                dialog.update()
-                # Return focus to main window
+                
+                # Process all pending events immediately - CRITICAL for immediate button response
                 root = self.parent.winfo_toplevel()
+                root.update_idletasks()
+                root.update()
+                root.update_idletasks()
+                
+                # Return focus to main window
                 root.focus_force()
                 root.update_idletasks()
-                self.refresh_list()
+                root.update()
+                
+                # Ensure all events are processed and UI is ready
+                root.update_idletasks()
+                
+                # Final update to ensure buttons are immediately responsive
+                root.update()
+                root.update_idletasks()
+                
+                # Show message after dialog is closed (non-blocking) - delayed to not interfere
+                root.after(150, lambda: messagebox.showinfo("Success", "Prescription created successfully"))
+                # Refresh list asynchronously
+                root.after(250, self.refresh_list)
             else:
                 messagebox.showerror("Error", "Failed to create prescription")
         
@@ -545,7 +561,7 @@ class PrescriptionModule:
             command=save_prescription,
             font=('Arial', 12, 'bold'),
             bg='#27ae60',
-            fg='white',
+            fg='black',
             padx=30,
             pady=10,
             cursor='hand2',
@@ -563,10 +579,19 @@ class PrescriptionModule:
             except:
                 pass
             dialog.destroy()
-            dialog.update()
-            # Return focus to main window
+            
+            # Process all pending events immediately - CRITICAL for immediate button response
             root = self.parent.winfo_toplevel()
+            root.update_idletasks()
+            root.update()
+            root.update_idletasks()
+            
+            # Return focus to main window
             root.focus_force()
+            root.update_idletasks()
+            root.update()
+            
+            # Ensure all events are processed and UI is ready
             root.update_idletasks()
         
         close_btn = tk.Button(

@@ -55,7 +55,7 @@ class PatientModule:
             command=self.add_patient,
             font=('Arial', 11, 'bold'),
             bg='#27ae60',
-            fg='white',
+            fg='black',
             padx=20,
             pady=8,
             cursor='hand2'
@@ -98,7 +98,7 @@ class PatientModule:
             command=self.view_patient,
             font=('Arial', 10),
             bg='#3498db',
-            fg='white',
+            fg='black',
             padx=15,
             pady=5,
             cursor='hand2'
@@ -110,7 +110,7 @@ class PatientModule:
             command=self.edit_patient,
             font=('Arial', 10),
             bg='#f39c12',
-            fg='white',
+            fg='black',
             padx=15,
             pady=5,
             cursor='hand2'
@@ -122,7 +122,7 @@ class PatientModule:
             command=self.delete_patient,
             font=('Arial', 10),
             bg='#e74c3c',
-            fg='white',
+            fg='black',
             padx=15,
             pady=5,
             cursor='hand2'
@@ -352,16 +352,28 @@ class PatientModule:
                         
                         # Destroy dialog first
                         dialog.destroy()
-                        dialog.update()  # Process destroy event
+                        
+                        # Process all pending events immediately - CRITICAL for immediate button response
+                        self.root.update_idletasks()
+                        self.root.update()
+                        self.root.update_idletasks()
                         
                         # Return focus to main window immediately
                         self.root.focus_force()
                         self.root.update_idletasks()
+                        self.root.update()
                         
-                        # Show message after dialog is closed
-                        self.root.after(100, lambda: messagebox.showinfo("Success", "Patient updated successfully"))
+                        # Ensure all events are processed and UI is ready
+                        self.root.update_idletasks()
+                        
+                        # Final update to ensure buttons are immediately responsive
+                        self.root.update()
+                        self.root.update_idletasks()
+                        
+                        # Show message after dialog is closed (non-blocking) - delayed to not interfere
+                        self.root.after(150, lambda: messagebox.showinfo("Success", "Patient updated successfully"))
                         # Refresh list asynchronously
-                        self.root.after(200, self.refresh_list)
+                        self.root.after(250, self.refresh_list)
                         log_info("Patient update process completed")
                     else:
                         log_database_operation("UPDATE", "patients", False, f"Patient ID: {patient_id}")
@@ -381,16 +393,28 @@ class PatientModule:
                         
                         # Destroy dialog first
                         dialog.destroy()
-                        dialog.update()  # Process destroy event
+                        
+                        # Process all pending events immediately - CRITICAL for immediate button response
+                        self.root.update_idletasks()
+                        self.root.update()
+                        self.root.update_idletasks()
                         
                         # Return focus to main window immediately
                         self.root.focus_force()
                         self.root.update_idletasks()
+                        self.root.update()
                         
-                        # Show message after dialog is closed
-                        self.root.after(100, lambda: messagebox.showinfo("Success", "Patient added successfully"))
+                        # Ensure all events are processed and UI is ready
+                        self.root.update_idletasks()
+                        
+                        # Final update to ensure buttons are immediately responsive
+                        self.root.update()
+                        self.root.update_idletasks()
+                        
+                        # Show message after dialog is closed (non-blocking) - delayed to not interfere
+                        self.root.after(150, lambda: messagebox.showinfo("Success", "Patient added successfully"))
                         # Refresh list asynchronously
-                        self.root.after(200, self.refresh_list)
+                        self.root.after(250, self.refresh_list)
                         log_info("Patient add process completed")
                     else:
                         log_database_operation("INSERT", "patients", False, f"Patient ID: {patient_id} - ID might already exist")
@@ -402,7 +426,7 @@ class PatientModule:
                 command=save_patient,
                 font=('Arial', 11, 'bold'),
                 bg='#27ae60',
-                fg='white',
+                fg='black',
                 padx=30,
                 pady=8,
                 cursor='hand2',
@@ -427,10 +451,18 @@ class PatientModule:
             
             # Destroy dialog
             dialog.destroy()
-            dialog.update()  # Process destroy event
+            
+            # Process all pending events immediately - CRITICAL for immediate button response
+            self.root.update_idletasks()
+            self.root.update()
+            self.root.update_idletasks()
             
             # Return focus to main window immediately
             self.root.focus_force()
+            self.root.update_idletasks()
+            self.root.update()
+            
+            # Ensure all events are processed and UI is ready
             self.root.update_idletasks()
             log_info("Dialog closed, focus returned to main window")
         
@@ -563,9 +595,20 @@ class PatientModule:
                 pass
             log_dialog_close(dialog_name)
             dialog.destroy()
-            dialog.update()  # Process destroy event
+            
+            # Process all pending events immediately - CRITICAL for immediate button response
+            self.root.update_idletasks()
+            self.root.update()
+            self.root.update_idletasks()
+            
+            # Return focus to main window immediately
             self.root.focus_force()
             self.root.update_idletasks()
+            self.root.update()
+            
+            # Ensure all events are processed and UI is ready
+            self.root.update_idletasks()
+            return "break"
         dialog.bind('<Escape>', on_escape)
         
         # Ensure dialog releases grab when closed
@@ -577,8 +620,18 @@ class PatientModule:
                 pass
             log_dialog_close(dialog_name)
             dialog.destroy()
-            dialog.update()  # Process destroy event
+            
+            # Process all pending events immediately - CRITICAL for immediate button response
+            self.root.update_idletasks()
+            self.root.update()
+            self.root.update_idletasks()
+            
+            # Return focus to main window immediately
             self.root.focus_force()
+            self.root.update_idletasks()
+            self.root.update()
+            
+            # Ensure all events are processed and UI is ready
             self.root.update_idletasks()
         dialog.protocol("WM_DELETE_WINDOW", on_close)
         

@@ -83,7 +83,7 @@ class BillingModule:
             command=self.view_bill,
             font=('Arial', 10),
             bg='#3498db',
-            fg='white',
+            fg='black',
             padx=15,
             pady=5,
             cursor='hand2'
@@ -147,10 +147,25 @@ class BillingModule:
         """Bill form dialog"""
         dialog = tk.Toplevel(self.parent)
         dialog.title("New Bill")
-        dialog.geometry("500x500")
+        dialog.geometry("500x600")  # Increased height to ensure buttons are visible
         dialog.configure(bg='#f0f0f0')
         dialog.transient(self.parent)
-        dialog.grab_set()
+        
+        # Get root window for focus management
+        root = self.parent.winfo_toplevel()
+        
+        # Make dialog modal but ensure input works
+        dialog.lift()  # Bring dialog to front first
+        dialog.focus_force()  # Force focus on dialog
+        # Use grab_set_global=False to allow other windows to work
+        try:
+            dialog.grab_set_global(False)
+        except:
+            dialog.grab_set()  # Fallback for older tkinter versions
+        
+        # Button frame - pack first to ensure it's at the bottom
+        button_frame = tk.Frame(dialog, bg='#f0f0f0', relief=tk.RAISED, bd=2)
+        button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
         
         main_frame = tk.Frame(dialog, bg='#f0f0f0')
         main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
@@ -158,13 +173,52 @@ class BillingModule:
         bill_id = generate_id('BILL')
         tk.Label(main_frame, text=f"Bill ID: {bill_id}", font=('Arial', 12, 'bold'), bg='#f0f0f0').pack(pady=5)
         
-        # Form fields
+        # Form fields - don't expand to fill all space
         form_frame = tk.Frame(main_frame, bg='#f0f0f0')
-        form_frame.pack(fill=tk.BOTH, expand=True, pady=10)
+        form_frame.pack(fill=tk.X, expand=False, pady=10)
         
+        # Patient selection with searchable dropdown
         tk.Label(form_frame, text="Patient ID *:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        patient_entry = tk.Entry(form_frame, font=('Arial', 10), width=40)
-        patient_entry.pack(fill=tk.X, pady=5)
+        
+        # Get all patients for dropdown
+        all_patients = self.db.get_all_patients()
+        patient_options = []
+        patient_id_map = {}  # Map display string to patient_id
+        
+        for p in all_patients:
+            display_text = f"{p['patient_id']} - {p['first_name']} {p['last_name']}"
+            patient_options.append(display_text)
+            patient_id_map[display_text] = p['patient_id']
+        
+        patient_var = tk.StringVar()
+        patient_combo = ttk.Combobox(
+            form_frame, 
+            textvariable=patient_var,
+            values=patient_options,
+            font=('Arial', 10),
+            width=37,
+            state='normal'  # 'normal' allows typing to search
+        )
+        patient_combo.pack(fill=tk.X, pady=5)
+        
+        # Make patient combo auto-focus on mouse enter
+        def on_patient_enter(event):
+            patient_combo.focus_set()
+        patient_combo.bind('<Enter>', on_patient_enter)
+        
+        # Make combobox searchable - filter as user types
+        def filter_patient(*args):
+            value = patient_var.get().lower()
+            if value == '':
+                patient_combo['values'] = patient_options
+            else:
+                filtered = [opt for opt in patient_options if value in opt.lower()]
+                patient_combo['values'] = filtered
+                # Open dropdown if there are matches
+                if filtered:
+                    patient_combo.event_generate('<Button-1>')
+        
+        patient_var.trace('w', filter_patient)
         
         tk.Label(form_frame, text="Date:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
         date_entry = tk.Entry(form_frame, font=('Arial', 10), width=40)
@@ -210,8 +264,24 @@ class BillingModule:
         payment_combo.pack(fill=tk.X, pady=5)
         
         def save_bill():
-            if not patient_entry.get():
+            # Extract patient_id from combobox selection
+            selected_patient = patient_var.get()
+            if not selected_patient:
                 messagebox.showerror("Error", "Patient ID is required")
+                return
+            
+            # Get patient_id from the selection (format: "PATIENT_ID - FirstName LastName")
+            patient_id = None
+            if selected_patient in patient_id_map:
+                patient_id = patient_id_map[selected_patient]
+            else:
+                # If user typed directly, try to extract ID (take first part before " - ")
+                parts = selected_patient.split(' - ')
+                if parts:
+                    patient_id = parts[0].strip()
+            
+            if not patient_id:
+                messagebox.showerror("Error", "Please select a valid patient")
                 return
             
             try:
@@ -225,7 +295,7 @@ class BillingModule:
             
             data = {
                 'bill_id': bill_id,
-                'patient_id': patient_entry.get(),
+                'patient_id': patient_id,
                 'bill_date': date_entry.get() or get_current_date(),
                 'consultation_fee': consultation,
                 'medicine_cost': medicine,
@@ -237,36 +307,126 @@ class BillingModule:
             }
             
             if self.db.add_bill(data):
-                messagebox.showinfo("Success", "Bill created successfully")
+                # Release grab BEFORE destroying dialog
+                try:
+                    dialog.grab_release()
+                except Exception as e:
+                    pass
+                
+                # Destroy dialog first
                 dialog.destroy()
-                self.refresh_list()
+                
+                # Process all pending events immediately - CRITICAL for immediate button response
+                root.update_idletasks()
+                root.update()
+                root.update_idletasks()
+                
+                # Return focus to main window immediately
+                root.focus_force()
+                root.update_idletasks()
+                root.update()
+                
+                # Ensure all events are processed and UI is ready
+                root.update_idletasks()
+                
+                # Final update to ensure buttons are immediately responsive
+                root.update()
+                root.update_idletasks()
+                
+                # Show message after dialog is closed (non-blocking) - delayed to not interfere
+                root.after(150, lambda: messagebox.showinfo("Success", "Bill created successfully"))
+                # Refresh list asynchronously
+                root.after(250, self.refresh_list)
             else:
                 messagebox.showerror("Error", "Failed to create bill")
         
-        button_frame = tk.Frame(dialog, bg='#f0f0f0')
-        button_frame.pack(fill=tk.X, padx=20, pady=20)
+        # Inner frame for button spacing
+        inner_button_frame = tk.Frame(button_frame, bg='#f0f0f0')
+        inner_button_frame.pack(fill=tk.X, padx=20, pady=15)
         
         tk.Button(
-            button_frame,
-            text="Save Bill",
+            inner_button_frame,
+            text="Save",
             command=save_bill,
             font=('Arial', 11, 'bold'),
             bg='#27ae60',
-            fg='white',
+            fg='black',
             padx=30,
             pady=8,
-            cursor='hand2'
+            cursor='hand2',
+            relief=tk.RAISED,
+            bd=2,
+            activebackground='#229954',
+            activeforeground='white'
         ).pack(side=tk.LEFT, padx=10)
         
+        def close_dialog():
+            # Release grab BEFORE destroying
+            try:
+                dialog.grab_release()
+            except Exception as e:
+                pass
+            
+            # Destroy dialog
+            dialog.destroy()
+            
+            # Process all pending events immediately - CRITICAL for immediate button response
+            root.update_idletasks()
+            root.update()
+            root.update_idletasks()
+            
+            # Return focus to main window immediately
+            root.focus_force()
+            root.update_idletasks()
+            root.update()
+            
+            # Ensure all events are processed and UI is ready
+            root.update_idletasks()
+        
         tk.Button(
-            button_frame,
+            inner_button_frame,
             text="Close",
-            command=dialog.destroy,
+            command=close_dialog,
             font=('Arial', 11),
             bg='#95a5a6',
             fg='white',
             padx=30,
             pady=8,
-            cursor='hand2'
+            cursor='hand2',
+            relief=tk.RAISED,
+            bd=2
         ).pack(side=tk.LEFT, padx=10)
-
+        
+        # Ensure everything is properly laid out
+        dialog.update_idletasks()
+        # Make sure dialog is not resizable below minimum size needed for buttons
+        dialog.resizable(True, True)
+        dialog.minsize(500, 600)
+        
+        # Ensure dialog releases grab when closed via window close button
+        def on_close():
+            try:
+                dialog.grab_release()
+            except:
+                pass
+            dialog.destroy()
+            
+            # Process all pending events immediately - CRITICAL for immediate button response
+            root.update_idletasks()
+            root.update()
+            root.update_idletasks()
+            
+            # Return focus to main window immediately
+            root.focus_force()
+            root.update_idletasks()
+            root.update()
+            
+            # Ensure all events are processed and UI is ready
+            root.update_idletasks()
+        dialog.protocol("WM_DELETE_WINDOW", on_close)
+        
+        # Bind Escape key to close dialog
+        def on_escape(event):
+            close_dialog()
+            return "break"
+        dialog.bind('<Escape>', on_escape)
