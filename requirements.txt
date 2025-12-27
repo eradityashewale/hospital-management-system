@@ -1,0 +1,13 @@
+# Hospital Management System - Offline Software
+# Python 3.7+ required
+
+# This project uses only built-in Python libraries:
+# - tkinter (GUI)
+# - sqlite3 (database)
+# - datetime, uuid, os, sys, typing (standard library)
+#
+# No external dependencies are required to run this application.
+
+# Optional dependencies (uncomment if needed):
+# python-dateutil==2.8.2  # For enhanced date handling
+# reportlab==4.0.4        # For PDF generation (reports/printouts)
