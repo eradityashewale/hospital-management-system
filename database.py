@@ -410,6 +410,9 @@ class Database:
         """, (prescription_id,))
         return [dict(row) for row in self.cursor.fetchall()]
     
+        row = self.cursor.fetchone()
+        return dict(row) if row else None
+    
     # Billing operations
     def add_bill(self, bill_data: Dict) -> bool:
         """Add a new bill"""
