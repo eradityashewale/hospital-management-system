@@ -410,6 +410,14 @@ class Database:
         """, (prescription_id,))
         return [dict(row) for row in self.cursor.fetchall()]
     
+    def get_prescription_by_id(self, prescription_id: str) -> Optional[Dict]:
+        """Get prescription by ID"""
+        self.cursor.execute("""
+            SELECT p.*, d.first_name || ' ' || d.last_name as doctor_name
+            FROM prescriptions p
+            LEFT JOIN doctors d ON p.doctor_id = d.doctor_id
+            WHERE p.prescription_id = ?
+        """, (prescription_id,))
         row = self.cursor.fetchone()
         return dict(row) if row else None
     
@@ -449,6 +457,17 @@ class Database:
             ORDER BY b.bill_date DESC
         """)
         return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_bill_by_id(self, bill_id: str) -> Optional[Dict]:
+        """Get bill by ID"""
+        self.cursor.execute("""
+            SELECT b.*, p.first_name || ' ' || p.last_name as patient_name
+            FROM billing b
+            LEFT JOIN patients p ON b.patient_id = p.patient_id
+            WHERE b.bill_id = ?
+        """, (bill_id,))
+        row = self.cursor.fetchone()
+        return dict(row) if row else None
     
     def get_statistics(self) -> Dict:
         """Get system statistics"""
