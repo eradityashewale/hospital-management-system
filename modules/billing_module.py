@@ -2,9 +2,13 @@
 Billing Management Module
 """
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from database import Database
 from utils import generate_id, get_current_date
+import tempfile
+import os
+import subprocess
+import platform
 
 
 class BillingModule:
@@ -91,6 +95,18 @@ class BillingModule:
         
         tk.Button(
             action_frame,
+            text="🖨️ Print",
+            command=self.print_bill,
+            font=('Arial', 10),
+            bg='#e67e22',
+            fg='white',
+            padx=15,
+            pady=5,
+            cursor='hand2'
+        ).pack(side=tk.LEFT, padx=5)
+        
+        tk.Button(
+            action_frame,
             text="Mark Paid",
             command=self.mark_paid,
             font=('Arial', 10),
@@ -134,6 +150,72 @@ class BillingModule:
         if not bill_id:
             return
         messagebox.showinfo("Bill", f"View details for {bill_id}")
+    
+    def print_bill(self):
+        """Print bill"""
+        bill_id = self.get_selected_bill_id()
+        if not bill_id:
+            return
+        
+        # Get bill details
+        bill = self.db.get_bill_by_id(bill_id)
+        if not bill:
+            messagebox.showerror("Error", "Bill not found")
+            return
+        
+        # Get patient details
+        patient = self.db.get_patient_by_id(bill['patient_id'])
+        patient_name = bill.get('patient_name', '')
+        if not patient_name and patient:
+            patient_name = f"{patient['first_name']} {patient['last_name']}"
+        
+        # Format bill for printing
+        print_text = f"""
+╔══════════════════════════════════════════════════════════════╗
+║                      BILL / INVOICE                           ║
+╚══════════════════════════════════════════════════════════════╝
+
+Bill ID: {bill['bill_id']}
+Date: {bill['bill_date']}
+
+Patient Information:
+  Name: {patient_name}
+  Patient ID: {bill['patient_id']}
+"""
+        if patient:
+            if patient.get('phone'):
+                print_text += f"  Phone: {patient['phone']}\n"
+            if patient.get('email'):
+                print_text += f"  Email: {patient['email']}\n"
+
+        print_text += f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+CHARGES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Consultation Fee:      ${bill.get('consultation_fee', 0):>15,.2f}
+Medicine Cost:         ${bill.get('medicine_cost', 0):>15,.2f}
+Other Charges:         ${bill.get('other_charges', 0):>15,.2f}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TOTAL AMOUNT:          ${bill['total_amount']:>15,.2f}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Payment Status: {bill.get('payment_status', 'Pending')}
+Payment Method: {bill.get('payment_method', 'N/A')}
+"""
+        
+        if bill.get('notes'):
+            print_text += f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Notes:
+{bill['notes']}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+        
+        print_text += "\n"
+        
+        # Show print dialog
+        self._show_print_dialog(print_text, f"Bill - {bill_id}")
     
     def mark_paid(self):
         """Mark bill as paid"""
@@ -430,3 +512,177 @@ class BillingModule:
             close_dialog()
             return "break"
         dialog.bind('<Escape>', on_escape)
+    
+    def _show_print_dialog(self, text, title="Print"):
+        """Show print dialog with formatted text"""
+        print_dialog = tk.Toplevel(self.parent)
+        print_dialog.title(title)
+        print_dialog.geometry("700x600")
+        print_dialog.configure(bg='#f0f0f0')
+        print_dialog.transient(self.parent)
+        
+        # Text widget for display
+        text_frame = tk.Frame(print_dialog, bg='#f0f0f0')
+        text_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        text_widget = tk.Text(text_frame, font=('Courier', 10), wrap=tk.WORD, bg='white')
+        scrollbar = tk.Scrollbar(text_frame, orient=tk.VERTICAL, command=text_widget.yview)
+        text_widget.configure(yscrollcommand=scrollbar.set)
+        
+        text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        text_widget.insert('1.0', text)
+        text_widget.config(state=tk.DISABLED)
+        
+        # Button frame
+        button_frame = tk.Frame(print_dialog, bg='#f0f0f0')
+        button_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        def print_text():
+            """Print the text"""
+            try:
+                # Create temporary file
+                temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8')
+                temp_file.write(text)
+                temp_file.close()
+                
+                # Print based on OS
+                system = platform.system()
+                if system == "Windows":
+                    # On Windows, use PowerShell to print
+                    try:
+                        subprocess.run(['powershell', '-Command', 
+                                      f'Get-Content "{temp_file.name}" | Out-Printer'], 
+                                     check=True, timeout=10)
+                        messagebox.showinfo("Print", "Document sent to default printer!")
+                    except:
+                        # Fallback: open in notepad for manual printing
+                        os.startfile(temp_file.name, 'print')
+                        messagebox.showinfo("Print", "Print dialog opened. Please select your printer and click Print.")
+                elif system == "Darwin":  # macOS
+                    subprocess.run(['lpr', temp_file.name], check=True)
+                    messagebox.showinfo("Print", "Document sent to default printer!")
+                else:  # Linux
+                    subprocess.run(['lp', temp_file.name], check=True)
+                    messagebox.showinfo("Print", "Document sent to default printer!")
+                
+                # Clean up after a delay
+                def cleanup():
+                    try:
+                        os.unlink(temp_file.name)
+                    except:
+                        pass
+                print_dialog.after(5000, cleanup)
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to print: {str(e)}\n\nYou can save the document and print it manually.")
+        
+        def save_as_pdf():
+            """Save document as PDF"""
+            try:
+                # Generate default filename from title
+                default_filename = title.replace(" - ", "_").replace(" ", "_") + ".pdf"
+                
+                # Try using reportlab if available
+                try:
+                    from reportlab.lib.pagesizes import letter
+                    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                    from reportlab.lib.styles import getSampleStyleSheet
+                    from reportlab.lib.units import inch
+                    
+                    filename = filedialog.asksaveasfilename(
+                        defaultextension=".pdf",
+                        filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+                        title="Save Bill as PDF",
+                        initialfile=default_filename
+                    )
+                    
+                    if filename:
+                        doc = SimpleDocTemplate(filename, pagesize=letter)
+                        styles = getSampleStyleSheet()
+                        story = []
+                        
+                        # Add content line by line
+                        for line in text.split('\n'):
+                            if line.strip():
+                                # Handle special characters
+                                line = line.replace('╔', '=').replace('╗', '=')
+                                line = line.replace('║', '|').replace('╚', '=')
+                                line = line.replace('╝', '=').replace('━', '-')
+                                line = line.replace('═', '=')
+                                
+                                if 'BILL' in line.upper() or 'INVOICE' in line.upper() or '━━━' in line:
+                                    story.append(Paragraph(line, styles['Heading1']))
+                                else:
+                                    story.append(Paragraph(line, styles['Normal']))
+                                story.append(Spacer(1, 0.1*inch))
+                        
+                        doc.build(story)
+                        messagebox.showinfo("Success", f"Bill saved as PDF:\n{filename}")
+                    return
+                except ImportError:
+                    # reportlab not available - install it or use alternative
+                    messagebox.showwarning(
+                        "PDF Library Not Found",
+                        "The 'reportlab' library is required to save as PDF.\n\n"
+                        "Please install it using: pip install reportlab\n\n"
+                        "Alternatively, you can save as text file and convert it manually."
+                    )
+                    
+                    # Fallback: Save as text file
+                    filename = filedialog.asksaveasfilename(
+                        defaultextension=".txt",
+                        filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+                        title="Save Bill",
+                        initialfile=default_filename.replace(".pdf", ".txt")
+                    )
+                    
+                    if filename:
+                        with open(filename, 'w', encoding='utf-8') as f:
+                            f.write(text)
+                        messagebox.showinfo("Success", 
+                            f"Bill saved as text file:\n{filename}\n\n"
+                            f"Note: Install reportlab (pip install reportlab) to save as PDF directly.")
+                        
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to save PDF: {str(e)}")
+        
+        tk.Button(
+            button_frame,
+            text="🖨️ Print",
+            command=print_text,
+            font=('Arial', 11, 'bold'),
+            bg='#e67e22',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2'
+        ).pack(side=tk.LEFT, padx=5)
+        
+        tk.Button(
+            button_frame,
+            text="📄 Save as PDF",
+            command=save_as_pdf,
+            font=('Arial', 11, 'bold'),
+            bg='#3498db',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2'
+        ).pack(side=tk.LEFT, padx=5)
+        
+        def close_dialog():
+            print_dialog.destroy()
+        
+        tk.Button(
+            button_frame,
+            text="Close",
+            command=close_dialog,
+            font=('Arial', 11),
+            bg='#95a5a6',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2'
+        ).pack(side=tk.LEFT, padx=5)

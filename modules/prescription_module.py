@@ -2,9 +2,13 @@
 Prescription Management Module
 """
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from database import Database
 from utils import generate_id, get_current_date
+import tempfile
+import os
+import subprocess
+import platform
 
 
 class PrescriptionModule:
@@ -98,6 +102,18 @@ class PrescriptionModule:
             pady=5,
             cursor='hand2'
         ).pack(side=tk.LEFT, padx=5)
+        
+        tk.Button(
+            action_frame,
+            text="🖨️ Print",
+            command=self.print_prescription,
+            font=('Arial', 10),
+            bg='#e67e22',
+            fg='white',
+            padx=15,
+            pady=5,
+            cursor='hand2'
+        ).pack(side=tk.LEFT, padx=5)
     
     def refresh_list(self):
         """Refresh prescription list"""
@@ -183,6 +199,81 @@ class PrescriptionModule:
             details += f"Instructions: {item.get('instructions', '')}\n\n"
         
         messagebox.showinfo("Prescription Details", details)
+    
+    def print_prescription(self):
+        """Print prescription"""
+        prescription_id = self.get_selected_prescription_id()
+        if not prescription_id:
+            return
+        
+        # Get prescription details
+        prescription = self.db.get_prescription_by_id(prescription_id)
+        if not prescription:
+            messagebox.showerror("Error", "Prescription not found")
+            return
+        
+        # Get prescription items
+        items = self.db.get_prescription_items(prescription_id)
+        if not items:
+            messagebox.showinfo("Prescription", "No items found")
+            return
+        
+        # Get patient details
+        patient = self.db.get_patient_by_id(prescription['patient_id'])
+        patient_name = f"{patient['first_name']} {patient['last_name']}" if patient else prescription['patient_id']
+        
+        # Format prescription for printing
+        print_text = f"""
+╔══════════════════════════════════════════════════════════════╗
+║                  PRESCRIPTION                                ║
+╚══════════════════════════════════════════════════════════════╝
+
+Prescription ID: {prescription['prescription_id']}
+Date: {prescription['prescription_date']}
+
+Patient Information:
+  Name: {patient_name}
+  Patient ID: {prescription['patient_id']}
+"""
+        if patient:
+            if patient.get('date_of_birth'):
+                print_text += f"  Date of Birth: {patient['date_of_birth']}\n"
+            if patient.get('gender'):
+                print_text += f"  Gender: {patient['gender']}\n"
+        
+        print_text += f"""
+Doctor: {prescription.get('doctor_name', prescription.get('doctor_id', 'N/A'))}
+
+Diagnosis:
+{prescription.get('diagnosis', 'N/A')}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+MEDICINES PRESCRIBED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+        
+        for idx, item in enumerate(items, 1):
+            print_text += f"""
+{idx}. {item['medicine_name']}
+   Dosage: {item['dosage']}
+   Frequency: {item['frequency']}
+   Duration: {item['duration']}"""
+            if item.get('instructions'):
+                print_text += f"\n   Instructions: {item['instructions']}"
+            print_text += "\n"
+        
+        if prescription.get('notes'):
+            print_text += f"""
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Additional Notes:
+{prescription['notes']}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+        
+        print_text += "\n"
+        
+        # Show print dialog
+        self._show_print_dialog(print_text, f"Prescription - {prescription_id}")
     
     def prescription_dialog(self):
         """Prescription form dialog"""
@@ -641,4 +732,182 @@ class PrescriptionModule:
         
         # Set focus on patient combo when dialog opens
         dialog.after(100, lambda: patient_combo.focus_set())
+    
+    def _show_print_dialog(self, text, title="Print"):
+        """Show print dialog with formatted text"""
+        print_dialog = tk.Toplevel(self.parent)
+        print_dialog.title(title)
+        print_dialog.geometry("700x600")
+        print_dialog.configure(bg='#f0f0f0')
+        print_dialog.transient(self.parent)
+        
+        # Text widget for display
+        text_frame = tk.Frame(print_dialog, bg='#f0f0f0')
+        text_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        text_widget = tk.Text(text_frame, font=('Courier', 10), wrap=tk.WORD, bg='white')
+        scrollbar = tk.Scrollbar(text_frame, orient=tk.VERTICAL, command=text_widget.yview)
+        text_widget.configure(yscrollcommand=scrollbar.set)
+        
+        text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        text_widget.insert('1.0', text)
+        text_widget.config(state=tk.DISABLED)
+        
+        # Button frame
+        button_frame = tk.Frame(print_dialog, bg='#f0f0f0')
+        button_frame.pack(fill=tk.X, padx=20, pady=10)
+        
+        def print_text():
+            """Print the text"""
+            try:
+                import subprocess
+                import platform
+                
+                # Create temporary file
+                temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8')
+                temp_file.write(text)
+                temp_file.close()
+                
+                # Print based on OS
+                system = platform.system()
+                if system == "Windows":
+                    # On Windows, use notepad print or PowerShell
+                    try:
+                        # Try using PowerShell to print
+                        subprocess.run(['powershell', '-Command', 
+                                      f'Get-Content "{temp_file.name}" | Out-Printer'], 
+                                     check=True, timeout=10)
+                        messagebox.showinfo("Print", "Document sent to default printer!")
+                    except:
+                        # Fallback: open in notepad for manual printing
+                        os.startfile(temp_file.name, 'print')
+                        messagebox.showinfo("Print", "Print dialog opened. Please select your printer and click Print.")
+                elif system == "Darwin":  # macOS
+                    subprocess.run(['lpr', temp_file.name], check=True)
+                    messagebox.showinfo("Print", "Document sent to default printer!")
+                else:  # Linux
+                    subprocess.run(['lp', temp_file.name], check=True)
+                    messagebox.showinfo("Print", "Document sent to default printer!")
+                
+                # Clean up after a delay
+                def cleanup():
+                    try:
+                        os.unlink(temp_file.name)
+                    except:
+                        pass
+                print_dialog.after(5000, cleanup)
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to print: {str(e)}\n\nYou can save the document and print it manually.")
+        
+        def save_as_pdf():
+            """Save document as PDF"""
+            try:
+                # Generate default filename from title
+                default_filename = title.replace(" - ", "_").replace(" ", "_") + ".pdf"
+                
+                # Try using reportlab if available
+                try:
+                    from reportlab.lib.pagesizes import letter
+                    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+                    from reportlab.lib.styles import getSampleStyleSheet
+                    from reportlab.lib.units import inch
+                    
+                    filename = filedialog.asksaveasfilename(
+                        defaultextension=".pdf",
+                        filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+                        title="Save Prescription as PDF",
+                        initialfile=default_filename
+                    )
+                    
+                    if filename:
+                        doc = SimpleDocTemplate(filename, pagesize=letter)
+                        styles = getSampleStyleSheet()
+                        story = []
+                        
+                        # Add content line by line
+                        for line in text.split('\n'):
+                            if line.strip():
+                                # Handle special characters
+                                line = line.replace('╔', '=').replace('╗', '=')
+                                line = line.replace('║', '|').replace('╚', '=')
+                                line = line.replace('╝', '=').replace('━', '-')
+                                line = line.replace('═', '=')
+                                
+                                if line.strip().startswith('PRESCRIPTION') or '━━━' in line:
+                                    story.append(Paragraph(line, styles['Heading1']))
+                                else:
+                                    story.append(Paragraph(line, styles['Normal']))
+                                story.append(Spacer(1, 0.1*inch))
+                        
+                        doc.build(story)
+                        messagebox.showinfo("Success", f"Prescription saved as PDF:\n{filename}")
+                    return
+                except ImportError:
+                    # reportlab not available - install it or use alternative
+                    messagebox.showwarning(
+                        "PDF Library Not Found",
+                        "The 'reportlab' library is required to save as PDF.\n\n"
+                        "Please install it using: pip install reportlab\n\n"
+                        "Alternatively, you can save as text file and convert it manually."
+                    )
+                    
+                    # Fallback: Save as text file
+                    filename = filedialog.asksaveasfilename(
+                        defaultextension=".txt",
+                        filetypes=[("Text files", "*.txt"), ("All files", "*.*")],
+                        title="Save Prescription",
+                        initialfile=default_filename.replace(".pdf", ".txt")
+                    )
+                    
+                    if filename:
+                        with open(filename, 'w', encoding='utf-8') as f:
+                            f.write(text)
+                        messagebox.showinfo("Success", 
+                            f"Prescription saved as text file:\n{filename}\n\n"
+                            f"Note: Install reportlab (pip install reportlab) to save as PDF directly.")
+                        
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to save PDF: {str(e)}")
+        
+        tk.Button(
+            button_frame,
+            text="🖨️ Print",
+            command=print_text,
+            font=('Arial', 11, 'bold'),
+            bg='#e67e22',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2'
+        ).pack(side=tk.LEFT, padx=5)
+        
+        tk.Button(
+            button_frame,
+            text="📄 Save as PDF",
+            command=save_as_pdf,
+            font=('Arial', 11, 'bold'),
+            bg='#3498db',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2'
+        ).pack(side=tk.LEFT, padx=5)
+        
+        def close_dialog():
+            print_dialog.destroy()
+        
+        tk.Button(
+            button_frame,
+            text="Close",
+            command=close_dialog,
+            font=('Arial', 11),
+            bg='#95a5a6',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2'
+        ).pack(side=tk.LEFT, padx=5)
 
