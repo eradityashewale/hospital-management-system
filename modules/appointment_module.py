@@ -221,7 +221,7 @@ class AppointmentModule:
         """Appointment form dialog"""
         dialog = tk.Toplevel(self.parent)
         dialog.title("Schedule Appointment" if not appointment else "Edit Appointment")
-        dialog.geometry("500x400")
+        dialog.geometry("550x550")  # Increased height to ensure buttons are visible
         dialog.configure(bg='#f0f0f0')
         dialog.transient(self.parent)
         
@@ -237,8 +237,12 @@ class AppointmentModule:
         except:
             dialog.grab_set()  # Fallback for older tkinter versions
         
-        fields_frame = tk.Frame(dialog, bg='#f0f0f0')
-        fields_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        # Main content frame - pack before button frame
+        main_frame = tk.Frame(dialog, bg='#f0f0f0')
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        fields_frame = tk.Frame(main_frame, bg='#f0f0f0')
+        fields_frame.pack(fill=tk.X, expand=False, pady=10)
         
         if appointment:
             appointment_id = appointment['appointment_id']
@@ -247,15 +251,81 @@ class AppointmentModule:
         
         tk.Label(fields_frame, text=f"Appointment ID: {appointment_id}", font=('Arial', 12, 'bold'), bg='#f0f0f0').pack(pady=5)
         
-        # Patient selection
+        # Patient selection with searchable dropdown
         tk.Label(fields_frame, text="Patient ID *:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        patient_entry = tk.Entry(fields_frame, font=('Arial', 10), width=40)
-        patient_entry.pack(fill=tk.X, pady=5)
         
-        # Doctor selection
+        # Get all patients for dropdown
+        all_patients = self.db.get_all_patients()
+        patient_options = []
+        patient_id_map = {}  # Map display string to patient_id
+        
+        for p in all_patients:
+            display_text = f"{p['patient_id']} - {p['first_name']} {p['last_name']}"
+            patient_options.append(display_text)
+            patient_id_map[display_text] = p['patient_id']
+        
+        patient_var = tk.StringVar()
+        patient_combo = ttk.Combobox(
+            fields_frame, 
+            textvariable=patient_var,
+            values=patient_options,
+            font=('Arial', 10),
+            width=37,
+            state='normal'  # 'normal' allows typing to search
+        )
+        patient_combo.pack(fill=tk.X, pady=5)
+        
+        # Make combobox searchable - filter as user types
+        def filter_patient(*args):
+            value = patient_var.get().lower()
+            if value == '':
+                patient_combo['values'] = patient_options
+            else:
+                filtered = [opt for opt in patient_options if value in opt.lower()]
+                patient_combo['values'] = filtered
+                # Open dropdown if there are matches
+                if filtered:
+                    patient_combo.event_generate('<Button-1>')
+        
+        patient_var.trace('w', filter_patient)
+        
+        # Doctor selection with searchable dropdown
         tk.Label(fields_frame, text="Doctor ID *:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        doctor_entry = tk.Entry(fields_frame, font=('Arial', 10), width=40)
-        doctor_entry.pack(fill=tk.X, pady=5)
+        
+        # Get all doctors for dropdown
+        all_doctors = self.db.get_all_doctors()
+        doctor_options = []
+        doctor_id_map = {}  # Map display string to doctor_id
+        
+        for d in all_doctors:
+            display_text = f"{d['doctor_id']} - Dr. {d['first_name']} {d['last_name']} ({d['specialization']})"
+            doctor_options.append(display_text)
+            doctor_id_map[display_text] = d['doctor_id']
+        
+        doctor_var = tk.StringVar()
+        doctor_combo = ttk.Combobox(
+            fields_frame,
+            textvariable=doctor_var,
+            values=doctor_options,
+            font=('Arial', 10),
+            width=37,
+            state='normal'  # 'normal' allows typing to search
+        )
+        doctor_combo.pack(fill=tk.X, pady=5)
+        
+        # Make combobox searchable - filter as user types
+        def filter_doctor(*args):
+            value = doctor_var.get().lower()
+            if value == '':
+                doctor_combo['values'] = doctor_options
+            else:
+                filtered = [opt for opt in doctor_options if value in opt.lower()]
+                doctor_combo['values'] = filtered
+                # Open dropdown if there are matches
+                if filtered:
+                    doctor_combo.event_generate('<Button-1>')
+        
+        doctor_var.trace('w', filter_doctor)
         
         # Date
         tk.Label(fields_frame, text="Date (YYYY-MM-DD) *:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
@@ -274,10 +344,31 @@ class AppointmentModule:
         notes_text.pack(fill=tk.X, pady=5)
         
         def save_appointment():
+            # Get selected patient and doctor IDs from combobox
+            patient_display = patient_var.get()
+            doctor_display = doctor_var.get()
+            
+            # Extract IDs from display text
+            patient_id_value = patient_id_map.get(patient_display, '')
+            doctor_id_value = doctor_id_map.get(doctor_display, '')
+            
+            # If not found in map, try to extract from display text directly (fallback)
+            if not patient_id_value and patient_display:
+                # Try to extract ID if user typed it directly (format: "PAT-XXX - Name")
+                parts = patient_display.split(' - ')
+                if parts:
+                    patient_id_value = parts[0].strip()
+            
+            if not doctor_id_value and doctor_display:
+                # Try to extract ID if user typed it directly (format: "DOC-XXX - Name")
+                parts = doctor_display.split(' - ')
+                if parts:
+                    doctor_id_value = parts[0].strip()
+            
             data = {
                 'appointment_id': appointment_id,
-                'patient_id': patient_entry.get(),
-                'doctor_id': doctor_entry.get(),
+                'patient_id': patient_id_value,
+                'doctor_id': doctor_id_value,
                 'appointment_date': date_entry.get(),
                 'appointment_time': time_entry.get(),
                 'notes': notes_text.get('1.0', tk.END).strip()
@@ -329,20 +420,31 @@ class AppointmentModule:
             else:
                 messagebox.showerror("Error", "Failed to schedule appointment")
         
-        button_frame = tk.Frame(dialog, bg='#f0f0f0')
-        button_frame.pack(fill=tk.X, padx=20, pady=20)
+        # Button frame - ensure it's always visible at bottom
+        button_frame = tk.Frame(dialog, bg='#f0f0f0', relief=tk.RAISED, bd=2)
+        button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
         
-        tk.Button(
-            button_frame,
-            text="Save",
+        # Inner frame for button spacing
+        inner_button_frame = tk.Frame(button_frame, bg='#f0f0f0')
+        inner_button_frame.pack(padx=20, pady=15)
+        
+        # Schedule Appointment button - primary action
+        schedule_btn = tk.Button(
+            inner_button_frame,
+            text="Schedule Appointment",
             command=save_appointment,
-            font=('Arial', 11, 'bold'),
+            font=('Arial', 12, 'bold'),
             bg='#27ae60',
-            fg='black',
-            padx=30,
-            pady=8,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=10)
+            fg='white',
+            padx=40,
+            pady=10,
+            cursor='hand2',
+            relief=tk.RAISED,
+            bd=3,
+            activebackground='#229954',
+            activeforeground='white'
+        )
+        schedule_btn.pack(side=tk.LEFT, padx=10)
         
         def close_dialog():
             # Release grab BEFORE destroying
@@ -366,8 +468,8 @@ class AppointmentModule:
             # Ensure all events are processed and UI is ready
             root.update_idletasks()
         
-        tk.Button(
-            button_frame,
+        close_btn = tk.Button(
+            inner_button_frame,
             text="Close",
             command=close_dialog,
             font=('Arial', 11),
@@ -375,8 +477,11 @@ class AppointmentModule:
             fg='white',
             padx=30,
             pady=8,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=10)
+            cursor='hand2',
+            activebackground='#7f8c8d',
+            activeforeground='white'
+        )
+        close_btn.pack(side=tk.LEFT, padx=10)
         
         # Ensure dialog releases grab when closed via window close button
         def on_close():
