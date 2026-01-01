@@ -321,9 +321,23 @@ Follow-up Date: {prescription['follow_up_date']}
         
         dialog = tk.Toplevel(self.parent)
         dialog.title("Edit Prescription" if is_edit_mode else "New Prescription")
-        dialog.geometry("900x750")  # Wider for side-by-side layout, shorter height
         dialog.configure(bg='#f0f0f0')
         dialog.transient(self.parent)
+        
+        # Maximize the window to fill the screen
+        try:
+            # Windows
+            dialog.state('zoomed')
+        except:
+            try:
+                # Linux
+                dialog.attributes('-zoomed', True)
+            except:
+                # Fallback: set to screen size
+                dialog.update_idletasks()
+                width = dialog.winfo_screenwidth()
+                height = dialog.winfo_screenheight()
+                dialog.geometry(f"{width}x{height}+0+0")
         
         # Load existing prescription data if editing
         prescription_data = None
