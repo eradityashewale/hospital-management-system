@@ -103,14 +103,33 @@ class Database:
                 doctor_id TEXT NOT NULL,
                 appointment_id TEXT,
                 prescription_date TEXT NOT NULL,
+                chief_complaints TEXT,
+                examination TEXT,
                 diagnosis TEXT,
                 notes TEXT,
+                follow_up_date TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
                 FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id),
                 FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id)
             )
         """)
+        
+        # Add new columns if they don't exist (for existing databases)
+        try:
+            self.cursor.execute("ALTER TABLE prescriptions ADD COLUMN chief_complaints TEXT")
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            self.cursor.execute("ALTER TABLE prescriptions ADD COLUMN examination TEXT")
+        except sqlite3.OperationalError:
+            pass
+        
+        try:
+            self.cursor.execute("ALTER TABLE prescriptions ADD COLUMN follow_up_date TEXT")
+        except sqlite3.OperationalError:
+            pass
         
         # Prescription items (medicines)
         self.cursor.execute("""
@@ -165,8 +184,244 @@ class Database:
             )
         """)
         
+        # Medicines table
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS medicines (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                medicine_name TEXT NOT NULL,
+                company_name TEXT,
+                category TEXT,
+                common_dosage TEXT,
+                form TEXT,
+                is_pediatric INTEGER DEFAULT 0,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(medicine_name, company_name, common_dosage, form)
+            )
+        """)
+        
+        # Add company_name column if it doesn't exist (for existing databases)
+        try:
+            self.cursor.execute("ALTER TABLE medicines ADD COLUMN company_name TEXT")
+        except sqlite3.OperationalError:
+            # Column already exists, ignore
+            pass
+        
+        # Add form column if it doesn't exist
+        try:
+            self.cursor.execute("ALTER TABLE medicines ADD COLUMN form TEXT")
+        except sqlite3.OperationalError:
+            # Column already exists, ignore
+            pass
+        
+        # Add is_pediatric column if it doesn't exist
+        try:
+            self.cursor.execute("ALTER TABLE medicines ADD COLUMN is_pediatric INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            # Column already exists, ignore
+            pass
+        
+        self.conn.commit()
+        
+        # Check if medicines table is empty or needs migration
+        self.cursor.execute("SELECT COUNT(*) FROM medicines")
+        medicine_count = self.cursor.fetchone()[0]
+        
+        if medicine_count == 0:
+            # Table is empty, populate it
+            self._populate_medicines()
+        else:
+            # Check if medicines have company names
+            self.cursor.execute("SELECT COUNT(*) FROM medicines WHERE company_name IS NOT NULL AND company_name != ''")
+            medicines_with_company = self.cursor.fetchone()[0]
+            
+            if medicines_with_company == 0:
+                # Medicines exist but don't have company names - need to migrate
+                log_info("Migrating medicines to include company names...")
+                self._migrate_medicines_with_companies()
+        
         self.conn.commit()
         log_info("Database initialized successfully")
+    
+    def _populate_medicines(self):
+        """Insert complete essential branded medicine list"""
+        medicines = [
+            # ===== PAIN & FEVER =====
+            ("Paracetamol", "Dolo", "Pain & Fever", "650mg", "Tablet", 0),
+            ("Paracetamol", "Calpol", "Pain & Fever", "500mg", "Tablet", 0),
+            ("Paracetamol", "Calpol", "Pain & Fever", "250mg/5ml", "Syrup", 1),
+            ("Paracetamol", "Crocin Advance", "Pain & Fever", "500mg", "Tablet", 0),
+            ("Ibuprofen", "Brufen", "Pain & Fever", "400mg", "Tablet", 0),
+            ("Ibuprofen", "Ibugesic", "Pain & Fever", "100mg/5ml", "Suspension", 1),
+            ("Paracetamol+Ibuprofen", "Combiflam", "Pain & Fever", "400mg/325mg", "Tablet", 0),
+            ("Aspirin", "Ecosprin", "Pain & Fever", "75mg", "Tablet", 0),
+            ("Diclofenac", "Voveran", "Pain & Fever", "50mg", "Tablet", 0),
+            ("Aceclofenac", "Hifenac", "Pain & Fever", "100mg", "Tablet", 0),
+            ("Naproxen", "Naprosyn", "Pain & Fever", "500mg", "Tablet", 0),
+
+            # ===== ANTACID & GASTRIC =====
+            ("Pantoprazole", "Pantocid", "Acidity", "40mg", "Tablet", 0),
+            ("Pantoprazole", "Pantocid", "Acidity", "4mg/ml", "Injection", 0),
+            ("Omeprazole", "Omez", "Acidity", "20mg", "Capsule", 0),
+            ("Ranitidine", "Rantac", "Acidity", "150mg", "Tablet", 0),
+            ("Sucralfate", "Sucral", "Acidity", "1g/5ml", "Syrup", 0),
+            ("Digene", "Digene", "Acidity", "Chewable", "Tablet", 0),
+            ("Domperidone", "Domstal", "Nausea", "10mg", "Tablet", 0),
+            ("ORS", "Electral", "Rehydration", "21g Sachet", "Powder", 1),
+            ("ORS", "Pedialyte", "Rehydration", "Sachet", "Powder", 1),
+
+            # ===== COUGH & COLD =====
+            ("Cetirizine", "Cetzine", "Allergy", "10mg", "Tablet", 0),
+            ("Cetirizine", "Cetzine", "Allergy", "5mg/5ml", "Syrup", 1),
+            ("Levocetirizine", "Levocet", "Allergy", "5mg", "Tablet", 0),
+            ("Dextromethorphan", "Benadryl", "Cough", "15mg/5ml", "Syrup", 1),
+            ("Ambroxol", "Mucosolvan", "Cough", "30mg/5ml", "Syrup", 1),
+            ("Montelukast+Levocetirizine", "Montair-LC", "Respiratory", "10mg/5mg", "Tablet", 0),
+            ("Phenylephrine", "Sudafed", "Cold", "10mg", "Tablet", 0),
+
+            # ===== VITAMINS & MINERALS =====
+            ("Vitamin C", "Limcee", "Vitamin", "500mg", "Tablet", 0),
+            ("Vitamin D3", "D-Rise", "Vitamin", "60k IU", "Capsule", 0),
+            ("Iron+Folic Acid", "Fefol", "Supplement", "100mg/1mg", "Tablet", 0),
+            ("Zinc", "Zinconia", "Supplement", "20mg", "Tablet", 1),
+            ("Multivitamin", "Becosules", "Vitamin", "Capsule", "Capsule", 0),
+
+            # ===== BASIC INJECTIONS =====
+            ("Paracetamol", "Paracip", "Pain & Fever", "150mg/ml", "Injection", 0),
+            ("Ranitidine", "Zinetac", "Acidity", "25mg/ml", "Injection", 0),
+
+            # ===== ANTIBIOTICS =====
+            ("Amoxicillin+Clavulanic Acid", "Augmentin", "Antibiotic", "625mg", "Tablet", 0),
+            ("Amoxicillin+Clavulanic Acid", "Augmentin", "Antibiotic", "228mg/5ml", "Syrup", 1),
+            ("Amoxicillin", "Mox", "Antibiotic", "500mg", "Capsule", 0),
+            ("Amoxicillin", "Mox Kid", "Antibiotic", "250mg/5ml", "Syrup", 1),
+            ("Cefixime", "Taxim-O", "Antibiotic", "200mg", "Tablet", 0),
+            ("Cefixime", "Suprax", "Antibiotic", "100mg/5ml", "Syrup", 1),
+            ("Cefdinir", "Omnicef", "Antibiotic", "300mg", "Capsule", 0),
+            ("Azithromycin", "Azithral", "Antibiotic", "500mg", "Tablet", 0),
+            ("Azithromycin", "Zithromax", "Antibiotic", "200mg/5ml", "Suspension", 1),
+            ("Ciprofloxacin", "Cifran", "Antibiotic", "500mg", "Tablet", 0),
+            ("Levofloxacin", "Levoflox", "Antibiotic", "500mg", "Tablet", 0),
+            ("Ofloxacin", "Oflox", "Antibiotic", "200mg", "Tablet", 0),
+            ("Metronidazole", "Flagyl", "Antibiotic", "400mg", "Tablet", 0),
+            ("Metronidazole", "Metrogyl", "Antibiotic", "200mg/5ml", "Suspension", 1),
+            ("Doxycycline", "Doxy", "Antibiotic", "100mg", "Tablet", 0),
+            ("Clarithromycin", "Claribid", "Antibiotic", "500mg", "Tablet", 0),
+            ("Linezolid", "Linox", "Antibiotic", "600mg", "Tablet", 0),
+            ("Ceftriaxone", "Monocef", "Antibiotic", "1g", "Injection", 0),
+            ("Piperacillin+Tazobactam", "Piptaz", "Antibiotic", "4.5g", "Injection", 0),
+            ("Meropenem", "Meromac", "Antibiotic", "1g", "Injection", 0),
+            ("Vancomycin", "Vancobin", "Antibiotic", "500mg", "Injection", 0),
+            ("Gentamicin", "Genticyn", "Antibiotic", "80mg/2ml", "Injection", 1),
+
+            # ===== UTI, GYNAE =====
+            ("Nitrofurantoin", "Macrodantin", "UTI", "100mg", "Capsule", 0),
+            ("Fosfomycin", "Fosfomed", "UTI", "3g", "Sachet", 0),
+            ("Tinidazole", "Tini", "Gynecological", "500mg", "Tablet", 0),
+
+            # ===== ANTI TUBERCULAR THERAPY (ATT) =====
+            ("Isoniazid", "Isonex", "ATT", "300mg", "Tablet", 0),
+            ("Rifampicin", "R-Cin", "ATT", "450mg", "Capsule", 0),
+            ("Ethambutol", "Combutol", "ATT", "800mg", "Tablet", 0),
+            ("Pyrazinamide", "Zid", "ATT", "750mg", "Tablet", 0),
+
+            # ===== ANTIFUNGALS =====
+            ("Fluconazole", "Flucos", "Antifungal", "150mg", "Tablet", 0),
+            ("Clotrimazole", "Candid", "Antifungal", "1%", "Cream", 0),
+            ("Terbinafine", "Terbinaforce", "Antifungal", "250mg", "Tablet", 0),
+
+            # ===== ANTIVIRALS =====
+            ("Acyclovir", "Zovirax", "Antiviral", "400mg", "Tablet", 0),
+            ("Oseltamivir", "Tamiflu", "Antiviral", "75mg", "Capsule", 0),
+
+            # ===== CARDIAC / BLOOD PRESSURE =====
+            ("Amlodipine", "Amlong", "Hypertension", "5mg", "Tablet", 0),
+            ("Telmisartan", "Telma", "Hypertension", "40mg", "Tablet", 0),
+            ("Losartan", "Losar", "Hypertension", "50mg", "Tablet", 0),
+            ("Metoprolol", "Betaloc", "Hypertension", "50mg", "Tablet", 0),
+            ("Atenolol", "Tenormin", "Hypertension", "50mg", "Tablet", 0),
+            ("Enalapril", "Enam", "Hypertension", "5mg", "Tablet", 0),
+            ("Clonidine", "Arkamin", "Hypertension", "100mcg", "Tablet", 0),
+
+            # ===== CHOLESTEROL =====
+            ("Atorvastatin", "Atorva", "Cholesterol", "10mg", "Tablet", 0),
+            ("Rosuvastatin", "Crestor", "Cholesterol", "10mg", "Tablet", 0),
+            ("Simvastatin", "Simvotin", "Cholesterol", "20mg", "Tablet", 0),
+
+            # ===== DIABETES =====
+            ("Metformin", "Glycomet", "Diabetes", "500mg", "Tablet", 0),
+            ("Glimepiride", "Amaryl", "Diabetes", "2mg", "Tablet", 0),
+            ("Gliclazide", "Diamicron", "Diabetes", "80mg", "Tablet", 0),
+            ("Sitagliptin", "Januvia", "Diabetes", "100mg", "Tablet", 0),
+            ("Insulin Regular", "Actrapid", "Diabetes", "100IU/ml", "Injection", 0),
+            ("Insulin Glargine", "Lantus", "Diabetes", "100IU/ml", "Injection", 0),
+
+            # ===== THYROID =====
+            ("Levothyroxine", "Thyronorm", "Thyroid", "50mcg", "Tablet", 0),
+            ("Levothyroxine", "Thyronorm", "Thyroid", "100mcg", "Tablet", 0),
+
+            # ===== ORTHO / PAIN / NEURO =====
+            ("Gabapentin", "Gabapin", "Neuropathic Pain", "300mg", "Capsule", 0),
+            ("Pregabalin", "Lyrica", "Neuropathic Pain", "75mg", "Capsule", 0),
+            ("Duloxetine", "Duzela", "Pain & Depression", "30mg", "Capsule", 0),
+            ("Tramadol", "Ultracet", "Severe Pain", "50mg", "Tablet", 0),
+            ("Etoricoxib", "Arcoxia", "Pain & Ortho", "60mg", "Tablet", 0),
+            ("Tizanidine", "Sirdalud", "Muscle Relaxant", "2mg", "Tablet", 0),
+
+            # ===== ASTHMA & COPD =====
+            ("Salbutamol", "Asthalin", "Asthma", "100mcg", "Inhaler", 0),
+            ("Formoterol+Budesonide", "Foracort", "Asthma", "200mcg", "Inhaler", 0),
+            ("Ipratropium", "Atrovent", "COPD", "20mcg", "Inhaler", 0),
+
+            # ===== PSYCHIATRY =====
+            ("Sertraline", "Serlift", "Psychiatry", "50mg", "Tablet", 0),
+            ("Clonazepam", "Lonazep", "Anxiety", "0.5mg", "Tablet", 0),
+            ("Olanzapine", "Oliza", "Schizophrenia", "5mg", "Tablet", 0),
+
+            # ===== PEDIATRIC HIGH-USE =====
+            ("Paracetamol", "Tempol", "Pediatric", "150mg/5ml", "Drops", 1),
+            ("Amoxicillin", "Mox Kid", "Pediatric", "250mg/5ml", "Syrup", 1),
+            ("Zinc", "Z&D", "Pediatric", "10mg", "Tablet", 1),
+            ("ORS", "Rehydralyte", "Pediatric", "Sachet", "Powder", 1),
+            ("Ondansetron", "Emeset", "Vomiting", "2mg/5ml", "Syrup", 1),
+            ("Albendazole", "Zentel", "Deworming", "200mg", "Chewable", 1),
+
+            # ===== EMERGENCY MEDICINES =====
+            ("Adrenaline", "Epinephrine", "Emergency", "1mg/ml", "Injection", 0),
+            ("Atropine", "Atropen", "Emergency", "0.6mg/ml", "Injection", 0),
+            ("Nitroglycerin", "Sorbitrate", "Emergency", "5mg", "Tablet", 0),
+            ("Diazepam", "Valium", "Seizure", "5mg/ml", "Injection", 0),
+            ("Hydrocortisone", "Solucortef", "Emergency", "100mg", "Injection", 0),
+            ("Magnesium Sulfate", "MgSO4", "Pre-eclampsia", "50%", "Injection", 0),
+
+            # ===== IV FLUIDS / ELECTROLYTES =====
+            ("Normal Saline", "NS", "IV Fluid", "100ml", "Infusion", 0),
+            ("Normal Saline", "NS", "IV Fluid", "500ml", "Infusion", 0),
+            ("Ringer's Lactate", "RL", "IV Fluid", "500ml", "Infusion", 0),
+            ("Dextrose Normal Saline", "DNS", "IV Fluid", "500ml", "Infusion", 0),
+            ("Dextrose 5%", "D5", "IV Fluid", "500ml", "Infusion", 0),
+            ("Potassium Chloride", "KCl", "Electrolyte", "15%", "Injection", 0),
+        ]
+
+        for name, company, category, dosage, form, is_pediatric in medicines:
+            try:
+                self.cursor.execute("""
+                    INSERT INTO medicines (medicine_name, company_name, category, common_dosage, form, is_pediatric)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (name, company, category, dosage, form, is_pediatric))
+            except sqlite3.IntegrityError:
+                pass
+
+        log_info(f"Inserted {len(medicines)} medicines into database")
+    
+    def _migrate_medicines_with_companies(self):
+        """Migrate existing medicines to include company names by repopulating"""
+        # Delete existing medicines
+        self.cursor.execute("DELETE FROM medicines")
+        self.conn.commit()
+        
+        # Repopulate with company names
+        self._populate_medicines()
+        log_info("Migrated medicines to include company names")
     
     # Patient operations
     def add_patient(self, patient_data: Dict) -> bool:
@@ -351,16 +606,20 @@ class Database:
         try:
             self.cursor.execute("""
                 INSERT INTO prescriptions (prescription_id, patient_id, doctor_id,
-                appointment_id, prescription_date, diagnosis, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                appointment_id, prescription_date, chief_complaints, examination,
+                diagnosis, notes, follow_up_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 prescription_data['prescription_id'],
                 prescription_data['patient_id'],
                 prescription_data['doctor_id'],
                 prescription_data.get('appointment_id'),
                 prescription_data['prescription_date'],
+                prescription_data.get('chief_complaints', ''),
+                prescription_data.get('examination', ''),
                 prescription_data.get('diagnosis', ''),
-                prescription_data.get('notes', '')
+                prescription_data.get('notes', ''),
+                prescription_data.get('follow_up_date', '')
             ))
             
             for item in items:
@@ -380,6 +639,53 @@ class Database:
             self.conn.commit()
             return True
         except Exception:
+            return False
+    
+    def update_prescription(self, prescription_id: str, prescription_data: Dict, items: List[Dict]) -> bool:
+        """Update an existing prescription with items"""
+        try:
+            # Update prescription main record
+            self.cursor.execute("""
+                UPDATE prescriptions SET
+                patient_id = ?, doctor_id = ?, appointment_id = ?,
+                prescription_date = ?, chief_complaints = ?, examination = ?,
+                diagnosis = ?, notes = ?, follow_up_date = ?
+                WHERE prescription_id = ?
+            """, (
+                prescription_data['patient_id'],
+                prescription_data['doctor_id'],
+                prescription_data.get('appointment_id'),
+                prescription_data['prescription_date'],
+                prescription_data.get('chief_complaints', ''),
+                prescription_data.get('examination', ''),
+                prescription_data.get('diagnosis', ''),
+                prescription_data.get('notes', ''),
+                prescription_data.get('follow_up_date', ''),
+                prescription_id
+            ))
+            
+            # Delete existing items
+            self.cursor.execute("DELETE FROM prescription_items WHERE prescription_id = ?", (prescription_id,))
+            
+            # Insert new items
+            for item in items:
+                self.cursor.execute("""
+                    INSERT INTO prescription_items (prescription_id, medicine_name,
+                    dosage, frequency, duration, instructions)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    prescription_id,
+                    item['medicine_name'],
+                    item['dosage'],
+                    item['frequency'],
+                    item['duration'],
+                    item.get('instructions', '')
+                ))
+            
+            self.conn.commit()
+            return True
+        except Exception as e:
+            log_error(f"Failed to update prescription: {prescription_id}", e)
             return False
     
     def get_all_prescriptions(self) -> List[Dict]:
@@ -468,6 +774,57 @@ class Database:
         """, (bill_id,))
         row = self.cursor.fetchone()
         return dict(row) if row else None
+    
+    # Medicine operations
+    def get_all_medicines(self) -> List[Dict]:
+        """Get all medicines"""
+        self.cursor.execute("SELECT * FROM medicines ORDER BY company_name, medicine_name")
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_all_company_names(self) -> List[str]:
+        """Get all unique company names"""
+        self.cursor.execute("SELECT DISTINCT company_name FROM medicines WHERE company_name IS NOT NULL AND company_name != '' ORDER BY company_name")
+        return [row[0] for row in self.cursor.fetchall()]
+    
+    def get_medicines_by_company(self, company_name: str) -> List[Dict]:
+        """Get all medicines for a specific company"""
+        self.cursor.execute("""
+            SELECT * FROM medicines 
+            WHERE company_name = ?
+            ORDER BY medicine_name
+        """, (company_name,))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def search_medicines(self, query: str) -> List[Dict]:
+        """Search medicines by name, company name, or category"""
+        self.cursor.execute("""
+            SELECT * FROM medicines 
+            WHERE medicine_name LIKE ? OR company_name LIKE ? OR category LIKE ?
+            ORDER BY company_name, medicine_name
+        """, (f'%{query}%', f'%{query}%', f'%{query}%'))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_medicine_by_name(self, medicine_name: str, company_name: str = None) -> Optional[Dict]:
+        """Get medicine by name and optionally company name"""
+        if company_name:
+            self.cursor.execute("SELECT * FROM medicines WHERE medicine_name = ? AND company_name = ?", 
+                              (medicine_name, company_name))
+        else:
+            self.cursor.execute("SELECT * FROM medicines WHERE medicine_name = ? LIMIT 1", (medicine_name,))
+        row = self.cursor.fetchone()
+        return dict(row) if row else None
+    
+    def add_medicine(self, medicine_name: str, company_name: str = "", category: str = "", common_dosage: str = "", form: str = "", is_pediatric: int = 0) -> bool:
+        """Add a new medicine to the database"""
+        try:
+            self.cursor.execute("""
+                INSERT INTO medicines (medicine_name, company_name, category, common_dosage, form, is_pediatric)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (medicine_name, company_name or None, category, common_dosage, form or None, is_pediatric))
+            self.conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            return False
     
     def get_statistics(self) -> Dict:
         """Get system statistics"""
