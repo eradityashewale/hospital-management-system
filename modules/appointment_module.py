@@ -99,23 +99,94 @@ class AppointmentModule:
         
         # Treeview
         columns = ('ID', 'Patient', 'Doctor', 'Date', 'Time', 'Status')
+        
+        # Configure style FIRST before creating treeview - use 'clam' theme for better custom styling
+        style = ttk.Style()
+        try:
+            style.theme_use('clam')  # 'clam' theme works well with custom colors
+        except:
+            pass  # Use default if theme not available
+        
+        style.configure("Treeview", 
+                       font=('Segoe UI', 10), 
+                       rowheight=30, 
+                       background='white', 
+                       foreground='#374151',
+                       fieldbackground='white')
+        style.configure("Treeview.Heading", 
+                       font=('Segoe UI', 11, 'bold'), 
+                       background='#6366f1', 
+                       foreground='white',
+                       relief='flat')
+        style.map("Treeview.Heading", 
+                 background=[('active', '#4f46e5'), ('pressed', '#4f46e5')])
+        style.map("Treeview",
+                 background=[('selected', '#6366f1')],
+                 foreground=[('selected', 'white')])
+        
+        # Create treeview AFTER style is configured
         self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
         
-        # Configure style for modern look
-        style = ttk.Style()
-        style.configure("Treeview", font=('Segoe UI', 10), rowheight=30, background='white', foreground='#374151')
-        style.configure("Treeview.Heading", font=('Segoe UI', 11, 'bold'), background='#6366f1', foreground='white')
-        style.map("Treeview.Heading", background=[('active', '#4f46e5')])
+        # Style scrollbars to match theme
+        style.configure("Vertical.TScrollbar", 
+                       background='#d1d5db',
+                       troughcolor='#f5f7fa',
+                       borderwidth=0,
+                       arrowcolor='#6366f1',
+                       darkcolor='#d1d5db',
+                       lightcolor='#d1d5db')
+        style.map("Vertical.TScrollbar",
+                 background=[('active', '#9ca3af')],
+                 arrowcolor=[('active', '#4f46e5')])
+        
+        style.configure("Horizontal.TScrollbar",
+                       background='#9ca3af',
+                       troughcolor='#e5e7eb',
+                       borderwidth=1,
+                       arrowcolor='#6366f1',
+                       darkcolor='#9ca3af',
+                       lightcolor='#9ca3af',
+                       relief=tk.FLAT)
+        style.map("Horizontal.TScrollbar",
+                 background=[('active', '#6b7280'), ('pressed', '#4b5563')],
+                 arrowcolor=[('active', '#4f46e5')])
+        
+        # Configure column widths based on content
+        column_widths = {
+            'ID': 150,
+            'Patient': 200,
+            'Doctor': 200,
+            'Date': 150,
+            'Time': 120,
+            'Status': 120
+        }
+        
+        min_widths = {
+            'ID': 120,
+            'Patient': 150,
+            'Doctor': 150,
+            'Date': 120,
+            'Time': 100,
+            'Status': 100
+        }
         
         for col in columns:
             self.tree.heading(col, text=col)
-            self.tree.column(col, width=150)
+            width = column_widths.get(col, 150)
+            minwidth = min_widths.get(col, 100)
+            self.tree.column(col, width=width, minwidth=minwidth, stretch=True, anchor='w')
         
-        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview)
-        self.tree.configure(yscrollcommand=scrollbar.set)
+        # Add both vertical and horizontal scrollbars with theme styling
+        v_scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview, style="Vertical.TScrollbar")
+        h_scrollbar = ttk.Scrollbar(list_frame, orient=tk.HORIZONTAL, command=self.tree.xview, style="Horizontal.TScrollbar")
+        self.tree.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
         
+        # Use pack layout - pack horizontal scrollbar first at bottom, then treeview and vertical scrollbar
+        h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+        
+        # Pack treeview and vertical scrollbar side by side
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
         self.tree.bind('<Double-1>', self.view_appointment)
         
