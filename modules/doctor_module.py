@@ -20,46 +20,51 @@ class DoctorModule:
     
     def create_ui(self):
         """Create user interface"""
-        # Header
+        # Header with modern styling
         header = tk.Label(
             self.parent,
             text="Doctor Management",
-            font=('Arial', 20, 'bold'),
-            bg='#f0f0f0',
-            fg='#2c3e50'
+            font=('Segoe UI', 24, 'bold'),
+            bg='#f5f7fa',
+            fg='#1a237e'
         )
-        header.pack(pady=10)
+        header.pack(pady=20)
         
         # Top frame
-        top_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        top_frame.pack(fill=tk.X, padx=20, pady=10)
+        top_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        top_frame.pack(fill=tk.X, padx=25, pady=15)
         
-        # Add doctor button
+        # Add doctor button with modern styling
         add_btn = tk.Button(
             top_frame,
             text="+ Add New Doctor",
             command=self.add_doctor,
-            font=('Arial', 11, 'bold'),
-            bg='#27ae60',
+            font=('Segoe UI', 11, 'bold'),
+            bg='#10b981',
             fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2'
+            padx=25,
+            pady=10,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#059669',
+            activeforeground='white'
         )
         add_btn.pack(side=tk.RIGHT, padx=10)
         
         # List frame
-        list_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        list_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
         # Treeview
         columns = ('ID', 'Name', 'Specialization', 'Qualification', 'Phone', 'Fee')
         self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
         
-        # Configure style for better visibility
+        # Configure style for modern look
         style = ttk.Style()
-        style.configure("Treeview", font=('Arial', 10), rowheight=25)
-        style.configure("Treeview.Heading", font=('Arial', 11, 'bold'))
+        style.configure("Treeview", font=('Segoe UI', 10), rowheight=30, background='white', foreground='#374151')
+        style.configure("Treeview.Heading", font=('Segoe UI', 11, 'bold'), background='#6366f1', foreground='white')
+        style.map("Treeview.Heading", background=[('active', '#4f46e5')])
         
         for col in columns:
             self.tree.heading(col, text=col)
@@ -73,33 +78,41 @@ class DoctorModule:
         
         self.tree.bind('<Double-1>', self.view_doctor)
         
-        # Action buttons
-        action_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        action_frame.pack(fill=tk.X, padx=20, pady=10)
+        # Action buttons with modern styling
+        action_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        action_frame.pack(fill=tk.X, padx=25, pady=15)
         
         tk.Button(
             action_frame,
             text="View Details",
             command=self.view_doctor,
-            font=('Arial', 10),
-            bg='#3498db',
-            fg='black',
-            padx=15,
-            pady=5,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=5)
+            font=('Segoe UI', 10, 'bold'),
+            bg='#3b82f6',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#2563eb',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
         
         tk.Button(
             action_frame,
             text="Edit",
             command=self.edit_doctor,
-            font=('Arial', 10),
-            bg='#f39c12',
-            fg='black',
-            padx=15,
-            pady=5,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=5)
+            font=('Segoe UI', 10, 'bold'),
+            bg='#f59e0b',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#d97706',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
     
     def refresh_list(self):
         """Refresh doctor list"""
@@ -161,7 +174,7 @@ class DoctorModule:
         dialog = tk.Toplevel(self.parent)
         dialog.title("Doctor Details" if doctor else "Add New Doctor")
         dialog.geometry("600x600")
-        dialog.configure(bg='#f0f0f0')
+        dialog.configure(bg='#f5f7fa')
         dialog.transient(self.parent)
         
         # Get root window for focus management
@@ -176,17 +189,17 @@ class DoctorModule:
         except:
             dialog.grab_set()  # Fallback for older tkinter versions
         
-        fields_frame = tk.Frame(dialog, bg='#f0f0f0')
-        fields_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        fields_frame = tk.Frame(dialog, bg='#f5f7fa')
+        fields_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
         
         entries = {}
         
         if doctor:
             doctor_id = doctor['doctor_id']
-            tk.Label(fields_frame, text=f"Doctor ID: {doctor_id}", font=('Arial', 12, 'bold'), bg='#f0f0f0').pack(pady=5)
+            tk.Label(fields_frame, text=f"Doctor ID: {doctor_id}", font=('Segoe UI', 13, 'bold'), bg='#f5f7fa', fg='#1a237e').pack(pady=8)
         else:
             doctor_id = generate_id('DOC')
-            tk.Label(fields_frame, text=f"Doctor ID: {doctor_id}", font=('Arial', 12, 'bold'), bg='#f0f0f0').pack(pady=5)
+            tk.Label(fields_frame, text=f"Doctor ID: {doctor_id}", font=('Segoe UI', 13, 'bold'), bg='#f5f7fa', fg='#1a237e').pack(pady=8)
         
         field_configs = [
             ('first_name', 'First Name', True),
@@ -202,20 +215,20 @@ class DoctorModule:
         ]
         
         for field, label, required in field_configs:
-            frame = tk.Frame(fields_frame, bg='#f0f0f0')
-            frame.pack(fill=tk.X, pady=8)
+            frame = tk.Frame(fields_frame, bg='#f5f7fa')
+            frame.pack(fill=tk.X, pady=10)
             
-            tk.Label(frame, text=f"{label}{' *' if required else ''}:", font=('Arial', 10), bg='#f0f0f0', width=20, anchor='w').pack(side=tk.LEFT)
+            tk.Label(frame, text=f"{label}{' *' if required else ''}:", font=('Segoe UI', 10, 'bold'), bg='#f5f7fa', fg='#374151', width=20, anchor='w').pack(side=tk.LEFT)
             
-            entry = tk.Entry(frame, font=('Arial', 10), width=35, state='readonly' if view_only else 'normal')
+            entry = tk.Entry(frame, font=('Segoe UI', 10), width=35, state='readonly' if view_only else 'normal', relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
             if doctor:
                 entry.insert(0, str(doctor.get(field, '')))
             entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
             entries[field] = entry
         
         if not view_only:
-            button_frame = tk.Frame(dialog, bg='#f0f0f0')
-            button_frame.pack(fill=tk.X, padx=20, pady=20)
+            button_frame = tk.Frame(dialog, bg='#f5f7fa')
+            button_frame.pack(fill=tk.X, padx=25, pady=25)
             
             def save_doctor():
                 data = {'doctor_id': doctor_id}
@@ -275,12 +288,16 @@ class DoctorModule:
                 button_frame,
                 text="Save",
                 command=save_doctor,
-                font=('Arial', 11, 'bold'),
-                bg='#27ae60',
-                fg='black',
-                padx=30,
-                pady=8,
-                cursor='hand2'
+                font=('Segoe UI', 11, 'bold'),
+                bg='#10b981',
+                fg='white',
+                padx=35,
+                pady=10,
+                cursor='hand2',
+                relief=tk.FLAT,
+                bd=0,
+                activebackground='#059669',
+                activeforeground='white'
             ).pack(side=tk.LEFT, padx=10)
             
             def close_dialog():
@@ -309,12 +326,16 @@ class DoctorModule:
                 button_frame,
                 text="Close",
                 command=close_dialog,
-                font=('Arial', 11),
-                bg='#95a5a6',
+                font=('Segoe UI', 11, 'bold'),
+                bg='#6b7280',
                 fg='white',
-                padx=30,
-                pady=8,
-                cursor='hand2'
+                padx=35,
+                pady=10,
+                cursor='hand2',
+                relief=tk.FLAT,
+                bd=0,
+                activebackground='#4b5563',
+                activeforeground='white'
             ).pack(side=tk.LEFT, padx=10)
         else:
             def close_dialog():
@@ -340,12 +361,16 @@ class DoctorModule:
                 fields_frame,
                 text="Close",
                 command=close_dialog,
-                font=('Arial', 11),
-                bg='#95a5a6',
+                font=('Segoe UI', 11, 'bold'),
+                bg='#6b7280',
                 fg='white',
-                padx=30,
-                pady=8,
-                cursor='hand2'
+                padx=35,
+                pady=10,
+                cursor='hand2',
+                relief=tk.FLAT,
+                bd=0,
+                activebackground='#4b5563',
+                activeforeground='white'
             ).pack(pady=10)
         
         # Ensure dialog releases grab when closed via window close button

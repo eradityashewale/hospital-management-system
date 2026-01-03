@@ -20,79 +20,92 @@ class AppointmentModule:
     
     def create_ui(self):
         """Create user interface"""
-        # Header
+        # Header with modern styling
         header = tk.Label(
             self.parent,
             text="Appointment Management",
-            font=('Arial', 20, 'bold'),
-            bg='#f0f0f0',
-            fg='#2c3e50'
+            font=('Segoe UI', 24, 'bold'),
+            bg='#f5f7fa',
+            fg='#1a237e'
         )
-        header.pack(pady=10)
+        header.pack(pady=20)
         
         # Top frame
-        top_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        top_frame.pack(fill=tk.X, padx=20, pady=10)
+        top_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        top_frame.pack(fill=tk.X, padx=25, pady=15)
         
         # Date filter
-        filter_frame = tk.Frame(top_frame, bg='#f0f0f0')
+        filter_frame = tk.Frame(top_frame, bg='#f5f7fa')
         filter_frame.pack(side=tk.LEFT)
         
-        tk.Label(filter_frame, text="Filter by Date:", font=('Arial', 10), bg='#f0f0f0').pack(side=tk.LEFT, padx=5)
+        tk.Label(filter_frame, text="Filter by Date:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=5)
         self.date_var = tk.StringVar(value=get_current_date())
-        date_entry = tk.Entry(filter_frame, textvariable=self.date_var, font=('Arial', 10), width=15)
+        date_entry = tk.Entry(filter_frame, textvariable=self.date_var, font=('Segoe UI', 10), width=15, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
         date_entry.pack(side=tk.LEFT, padx=5)
         
         tk.Button(
             filter_frame,
             text="Filter",
             command=self.filter_by_date,
-            font=('Arial', 10),
-            bg='#3498db',
+            font=('Segoe UI', 10, 'bold'),
+            bg='#3b82f6',
             fg='white',
-            padx=10,
-            pady=5,
-            cursor='hand2'
+            padx=15,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#2563eb',
+            activeforeground='white'
         ).pack(side=tk.LEFT, padx=5)
         
         tk.Button(
             filter_frame,
             text="Show All",
             command=self.refresh_list,
-            font=('Arial', 10),
-            bg='#95a5a6',
+            font=('Segoe UI', 10, 'bold'),
+            bg='#6b7280',
             fg='white',
-            padx=10,
-            pady=5,
-            cursor='hand2'
+            padx=15,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#4b5563',
+            activeforeground='white'
         ).pack(side=tk.LEFT, padx=5)
         
-        # Add appointment button
+        # Add appointment button with modern styling
         add_btn = tk.Button(
             top_frame,
             text="+ Schedule Appointment",
             command=self.add_appointment,
-            font=('Arial', 11, 'bold'),
-            bg='#27ae60',
+            font=('Segoe UI', 11, 'bold'),
+            bg='#10b981',
             fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2'
+            padx=25,
+            pady=10,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#059669',
+            activeforeground='white'
         )
         add_btn.pack(side=tk.RIGHT, padx=10)
         
         # List frame
-        list_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        list_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
         # Treeview
         columns = ('ID', 'Patient', 'Doctor', 'Date', 'Time', 'Status')
         self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
         
-        # Configure style for better visibility
+        # Configure style for modern look
         style = ttk.Style()
-        style.configure("Treeview", font=('Arial', 10), rowheight=25)
-        style.configure("Treeview.Heading", font=('Arial', 11, 'bold'))
+        style.configure("Treeview", font=('Segoe UI', 10), rowheight=30, background='white', foreground='#374151')
+        style.configure("Treeview.Heading", font=('Segoe UI', 11, 'bold'), background='#6366f1', foreground='white')
+        style.map("Treeview.Heading", background=[('active', '#4f46e5')])
         
         for col in columns:
             self.tree.heading(col, text=col)
@@ -237,7 +250,15 @@ class AppointmentModule:
         except:
             dialog.grab_set()  # Fallback for older tkinter versions
         
-        # Main content frame - pack before button frame
+        # Button frame - pack first at bottom to ensure visibility
+        button_frame = tk.Frame(dialog, bg='#f0f0f0', relief=tk.RAISED, bd=2)
+        button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
+        
+        # Inner frame for button spacing
+        inner_button_frame = tk.Frame(button_frame, bg='#f0f0f0')
+        inner_button_frame.pack(padx=20, pady=15)
+        
+        # Main content frame - pack after button frame
         main_frame = tk.Frame(dialog, bg='#f0f0f0')
         main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
         
@@ -419,14 +440,6 @@ class AppointmentModule:
                 root.after(250, self.refresh_list)
             else:
                 messagebox.showerror("Error", "Failed to schedule appointment")
-        
-        # Button frame - ensure it's always visible at bottom
-        button_frame = tk.Frame(dialog, bg='#f0f0f0', relief=tk.RAISED, bd=2)
-        button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
-        
-        # Inner frame for button spacing
-        inner_button_frame = tk.Frame(button_frame, bg='#f0f0f0')
-        inner_button_frame.pack(padx=20, pady=15)
         
         # Schedule Appointment button - primary action
         schedule_btn = tk.Button(
