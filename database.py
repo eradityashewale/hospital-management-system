@@ -5,7 +5,7 @@ Handles all database operations using SQLite
 import sqlite3
 from datetime import datetime
 from typing import List, Dict, Optional
-from logger import log_info, log_error, log_debug, log_database_operation
+from logger import log_info, log_error, log_debug, log_database_operation, log_warning
 
 
 class Database:
@@ -319,6 +319,64 @@ class Database:
         self.cursor.execute("SELECT * FROM doctors WHERE doctor_id = ?", (doctor_id,))
         row = self.cursor.fetchone()
         return dict(row) if row else None
+    
+    def update_doctor(self, doctor_id: str, doctor_data: Dict) -> bool:
+        """Update doctor information"""
+        try:
+            log_debug(f"Updating doctor: {doctor_id}")
+            self.cursor.execute("""
+                UPDATE doctors SET
+                first_name = ?, last_name = ?, specialization = ?,
+                qualification = ?, phone = ?, email = ?, address = ?,
+                consultation_fee = ?, available_days = ?, available_time = ?
+                WHERE doctor_id = ?
+            """, (
+                doctor_data['first_name'],
+                doctor_data['last_name'],
+                doctor_data['specialization'],
+                doctor_data.get('qualification', ''),
+                doctor_data.get('phone', ''),
+                doctor_data.get('email', ''),
+                doctor_data.get('address', ''),
+                doctor_data.get('consultation_fee', 0),
+                doctor_data.get('available_days', ''),
+                doctor_data.get('available_time', ''),
+                doctor_id
+            ))
+            self.conn.commit()
+            log_database_operation("UPDATE", "doctors", True, f"Doctor ID: {doctor_id}")
+            return True
+        except Exception as e:
+            log_database_operation("UPDATE", "doctors", False, f"Doctor ID: {doctor_id} - Error: {str(e)}")
+            log_error(f"Error updating doctor: {doctor_id}", e)
+            return False
+    
+    def delete_doctor(self, doctor_id: str) -> bool:
+        """Delete a doctor"""
+        try:
+            log_debug(f"Deleting doctor: {doctor_id}")
+            
+            # Check for related appointments
+            self.cursor.execute("SELECT COUNT(*) FROM appointments WHERE doctor_id = ?", (doctor_id,))
+            appointment_count = self.cursor.fetchone()[0]
+            
+            # Check for related prescriptions
+            self.cursor.execute("SELECT COUNT(*) FROM prescriptions WHERE doctor_id = ?", (doctor_id,))
+            prescription_count = self.cursor.fetchone()[0]
+            
+            if appointment_count > 0 or prescription_count > 0:
+                log_warning(f"Cannot delete doctor {doctor_id}: Has {appointment_count} appointments and {prescription_count} prescriptions")
+                return False
+            
+            # Delete the doctor
+            self.cursor.execute("DELETE FROM doctors WHERE doctor_id = ?", (doctor_id,))
+            self.conn.commit()
+            log_database_operation("DELETE", "doctors", True, f"Doctor ID: {doctor_id}")
+            return True
+        except Exception as e:
+            log_database_operation("DELETE", "doctors", False, f"Doctor ID: {doctor_id} - Error: {str(e)}")
+            log_error(f"Error deleting doctor: {doctor_id}", e)
+            return False
     
     # Appointment operations
     def add_appointment(self, appointment_data: Dict) -> bool:

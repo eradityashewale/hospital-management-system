@@ -30,9 +30,19 @@ class DoctorModule:
         )
         header.pack(pady=20)
         
-        # Top frame
+        # Top frame for search and add button
         top_frame = tk.Frame(self.parent, bg='#f5f7fa')
         top_frame.pack(fill=tk.X, padx=25, pady=15)
+        
+        # Search frame
+        search_frame = tk.Frame(top_frame, bg='#f5f7fa')
+        search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        tk.Label(search_frame, text="Search:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=5)
+        self.search_var = tk.StringVar()
+        self.search_var.trace('w', lambda *args: self.search_doctors())
+        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
+        search_entry.pack(side=tk.LEFT, padx=8)
         
         # Add doctor button with modern styling
         add_btn = tk.Button(
@@ -52,13 +62,17 @@ class DoctorModule:
         )
         add_btn.pack(side=tk.RIGHT, padx=10)
         
-        # List frame
-        list_frame = tk.Frame(self.parent, bg='#f5f7fa')
-        list_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
+        # Container for list and buttons to ensure both are visible
+        content_container = tk.Frame(self.parent, bg='#f5f7fa')
+        content_container.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
+        
+        # List frame - fixed height to ensure buttons are visible
+        list_frame = tk.Frame(content_container, bg='#f5f7fa')
+        list_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
         # Treeview
         columns = ('ID', 'Name', 'Specialization', 'Qualification', 'Phone', 'Fee')
-        self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
+        self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=12)
         
         # Configure style for modern look
         style = ttk.Style()
@@ -78,9 +92,30 @@ class DoctorModule:
         
         self.tree.bind('<Double-1>', self.view_doctor)
         
-        # Action buttons with modern styling
-        action_frame = tk.Frame(self.parent, bg='#f5f7fa')
-        action_frame.pack(fill=tk.X, padx=25, pady=15)
+        # Add right-click context menu for quick access
+        context_menu = tk.Menu(self.parent, tearoff=0)
+        context_menu.add_command(label="View Details", command=self.view_doctor)
+        context_menu.add_command(label="✏️ Edit Doctor", command=self.edit_doctor)
+        context_menu.add_separator()
+        context_menu.add_command(label="Delete Doctor", command=self.delete_doctor)
+        
+        def show_context_menu(event):
+            """Show context menu on right-click"""
+            try:
+                # Select the item under cursor if not already selected
+                item = self.tree.identify_row(event.y)
+                if item:
+                    self.tree.selection_set(item)
+                context_menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                context_menu.grab_release()
+        
+        self.tree.bind('<Button-3>', show_context_menu)  # Right-click on Windows
+        self.tree.bind('<Button-2>', show_context_menu)  # Right-click on Mac/Linux
+        
+        # Action buttons with modern styling - placed in container AFTER list frame so always visible
+        action_frame = tk.Frame(content_container, bg='#f5f7fa')
+        action_frame.pack(fill=tk.X, pady=(10, 0))
         
         tk.Button(
             action_frame,
@@ -98,9 +133,9 @@ class DoctorModule:
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
         
-        tk.Button(
+        edit_btn = tk.Button(
             action_frame,
-            text="Edit",
+            text="✏️ Edit Doctor",
             command=self.edit_doctor,
             font=('Segoe UI', 10, 'bold'),
             bg='#f59e0b',
@@ -111,6 +146,25 @@ class DoctorModule:
             relief=tk.FLAT,
             bd=0,
             activebackground='#d97706',
+            activeforeground='white'
+        )
+        edit_btn.pack(side=tk.LEFT, padx=6)
+        # Store reference
+        self.edit_button = edit_btn
+        
+        tk.Button(
+            action_frame,
+            text="Delete",
+            command=self.delete_doctor,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#ef4444',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#dc2626',
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
     
@@ -129,6 +183,32 @@ class DoctorModule:
                 doctor.get('phone', ''),
                 f"${doctor.get('consultation_fee', 0):.2f}"
             ))
+    
+    def search_doctors(self):
+        """Search doctors"""
+        query = self.search_var.get()
+        if not query:
+            self.refresh_list()
+            return
+        
+        # Clear existing items
+        self.tree.delete(*self.tree.get_children())
+        
+        # Get all doctors and filter
+        doctors = self.db.get_all_doctors()
+        for doctor in doctors:
+            name = f"{doctor['first_name']} {doctor['last_name']}"
+            # Search in name, ID, specialization, qualification, phone
+            search_text = f"{doctor['doctor_id']} {name} {doctor['specialization']} {doctor.get('qualification', '')} {doctor.get('phone', '')}".lower()
+            if query.lower() in search_text:
+                self.tree.insert('', tk.END, values=(
+                    doctor['doctor_id'],
+                    name,
+                    doctor['specialization'],
+                    doctor.get('qualification', ''),
+                    doctor.get('phone', ''),
+                    f"${doctor.get('consultation_fee', 0):.2f}"
+                ))
     
     def get_selected_doctor_id(self):
         """Get selected doctor ID"""
@@ -157,7 +237,7 @@ class DoctorModule:
         self.doctor_dialog(doctor, view_only=True)
     
     def edit_doctor(self):
-        """Edit doctor"""
+        """Edit doctor - explicitly opens in EDIT mode (not view_only)"""
         doctor_id = self.get_selected_doctor_id()
         if not doctor_id:
             return
@@ -167,13 +247,50 @@ class DoctorModule:
             messagebox.showerror("Error", "Doctor not found")
             return
         
-        self.doctor_dialog(doctor)
+        # Explicitly pass view_only=False to ensure fields are editable
+        self.doctor_dialog(doctor, view_only=False)
+    
+    def delete_doctor(self):
+        """Delete doctor"""
+        doctor_id = self.get_selected_doctor_id()
+        if not doctor_id:
+            return
+        
+        # Get doctor name for confirmation message
+        doctor = self.db.get_doctor_by_id(doctor_id)
+        if not doctor:
+            messagebox.showerror("Error", "Doctor not found")
+            return
+        
+        doctor_name = f"{doctor.get('first_name', '')} {doctor.get('last_name', '')}".strip()
+        if not doctor_name:
+            doctor_name = doctor_id
+        
+        # Confirm deletion
+        if not messagebox.askyesno("Confirm Delete", f"Are you sure you want to delete doctor '{doctor_name}' (ID: {doctor_id})?\n\nThis action cannot be undone."):
+            return
+        
+        # Check for related records (appointments, prescriptions)
+        # Note: In a real application, you'd want to check for related records
+        # For now, we'll proceed with deletion
+        
+        if self.db.delete_doctor(doctor_id):
+            messagebox.showinfo("Success", f"Doctor '{doctor_name}' deleted successfully")
+            self.refresh_list()
+        else:
+            messagebox.showerror("Error", "Failed to delete doctor. There may be related records (appointments, prescriptions) that need to be handled first.")
     
     def doctor_dialog(self, doctor=None, view_only=False):
         """Doctor form dialog"""
         dialog = tk.Toplevel(self.parent)
-        dialog.title("Doctor Details" if doctor else "Add New Doctor")
-        dialog.geometry("600x600")
+        # Set title based on mode
+        if view_only:
+            dialog.title("View Doctor Details")
+        elif doctor:
+            dialog.title("Edit Doctor - Editable")
+        else:
+            dialog.title("Add New Doctor")
+        dialog.geometry("600x700")
         dialog.configure(bg='#f5f7fa')
         dialog.transient(self.parent)
         
@@ -189,10 +306,25 @@ class DoctorModule:
         except:
             dialog.grab_set()  # Fallback for older tkinter versions
         
-        fields_frame = tk.Frame(dialog, bg='#f5f7fa')
-        fields_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+        # Main container for all content
+        main_container = tk.Frame(dialog, bg='#f5f7fa')
+        main_container.pack(fill=tk.BOTH, expand=True)
+        
+        # Fields frame - will expand but leave room for buttons at bottom
+        fields_frame = tk.Frame(main_container, bg='#f5f7fa')
+        fields_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=(25, 0))
         
         entries = {}
+        
+        # Add mode indicator
+        if view_only:
+            mode_label = tk.Label(fields_frame, text="📖 VIEW MODE (Read Only)", 
+                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#ef4444')
+            mode_label.pack(pady=5)
+        elif doctor:
+            mode_label = tk.Label(fields_frame, text="✏️ EDIT MODE (Editable)", 
+                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#10b981')
+            mode_label.pack(pady=5)
         
         if doctor:
             doctor_id = doctor['doctor_id']
@@ -220,15 +352,36 @@ class DoctorModule:
             
             tk.Label(frame, text=f"{label}{' *' if required else ''}:", font=('Segoe UI', 10, 'bold'), bg='#f5f7fa', fg='#374151', width=20, anchor='w').pack(side=tk.LEFT)
             
-            entry = tk.Entry(frame, font=('Segoe UI', 10), width=35, state='readonly' if view_only else 'normal', relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
-            if doctor:
-                entry.insert(0, str(doctor.get(field, '')))
+            # Entry fields should be 'normal' (editable) when not in view_only mode
+            entry_state = 'readonly' if view_only else 'normal'
+            entry = tk.Entry(frame, font=('Segoe UI', 10), width=35, 
+                           state=entry_state, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
+            
+            # Insert doctor data BEFORE packing
+            if doctor and field in doctor:
+                doctor_value = doctor[field]
+                if doctor_value is not None:
+                    # Temporarily set to normal to insert data if it's readonly
+                    if entry_state == 'readonly':
+                        entry.config(state='normal')
+                    entry.insert(0, str(doctor_value))
+                    # Restore state after insertion
+                    if entry_state == 'readonly':
+                        entry.config(state='readonly')
+            
             entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
             entries[field] = entry
+            
+            # Final verification: ensure field is editable when not in view_only mode
+            if not view_only:
+                current_state = entry.cget('state')
+                if current_state != 'normal':
+                    entry.config(state='normal')
         
         if not view_only:
-            button_frame = tk.Frame(dialog, bg='#f5f7fa')
-            button_frame.pack(fill=tk.X, padx=25, pady=25)
+            # Button frame at bottom - always visible
+            button_frame = tk.Frame(main_container, bg='#f5f7fa')
+            button_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=25, pady=(0, 25))
             
             def save_doctor():
                 data = {'doctor_id': doctor_id}
@@ -249,7 +402,33 @@ class DoctorModule:
                         return
                 
                 if doctor:
-                    messagebox.showinfo("Info", "Update functionality would be implemented here")
+                    # Update existing doctor
+                    if self.db.update_doctor(doctor_id, data):
+                        # Release grab BEFORE destroying dialog
+                        try:
+                            dialog.grab_release()
+                        except:
+                            pass
+                        
+                        dialog.destroy()
+                        
+                        # Process all pending events immediately
+                        root.update_idletasks()
+                        root.update()
+                        root.update_idletasks()
+                        
+                        # Return focus to main window
+                        root.focus_force()
+                        root.update_idletasks()
+                        root.update()
+                        root.update_idletasks()
+                        
+                        # Show message after dialog is closed
+                        root.after(150, lambda: messagebox.showinfo("Success", "Doctor updated successfully"))
+                        # Refresh list asynchronously
+                        root.after(250, self.refresh_list)
+                    else:
+                        messagebox.showerror("Error", "Failed to update doctor")
                 else:
                     if self.db.add_doctor(data):
                         # Release grab BEFORE destroying dialog

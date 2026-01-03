@@ -66,13 +66,17 @@ class PatientModule:
         )
         add_btn.pack(side=tk.RIGHT, padx=10)
         
-        # List frame
-        list_frame = tk.Frame(self.parent, bg='#f5f7fa')
-        list_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
+        # Container for list and buttons to ensure both are visible
+        content_container = tk.Frame(self.parent, bg='#f5f7fa')
+        content_container.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
+        
+        # List frame - fixed height to ensure buttons are visible
+        list_frame = tk.Frame(content_container, bg='#f5f7fa')
+        list_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
         # Treeview for patient list
         columns = ('ID', 'Name', 'DOB', 'Gender', 'Phone', 'Email')
-        self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
+        self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=12)
         
         # Configure style for modern look
         style = ttk.Style()
@@ -93,12 +97,33 @@ class PatientModule:
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Bind double click
+        # Bind double click (opens view mode)
         self.tree.bind('<Double-1>', self.view_patient)
         
-        # Action buttons with modern styling
-        action_frame = tk.Frame(self.parent, bg='#f5f7fa')
-        action_frame.pack(fill=tk.X, padx=25, pady=15)
+        # Add right-click context menu for quick access
+        context_menu = tk.Menu(self.parent, tearoff=0)
+        context_menu.add_command(label="View Details", command=self.view_patient)
+        context_menu.add_command(label="✏️ Edit Patient", command=self.edit_patient)
+        context_menu.add_separator()
+        context_menu.add_command(label="Delete Patient", command=self.delete_patient)
+        
+        def show_context_menu(event):
+            """Show context menu on right-click"""
+            try:
+                # Select the item under cursor if not already selected
+                item = self.tree.identify_row(event.y)
+                if item:
+                    self.tree.selection_set(item)
+                context_menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                context_menu.grab_release()
+        
+        self.tree.bind('<Button-3>', show_context_menu)  # Right-click on Windows
+        self.tree.bind('<Button-2>', show_context_menu)  # Right-click on Mac/Linux
+        
+        # Action buttons with modern styling - placed in container AFTER list frame so always visible
+        action_frame = tk.Frame(content_container, bg='#f5f7fa')
+        action_frame.pack(fill=tk.X, pady=(10, 0))
         
         tk.Button(
             action_frame,
@@ -116,9 +141,9 @@ class PatientModule:
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
         
-        tk.Button(
+        edit_btn = tk.Button(
             action_frame,
-            text="Edit",
+            text="✏️ Edit Patient",
             command=self.edit_patient,
             font=('Segoe UI', 10, 'bold'),
             bg='#f59e0b',
@@ -130,7 +155,10 @@ class PatientModule:
             bd=0,
             activebackground='#d97706',
             activeforeground='white'
-        ).pack(side=tk.LEFT, padx=6)
+        )
+        edit_btn.pack(side=tk.LEFT, padx=6)
+        # Store reference for potential focus management
+        self.edit_button = edit_btn
         
         tk.Button(
             action_frame,
@@ -247,7 +275,7 @@ class PatientModule:
         self.patient_dialog(patient, view_only=True)
     
     def edit_patient(self):
-        """Edit patient"""
+        """Edit patient - explicitly opens in EDIT mode (not view_only)"""
         patient_id = self.get_selected_patient_id()
         if not patient_id:
             return
@@ -257,7 +285,9 @@ class PatientModule:
             messagebox.showerror("Error", "Patient not found")
             return
         
-        self.patient_dialog(patient)
+        log_info(f"Editing patient: {patient_id}, data fields: {list(patient.keys())}")
+        # Explicitly pass view_only=False to ensure fields are editable
+        self.patient_dialog(patient, view_only=False)
     
     def delete_patient(self):
         """Delete patient"""
@@ -277,10 +307,16 @@ class PatientModule:
         dialog_type = "Edit Patient" if patient else "Add New Patient"
         dialog_name = dialog_type  # Alias for use in closures
         log_dialog_open(dialog_type)
-        log_info(f"Opening {dialog_type} dialog")
+        log_info(f"Opening {dialog_type} dialog - view_only={view_only}")
         
         dialog = tk.Toplevel(self.parent)
-        dialog.title("Patient Details" if patient else "Add New Patient")
+        # Set title based on mode
+        if view_only:
+            dialog.title("View Patient Details")
+        elif patient:
+            dialog.title("Edit Patient - Editable")
+        else:
+            dialog.title("Add New Patient")
         dialog.geometry("600x700")
         dialog.configure(bg='#f5f7fa')
         dialog.transient(self.parent)
@@ -302,6 +338,16 @@ class PatientModule:
         fields_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
         
         entries = {}
+        
+        # Add mode indicator
+        if view_only:
+            mode_label = tk.Label(fields_frame, text="📖 VIEW MODE (Read Only)", 
+                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#ef4444')
+            mode_label.pack(pady=5)
+        elif patient:
+            mode_label = tk.Label(fields_frame, text="✏️ EDIT MODE (Editable)", 
+                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#10b981')
+            mode_label.pack(pady=5)
         
         if patient:
             patient_id = patient['patient_id']
@@ -331,26 +377,52 @@ class PatientModule:
             tk.Label(frame, text=f"{label}{' *' if required else ''}:", font=('Segoe UI', 10, 'bold'), bg='#f5f7fa', fg='#374151', width=20, anchor='w').pack(side=tk.LEFT)
             
             if field == 'gender':
-                var = tk.StringVar(value=patient[field] if patient else '')
+                # Get gender value from patient if available, otherwise empty string
+                gender_value = ''
+                if patient and field in patient:
+                    gender_value = str(patient[field]) if patient[field] else ''
+                var = tk.StringVar(value=gender_value)
                 # For Combobox, use 'readonly' to allow dropdown selection but prevent typing
+                # But make it 'normal' if not view_only to allow editing
+                combo_state = 'readonly' if view_only else 'readonly'  # Keep readonly for dropdown
                 combo = ttk.Combobox(frame, textvariable=var, values=['Male', 'Female', 'Other'], 
-                                   state='readonly', width=30)
+                                   state=combo_state, width=30)
                 combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
                 entries[field] = var
             else:
                 # Entry fields should be 'normal' (editable) when not in view_only mode
-                entry_state = 'normal' if not view_only else 'readonly'
+                # Always create in 'normal' state first, then set to readonly if needed
+                entry_state = 'readonly' if view_only else 'normal'
                 entry = tk.Entry(frame, font=('Segoe UI', 10), width=35, 
                                state=entry_state, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
                 
-                # Ensure entry is enabled and can receive focus
-                if not view_only:
-                    entry.config(state='normal')
+                # Insert patient data BEFORE packing
+                if patient and field in patient:
+                    patient_value = patient[field]
+                    if patient_value is not None:
+                        # Temporarily set to normal to insert data if it's readonly
+                        if entry_state == 'readonly':
+                            entry.config(state='normal')
+                        entry.insert(0, str(patient_value))
+                        # Restore state after insertion
+                        if entry_state == 'readonly':
+                            entry.config(state='readonly')
+                        log_debug(f"Inserted {field} = '{patient_value}' into entry field (state={entry_state})")
+                    else:
+                        log_debug(f"Field {field} is None in patient data")
+                else:
+                    if patient:
+                        log_debug(f"Field {field} not found in patient data (available fields: {list(patient.keys())})")
                 
-                if patient:
-                    entry.insert(0, str(patient.get(field, '')))
                 entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
                 entries[field] = entry
+                
+                # Final verification: ensure field is editable when not in view_only mode
+                if not view_only:
+                    current_state = entry.cget('state')
+                    if current_state != 'normal':
+                        log_warning(f"Field {field} state is '{current_state}', forcing to 'normal'")
+                        entry.config(state='normal')
         
         # Buttons
         button_frame = tk.Frame(dialog, bg='#f5f7fa')
@@ -622,12 +694,26 @@ class PatientModule:
         # Ensure everything is ready
         dialog.update_idletasks()
         
-        # Make sure entry fields can receive input
+        # Make sure entry fields can receive input (they should already be in correct state)
+        # This is a critical safety check to ensure fields are editable when not in view_only mode
         if not view_only:
+            log_info("Ensuring all entry fields are editable (not view_only mode)")
             for field, widget in entries.items():
                 if not isinstance(widget, tk.StringVar):
-                    widget.config(state='normal')
+                    # Force state to normal for editable fields
+                    current_state = widget.cget('state')
+                    if current_state != 'normal':
+                        log_warning(f"Field {field} was in state '{current_state}', forcing to 'normal'")
+                        widget.config(state='normal')
+                    # Verify it's actually normal now
+                    final_state = widget.cget('state')
+                    if final_state != 'normal':
+                        log_error(f"Field {field} could not be set to 'normal', current state: '{final_state}'")
+                    else:
+                        log_debug(f"Field {field} confirmed editable (state='normal')")
                     widget.update_idletasks()
+        else:
+            log_info("Dialog is in view_only mode - fields should be readonly")
         
         # Set focus on first name field when adding new patient
         # Do this AFTER all widgets are created and dialog is updated
