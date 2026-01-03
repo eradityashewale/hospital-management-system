@@ -20,56 +20,61 @@ class PrescriptionModule:
     
     def create_ui(self):
         """Create user interface"""
-        # Header
+        # Header with modern styling
         header = tk.Label(
             self.parent,
             text="Prescription Management",
-            font=('Arial', 20, 'bold'),
-            bg='#f0f0f0',
-            fg='#2c3e50'
+            font=('Segoe UI', 24, 'bold'),
+            bg='#f5f7fa',
+            fg='#1a237e'
         )
-        header.pack(pady=10)
+        header.pack(pady=20)
         
         # Top frame
-        top_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        top_frame.pack(fill=tk.X, padx=20, pady=10)
+        top_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        top_frame.pack(fill=tk.X, padx=25, pady=15)
         
         # Search by patient
-        search_frame = tk.Frame(top_frame, bg='#f0f0f0')
+        search_frame = tk.Frame(top_frame, bg='#f5f7fa')
         search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        tk.Label(search_frame, text="Search by Patient ID:", font=('Arial', 10), bg='#f0f0f0').pack(side=tk.LEFT, padx=5)
+        tk.Label(search_frame, text="Search by Patient ID:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=5)
         self.search_var = tk.StringVar()
         self.search_var.trace('w', lambda *args: self.search_prescriptions())
-        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Arial', 10), width=20)
+        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 10), width=20, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
         search_entry.pack(side=tk.LEFT, padx=5)
         
-        # Add prescription button
+        # Add prescription button with modern styling
         add_btn = tk.Button(
             top_frame,
             text="+ New Prescription",
             command=self.add_prescription,
-            font=('Arial', 11, 'bold'),
-            bg='#27ae60',
+            font=('Segoe UI', 11, 'bold'),
+            bg='#10b981',
             fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2'
+            padx=25,
+            pady=10,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#059669',
+            activeforeground='white'
         )
         add_btn.pack(side=tk.RIGHT, padx=10)
         
         # List frame
-        list_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        list_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
         # Treeview
         columns = ('ID', 'Patient ID', 'Doctor', 'Date', 'Diagnosis')
         self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
         
-        # Configure style for better visibility
+        # Configure style for modern look
         style = ttk.Style()
-        style.configure("Treeview", font=('Arial', 10), rowheight=25)
-        style.configure("Treeview.Heading", font=('Arial', 11, 'bold'))
+        style.configure("Treeview", font=('Segoe UI', 10), rowheight=30, background='white', foreground='#374151')
+        style.configure("Treeview.Heading", font=('Segoe UI', 11, 'bold'), background='#6366f1', foreground='white')
+        style.map("Treeview.Heading", background=[('active', '#4f46e5')])
         
         for col in columns:
             self.tree.heading(col, text=col)
@@ -91,13 +96,17 @@ class PrescriptionModule:
             action_frame,
             text="View Details",
             command=self.view_prescription,
-            font=('Arial', 10),
-            bg='#3498db',
-            fg='black',
-            padx=15,
-            pady=5,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=5)
+            font=('Segoe UI', 10, 'bold'),
+            bg='#3b82f6',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#2563eb',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
     
     def refresh_list(self):
         """Refresh prescription list"""

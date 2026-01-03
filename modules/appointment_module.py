@@ -119,45 +119,57 @@ class AppointmentModule:
         
         self.tree.bind('<Double-1>', self.view_appointment)
         
-        # Action buttons
-        action_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        action_frame.pack(fill=tk.X, padx=20, pady=10)
+        # Action buttons with modern styling
+        action_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        action_frame.pack(fill=tk.X, padx=25, pady=15)
         
         tk.Button(
             action_frame,
             text="View Details",
             command=self.view_appointment,
-            font=('Arial', 10),
-            bg='#3498db',
-            fg='black',
-            padx=15,
-            pady=5,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=5)
+            font=('Segoe UI', 10, 'bold'),
+            bg='#3b82f6',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#2563eb',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
         
         tk.Button(
             action_frame,
             text="Mark Complete",
             command=self.mark_complete,
-            font=('Arial', 10),
-            bg='#2ecc71',
+            font=('Segoe UI', 10, 'bold'),
+            bg='#10b981',
             fg='white',
-            padx=15,
-            pady=5,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=5)
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#059669',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
         
         tk.Button(
             action_frame,
             text="Cancel",
             command=self.cancel_appointment,
-            font=('Arial', 10),
-            bg='#e74c3c',
+            font=('Segoe UI', 10, 'bold'),
+            bg='#ef4444',
             fg='white',
-            padx=15,
-            pady=5,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=5)
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#dc2626',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
     
     def refresh_list(self):
         """Refresh appointment list"""
@@ -235,7 +247,7 @@ class AppointmentModule:
         dialog = tk.Toplevel(self.parent)
         dialog.title("Schedule Appointment" if not appointment else "Edit Appointment")
         dialog.geometry("550x550")  # Increased height to ensure buttons are visible
-        dialog.configure(bg='#f0f0f0')
+        dialog.configure(bg='#f5f7fa')
         dialog.transient(self.parent)
         
         # Get root window for focus management
@@ -251,18 +263,18 @@ class AppointmentModule:
             dialog.grab_set()  # Fallback for older tkinter versions
         
         # Button frame - pack first at bottom to ensure visibility
-        button_frame = tk.Frame(dialog, bg='#f0f0f0', relief=tk.RAISED, bd=2)
+        button_frame = tk.Frame(dialog, bg='#f5f7fa', relief=tk.FLAT, bd=0)
         button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
         
         # Inner frame for button spacing
-        inner_button_frame = tk.Frame(button_frame, bg='#f0f0f0')
-        inner_button_frame.pack(padx=20, pady=15)
+        inner_button_frame = tk.Frame(button_frame, bg='#f5f7fa')
+        inner_button_frame.pack(padx=25, pady=20)
         
         # Main content frame - pack after button frame
-        main_frame = tk.Frame(dialog, bg='#f0f0f0')
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        main_frame = tk.Frame(dialog, bg='#f5f7fa')
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
         
-        fields_frame = tk.Frame(main_frame, bg='#f0f0f0')
+        fields_frame = tk.Frame(main_frame, bg='#f5f7fa')
         fields_frame.pack(fill=tk.X, expand=False, pady=10)
         
         if appointment:
@@ -270,7 +282,7 @@ class AppointmentModule:
         else:
             appointment_id = generate_id('APT')
         
-        tk.Label(fields_frame, text=f"Appointment ID: {appointment_id}", font=('Arial', 12, 'bold'), bg='#f0f0f0').pack(pady=5)
+        tk.Label(fields_frame, text=f"Appointment ID: {appointment_id}", font=('Segoe UI', 13, 'bold'), bg='#f5f7fa', fg='#1a237e').pack(pady=8)
         
         # Patient selection with searchable dropdown
         tk.Label(fields_frame, text="Patient ID *:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
@@ -446,15 +458,15 @@ class AppointmentModule:
             inner_button_frame,
             text="Schedule Appointment",
             command=save_appointment,
-            font=('Arial', 12, 'bold'),
-            bg='#27ae60',
+            font=('Segoe UI', 12, 'bold'),
+            bg='#10b981',
             fg='white',
             padx=40,
-            pady=10,
+            pady=12,
             cursor='hand2',
-            relief=tk.RAISED,
-            bd=3,
-            activebackground='#229954',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#059669',
             activeforeground='white'
         )
         schedule_btn.pack(side=tk.LEFT, padx=10)
@@ -485,13 +497,15 @@ class AppointmentModule:
             inner_button_frame,
             text="Close",
             command=close_dialog,
-            font=('Arial', 11),
-            bg='#95a5a6',
+            font=('Segoe UI', 11, 'bold'),
+            bg='#6b7280',
             fg='white',
-            padx=30,
-            pady=8,
+            padx=35,
+            pady=12,
             cursor='hand2',
-            activebackground='#7f8c8d',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#4b5563',
             activeforeground='white'
         )
         close_btn.pack(side=tk.LEFT, padx=10)

@@ -24,46 +24,51 @@ class BillingModule:
     
     def create_ui(self):
         """Create user interface"""
-        # Header
+        # Header with modern styling
         header = tk.Label(
             self.parent,
             text="Billing Management",
-            font=('Arial', 20, 'bold'),
-            bg='#f0f0f0',
-            fg='#2c3e50'
+            font=('Segoe UI', 24, 'bold'),
+            bg='#f5f7fa',
+            fg='#1a237e'
         )
-        header.pack(pady=10)
+        header.pack(pady=20)
         
         # Top frame
-        top_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        top_frame.pack(fill=tk.X, padx=20, pady=10)
+        top_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        top_frame.pack(fill=tk.X, padx=25, pady=15)
         
-        # Add bill button
+        # Add bill button with modern styling
         add_btn = tk.Button(
             top_frame,
             text="+ New Bill",
             command=self.add_bill,
-            font=('Arial', 11, 'bold'),
-            bg='#27ae60',
+            font=('Segoe UI', 11, 'bold'),
+            bg='#10b981',
             fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2'
+            padx=25,
+            pady=10,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#059669',
+            activeforeground='white'
         )
         add_btn.pack(side=tk.RIGHT, padx=10)
         
         # List frame
-        list_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        list_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
         # Treeview
         columns = ('Bill ID', 'Patient', 'Date', 'Total Amount', 'Status')
         self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
         
-        # Configure style for better visibility
+        # Configure style for modern look
         style = ttk.Style()
-        style.configure("Treeview", font=('Arial', 10), rowheight=25)
-        style.configure("Treeview.Heading", font=('Arial', 11, 'bold'))
+        style.configure("Treeview", font=('Segoe UI', 10), rowheight=30, background='white', foreground='#374151')
+        style.configure("Treeview.Heading", font=('Segoe UI', 11, 'bold'), background='#6366f1', foreground='white')
+        style.map("Treeview.Heading", background=[('active', '#4f46e5')])
         
         for col in columns:
             self.tree.heading(col, text=col)
@@ -77,45 +82,57 @@ class BillingModule:
         
         self.tree.bind('<Double-1>', self.view_bill)
         
-        # Action buttons
-        action_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        action_frame.pack(fill=tk.X, padx=20, pady=10)
+        # Action buttons with modern styling
+        action_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        action_frame.pack(fill=tk.X, padx=25, pady=15)
         
         tk.Button(
             action_frame,
             text="View Details",
             command=self.view_bill,
-            font=('Arial', 10),
-            bg='#3498db',
-            fg='black',
-            padx=15,
-            pady=5,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=5)
+            font=('Segoe UI', 10, 'bold'),
+            bg='#3b82f6',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#2563eb',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
         
         tk.Button(
             action_frame,
             text="🖨️ Print",
             command=self.print_bill,
-            font=('Arial', 10),
-            bg='#e67e22',
+            font=('Segoe UI', 10, 'bold'),
+            bg='#f59e0b',
             fg='white',
-            padx=15,
-            pady=5,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=5)
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#d97706',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
         
         tk.Button(
             action_frame,
             text="Mark Paid",
             command=self.mark_paid,
-            font=('Arial', 10),
-            bg='#2ecc71',
+            font=('Segoe UI', 10, 'bold'),
+            bg='#10b981',
             fg='white',
-            padx=15,
-            pady=5,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=5)
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#059669',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
     
     def refresh_list(self):
         """Refresh bill list"""
@@ -230,7 +247,7 @@ Notes:
         dialog = tk.Toplevel(self.parent)
         dialog.title("New Bill")
         dialog.geometry("500x600")  # Increased height to ensure buttons are visible
-        dialog.configure(bg='#f0f0f0')
+        dialog.configure(bg='#f5f7fa')
         dialog.transient(self.parent)
         
         # Get root window for focus management
@@ -246,14 +263,14 @@ Notes:
             dialog.grab_set()  # Fallback for older tkinter versions
         
         # Button frame - pack first to ensure it's at the bottom
-        button_frame = tk.Frame(dialog, bg='#f0f0f0', relief=tk.RAISED, bd=2)
+        button_frame = tk.Frame(dialog, bg='#f5f7fa', relief=tk.FLAT, bd=0)
         button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
         
-        main_frame = tk.Frame(dialog, bg='#f0f0f0')
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        main_frame = tk.Frame(dialog, bg='#f5f7fa')
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
         
         bill_id = generate_id('BILL')
-        tk.Label(main_frame, text=f"Bill ID: {bill_id}", font=('Arial', 12, 'bold'), bg='#f0f0f0').pack(pady=5)
+        tk.Label(main_frame, text=f"Bill ID: {bill_id}", font=('Segoe UI', 13, 'bold'), bg='#f5f7fa', fg='#1a237e').pack(pady=8)
         
         # Form fields - don't expand to fill all space
         form_frame = tk.Frame(main_frame, bg='#f0f0f0')
@@ -423,22 +440,22 @@ Notes:
                 messagebox.showerror("Error", "Failed to create bill")
         
         # Inner frame for button spacing
-        inner_button_frame = tk.Frame(button_frame, bg='#f0f0f0')
-        inner_button_frame.pack(fill=tk.X, padx=20, pady=15)
+        inner_button_frame = tk.Frame(button_frame, bg='#f5f7fa')
+        inner_button_frame.pack(fill=tk.X, padx=25, pady=20)
         
         tk.Button(
             inner_button_frame,
             text="Save",
             command=save_bill,
-            font=('Arial', 11, 'bold'),
-            bg='#27ae60',
-            fg='black',
-            padx=30,
-            pady=8,
+            font=('Segoe UI', 11, 'bold'),
+            bg='#10b981',
+            fg='white',
+            padx=35,
+            pady=10,
             cursor='hand2',
-            relief=tk.RAISED,
-            bd=2,
-            activebackground='#229954',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#059669',
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=10)
         
@@ -469,14 +486,16 @@ Notes:
             inner_button_frame,
             text="Close",
             command=close_dialog,
-            font=('Arial', 11),
-            bg='#95a5a6',
+            font=('Segoe UI', 11, 'bold'),
+            bg='#6b7280',
             fg='white',
-            padx=30,
-            pady=8,
+            padx=35,
+            pady=10,
             cursor='hand2',
-            relief=tk.RAISED,
-            bd=2
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#4b5563',
+            activeforeground='white'
         ).pack(side=tk.LEFT, padx=10)
         
         # Ensure everything is properly laid out

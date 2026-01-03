@@ -19,79 +19,95 @@ class ReportsModule:
     
     def create_ui(self):
         """Create user interface"""
-        # Header
+        # Header with modern styling
         header = tk.Label(
             self.parent,
             text="Reports & Analytics",
-            font=('Arial', 20, 'bold'),
-            bg='#f0f0f0',
-            fg='#2c3e50'
+            font=('Segoe UI', 24, 'bold'),
+            bg='#f5f7fa',
+            fg='#1a237e'
         )
-        header.pack(pady=10)
+        header.pack(pady=20)
         
         # Main content frame
-        content_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        content_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
         
         # Statistics section
         stats_frame = tk.LabelFrame(
             content_frame,
             text="System Statistics",
-            font=('Arial', 14, 'bold'),
-            bg='#f0f0f0',
-            fg='#2c3e50'
+            font=('Segoe UI', 14, 'bold'),
+            bg='white',
+            fg='#1a237e',
+            relief=tk.FLAT,
+            bd=0
         )
         stats_frame.pack(fill=tk.BOTH, expand=True, pady=10)
         
         self.stats_text = tk.Text(
             stats_frame,
-            font=('Arial', 12),
+            font=('Segoe UI', 11),
             bg='white',
-            fg='#2c3e50',
+            fg='#374151',
             wrap=tk.WORD,
-            height=15
+            height=15,
+            relief=tk.FLAT,
+            bd=0
         )
-        self.stats_text.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.stats_text.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
         
         # Buttons frame
-        button_frame = tk.Frame(content_frame, bg='#f0f0f0')
-        button_frame.pack(fill=tk.X, pady=10)
+        button_frame = tk.Frame(content_frame, bg='#f5f7fa')
+        button_frame.pack(fill=tk.X, pady=15)
         
         tk.Button(
             button_frame,
             text="Refresh Statistics",
             command=self.load_statistics,
-            font=('Arial', 11),
-            bg='#3498db',
+            font=('Segoe UI', 11, 'bold'),
+            bg='#3b82f6',
             fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=5)
+            padx=25,
+            pady=10,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#2563eb',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
         
         tk.Button(
             button_frame,
             text="Export Report",
             command=self.export_report,
-            font=('Arial', 11),
-            bg='#27ae60',
+            font=('Segoe UI', 11, 'bold'),
+            bg='#10b981',
             fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=5)
+            padx=25,
+            pady=10,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#059669',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
         
         tk.Button(
             button_frame,
             text="View Patient Reports",
             command=self.view_patient_reports,
-            font=('Arial', 11),
-            bg='#f39c12',
+            font=('Segoe UI', 11, 'bold'),
+            bg='#f59e0b',
             fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2'
-        ).pack(side=tk.LEFT, padx=5)
+            padx=25,
+            pady=10,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#d97706',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
     
     def load_statistics(self):
         """Load and display statistics"""

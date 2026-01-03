@@ -24,7 +24,8 @@ class HospitalManagementSystem:
         self.root = root
         self.root.title("Hospital Management System - Offline")
         self.root.geometry("1400x800")
-        self.root.configure(bg='#f0f0f0')
+        # Modern gradient-like background
+        self.root.configure(bg='#f5f7fa')
         
         log_info("=" * 60)
         log_info("Hospital Management System Starting")
@@ -150,23 +151,23 @@ class HospitalManagementSystem:
     
     def create_main_layout(self):
         """Create main application layout"""
-        # Top menu bar
-        menu_frame = tk.Frame(self.root, bg='#2c3e50', height=60)
+        # Modern top menu bar with gradient effect
+        menu_frame = tk.Frame(self.root, bg='#1a237e', height=70)
         menu_frame.pack(fill=tk.X, padx=0, pady=0)
         menu_frame.pack_propagate(False)
         
-        # Title
+        # Title with modern font
         title_label = tk.Label(
             menu_frame,
             text="🏥 Hospital Management System",
-            font=('Arial', 18, 'bold'),
-            bg='#2c3e50',
+            font=('Segoe UI', 20, 'bold'),
+            bg='#1a237e',
             fg='white'
         )
-        title_label.pack(side=tk.LEFT, padx=20, pady=15)
+        title_label.pack(side=tk.LEFT, padx=25, pady=20)
         
         # Navigation buttons
-        nav_frame = tk.Frame(menu_frame, bg='#2c3e50')
+        nav_frame = tk.Frame(menu_frame, bg='#1a237e')
         nav_frame.pack(side=tk.RIGHT, padx=20)
         
         buttons = [
@@ -195,26 +196,26 @@ class HospitalManagementSystem:
                     self._handle_navigation(btn_name)
                 return handler
             
-            # Create button with properly bound handler
+            # Modern button styling with hover effects
             btn = tk.Button(
                 nav_frame,
                 text=text,
                 command=make_handler(text),
-                font=('Arial', 12, 'bold'),
-                bg='#ecf0f1',
-                fg='#2c3e50',
-                activebackground='#3498db',
+                font=('Segoe UI', 11, 'bold'),
+                bg='#3949ab',
+                fg='white',
+                activebackground='#5c6bc0',
                 activeforeground='white',
-                relief=tk.RAISED,
-                bd=2,
-                padx=18,
-                pady=10,
+                relief=tk.FLAT,
+                bd=0,
+                padx=20,
+                pady=12,
                 cursor='hand2',
                 highlightthickness=0,
                 state=tk.NORMAL,
-                takefocus=0  # Allow buttons to work without keyboard focus
+                takefocus=0
             )
-            btn.pack(side=tk.LEFT, padx=3)
+            btn.pack(side=tk.LEFT, padx=4)
             self.nav_buttons[text] = btn
             # Ensure button is immediately enabled and ready
             btn.config(state=tk.NORMAL)
@@ -227,9 +228,9 @@ class HospitalManagementSystem:
         
         log_info("Main layout created successfully")
         
-        # Main content area
-        self.content_frame = tk.Frame(self.root, bg='#f0f0f0')
-        self.content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        # Main content area with modern background
+        self.content_frame = tk.Frame(self.root, bg='#f5f7fa')
+        self.content_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
     
     def _handle_navigation(self, button_name):
         """Handle navigation button clicks"""
@@ -309,19 +310,19 @@ class HospitalManagementSystem:
             # Ensure UI is ready
             self.root.update_idletasks()
             
-            # Dashboard title
+            # Dashboard title with modern styling
             title = tk.Label(
                 self.content_frame,
                 text="Dashboard",
-                font=('Arial', 24, 'bold'),
-                bg='#f0f0f0',
-                fg='#2c3e50'
+                font=('Segoe UI', 28, 'bold'),
+                bg='#f5f7fa',
+                fg='#1a237e'
             )
-            title.pack(pady=20)
+            title.pack(pady=30)
             
             # Statistics frame
-            stats_frame = tk.Frame(self.content_frame, bg='#f0f0f0')
-            stats_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+            stats_frame = tk.Frame(self.content_frame, bg='#f5f7fa')
+            stats_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
             
             try:
                 stats = self.db.get_statistics()
@@ -343,40 +344,45 @@ class HospitalManagementSystem:
                 ("Total Revenue", f"${stats['total_revenue']:.2f}", '#e74c3c')
             ]
             
-            cards_frame = tk.Frame(stats_frame, bg='#f0f0f0')
+            cards_frame = tk.Frame(stats_frame, bg='#f5f7fa')
             cards_frame.pack(fill=tk.BOTH, expand=True)
             
+            # Modern color palette
+            modern_colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
+            
             for i, (label, value, color) in enumerate(stat_cards):
+                # Use modern colors
+                modern_color = modern_colors[i % len(modern_colors)]
                 card = tk.Frame(
                     cards_frame,
-                    bg=color,
-                    relief=tk.RAISED,
-                    bd=2
+                    bg=modern_color,
+                    relief=tk.FLAT,
+                    bd=0
                 )
-                card.grid(row=i//3, column=i%3, padx=15, pady=15, sticky='nsew')
+                card.grid(row=i//3, column=i%3, padx=12, pady=12, sticky='nsew')
                 cards_frame.grid_columnconfigure(i%3, weight=1)
                 
                 value_label = tk.Label(
                     card,
                     text=str(value),
-                    font=('Arial', 32, 'bold'),
-                    bg=color,
+                    font=('Segoe UI', 36, 'bold'),
+                    bg=modern_color,
                     fg='white'
                 )
-                value_label.pack(pady=20)
+                value_label.pack(pady=(25, 10))
                 
                 label_label = tk.Label(
                     card,
                     text=label,
-                    font=('Arial', 14),
-                    bg=color,
+                    font=('Segoe UI', 13),
+                    bg=modern_color,
                     fg='white'
                 )
-                label_label.pack(pady=5)
+                label_label.pack(pady=(0, 20))
             
-            # Welcome message
-            welcome_frame = tk.Frame(self.content_frame, bg='#ecf0f1', relief=tk.RAISED, bd=2)
-            welcome_frame.pack(fill=tk.X, padx=20, pady=20)
+            # Welcome message with modern card design
+            welcome_frame = tk.Frame(self.content_frame, bg='white', relief=tk.FLAT, bd=0)
+            welcome_frame.pack(fill=tk.X, padx=25, pady=25)
             
             welcome_text = """
 Welcome to Hospital Management System!
@@ -398,13 +404,13 @@ All data is stored locally on your computer - no internet connection required.
             welcome_label = tk.Label(
                 welcome_frame,
                 text=welcome_text,
-                font=('Arial', 12),
-                bg='#ecf0f1',
-                fg='#2c3e50',
+                font=('Segoe UI', 11),
+                bg='white',
+                fg='#374151',
                 justify=tk.LEFT,
                 anchor='w'
             )
-            welcome_label.pack(padx=20, pady=20)
+            welcome_label.pack(padx=30, pady=30)
             log_info("Dashboard loaded successfully")
         except Exception as e:
             log_error("Failed to load Dashboard", e)
