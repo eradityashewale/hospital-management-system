@@ -4,7 +4,7 @@ Appointment Management Module
 import tkinter as tk
 from tkinter import ttk, messagebox
 from database import Database
-from utils import generate_id, get_current_date
+from utils import generate_id, get_current_date, get_current_datetime
 
 
 class AppointmentModule:
@@ -518,7 +518,7 @@ class AppointmentModule:
                 root.update_idletasks()
                 
                 # Show message after dialog is closed (non-blocking) - delayed to not interfere
-                root.after(150, lambda: messagebox.showinfo("Success", "Appointment scheduled successfully"))
+                root.after(150, lambda: messagebox.showinfo("Success", "Appointment scheduled successfully!"))
                 # Refresh list asynchronously
                 root.after(250, self.refresh_list)
             else:
@@ -599,4 +599,4 @@ class AppointmentModule:
             root.update()
             root.update_idletasks()
         dialog.protocol("WM_DELETE_WINDOW", on_close)
-
+    

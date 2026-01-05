@@ -699,6 +699,9 @@ class PrescriptionModule:
             columns = ('Medicine Name', 'Company', 'Dosage (mg)', 'Form', 'Category', 'Description')
             medicine_tree = ttk.Treeview(tree_frame, columns=columns, show='headings', height=20)
             
+            # Configure the tree column (#0) to be empty and hidden
+            medicine_tree.column('#0', width=0, stretch=False)
+            
             # Configure columns
             medicine_tree.heading('Medicine Name', text='Medicine Name')
             medicine_tree.heading('Company', text='Company Name')
@@ -707,12 +710,12 @@ class PrescriptionModule:
             medicine_tree.heading('Category', text='Category')
             medicine_tree.heading('Description', text='Description')
             
-            medicine_tree.column('Medicine Name', width=200, anchor='w')
-            medicine_tree.column('Company', width=150, anchor='w')
-            medicine_tree.column('Dosage (mg)', width=120, anchor='w')
-            medicine_tree.column('Form', width=100, anchor='w')
-            medicine_tree.column('Category', width=120, anchor='w')
-            medicine_tree.column('Description', width=300, anchor='w')
+            medicine_tree.column('Medicine Name', width=200, anchor='w', stretch=True)
+            medicine_tree.column('Company', width=150, anchor='w', stretch=True)
+            medicine_tree.column('Dosage (mg)', width=120, anchor='w', stretch=True)
+            medicine_tree.column('Form', width=100, anchor='w', stretch=True)
+            medicine_tree.column('Category', width=120, anchor='w', stretch=True)
+            medicine_tree.column('Description', width=300, anchor='w', stretch=True)
             
             # Scrollbars
             v_scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=medicine_tree.yview)
@@ -725,22 +728,35 @@ class PrescriptionModule:
             tree_frame.grid_rowconfigure(0, weight=1)
             tree_frame.grid_columnconfigure(0, weight=1)
             
-            # Load medicines from database
+            # Load medicines from database - show all medicines as stored
             all_medicines = self.db.get_all_medicines_master()
             
             def populate_tree(medicines_list):
-                """Populate tree with medicines"""
+                """Populate tree with medicines - displays all available data"""
                 medicine_tree.delete(*medicine_tree.get_children())
                 for med in medicines_list:
-                    medicine_tree.insert('', tk.END, values=(
-                        med.get('medicine_name', ''),
-                        med.get('company_name', ''),
-                        med.get('dosage_mg', ''),
-                        med.get('dosage_form', ''),
-                        med.get('category', ''),
-                        med.get('description', '')
+                    # Get all values from the medicine dictionary
+                    # The database method returns all fields, so we extract them directly
+                    medicine_name = str(med.get('medicine_name', '') or '')
+                    company_name = str(med.get('company_name', '') or '')
+                    dosage_mg = str(med.get('dosage_mg', '') or '')
+                    dosage_form = str(med.get('dosage_form', '') or '')
+                    category = str(med.get('category', '') or '')
+                    description = str(med.get('description', '') or '')
+                    
+                    # Insert values in the exact order matching the columns tuple
+                    # Column order: ('Medicine Name', 'Company', 'Dosage (mg)', 'Form', 'Category', 'Description')
+                    # When using show='headings', text='' ensures values map to columns correctly
+                    item_id = medicine_tree.insert('', tk.END, text='', values=(
+                        medicine_name,      # Maps to 'Medicine Name' column
+                        company_name,      # Maps to 'Company' column
+                        dosage_mg,         # Maps to 'Dosage (mg)' column
+                        dosage_form,       # Maps to 'Form' column
+                        category,          # Maps to 'Category' column
+                        description        # Maps to 'Description' column
                     ))
             
+            # Populate with all medicines from database (in database order)
             populate_tree(all_medicines)
             
             # Search functionality
@@ -750,6 +766,7 @@ class PrescriptionModule:
                     filtered = self.db.search_medicines_master(query)
                     populate_tree(filtered)
                 else:
+                    # Show all medicines when search is cleared
                     populate_tree(all_medicines)
             
             search_var.trace('w', on_search)

@@ -178,6 +178,21 @@ class Database:
             )
         """)
         
+        # Migration: Add is_pediatric column if it doesn't exist
+        try:
+            self.cursor.execute("PRAGMA table_info(medicines_master)")
+            columns = [row[1] for row in self.cursor.fetchall()]
+            if 'is_pediatric' not in columns:
+                log_info("Adding is_pediatric column to medicines_master table")
+                self.cursor.execute("""
+                    ALTER TABLE medicines_master 
+                    ADD COLUMN is_pediatric INTEGER DEFAULT 0
+                """)
+                self.conn.commit()
+                log_info("Successfully added is_pediatric column")
+        except Exception as e:
+            log_error("Error adding is_pediatric column to medicines_master", e)
+        
         self.conn.commit()
         log_info("Database initialized successfully")
         
@@ -828,10 +843,35 @@ class Database:
         """Get all medicines from master table"""
         try:
             self.cursor.execute("""
-                SELECT * FROM medicines_master 
+                SELECT medicine_name, company_name, dosage_mg, dosage_form, category, description 
+                FROM medicines_master 
                 ORDER BY medicine_name ASC
             """)
-            medicines = [dict(row) for row in self.cursor.fetchall()]
+            rows = self.cursor.fetchall()
+            medicines = []
+            for row in rows:
+                # Access Row columns by name - sqlite3.Row supports dictionary-style access
+                # Convert None to empty string and ensure all values are strings
+                try:
+                    medicine = {
+                        'medicine_name': str(row['medicine_name']) if row['medicine_name'] is not None else '',
+                        'company_name': str(row['company_name']) if row['company_name'] is not None else '',
+                        'dosage_mg': str(row['dosage_mg']) if row['dosage_mg'] is not None else '',
+                        'dosage_form': str(row['dosage_form']) if row['dosage_form'] is not None else '',
+                        'category': str(row['category']) if row['category'] is not None else '',
+                        'description': str(row['description']) if row['description'] is not None else ''
+                    }
+                except (KeyError, IndexError) as e:
+                    # Fallback to index-based access if name access fails
+                    medicine = {
+                        'medicine_name': str(row[0]) if len(row) > 0 and row[0] is not None else '',
+                        'company_name': str(row[1]) if len(row) > 1 and row[1] is not None else '',
+                        'dosage_mg': str(row[2]) if len(row) > 2 and row[2] is not None else '',
+                        'dosage_form': str(row[3]) if len(row) > 3 and row[3] is not None else '',
+                        'category': str(row[4]) if len(row) > 4 and row[4] is not None else '',
+                        'description': str(row[5]) if len(row) > 5 and row[5] is not None else ''
+                    }
+                medicines.append(medicine)
             log_debug(f"Retrieved {len(medicines)} medicines from master table")
             return medicines
         except Exception as e:
@@ -842,12 +882,38 @@ class Database:
         """Search medicines by name, company, or category"""
         try:
             self.cursor.execute("""
-                SELECT * FROM medicines_master 
+                SELECT medicine_name, company_name, dosage_mg, dosage_form, category, description 
+                FROM medicines_master 
                 WHERE medicine_name LIKE ? OR company_name LIKE ? 
                 OR category LIKE ? OR dosage_mg LIKE ?
                 ORDER BY medicine_name ASC
             """, (f'%{query}%', f'%{query}%', f'%{query}%', f'%{query}%'))
-            return [dict(row) for row in self.cursor.fetchall()]
+            rows = self.cursor.fetchall()
+            medicines = []
+            for row in rows:
+                # Access Row columns by name - sqlite3.Row supports dictionary-style access
+                # Convert None to empty string and ensure all values are strings
+                try:
+                    medicine = {
+                        'medicine_name': str(row['medicine_name']) if row['medicine_name'] is not None else '',
+                        'company_name': str(row['company_name']) if row['company_name'] is not None else '',
+                        'dosage_mg': str(row['dosage_mg']) if row['dosage_mg'] is not None else '',
+                        'dosage_form': str(row['dosage_form']) if row['dosage_form'] is not None else '',
+                        'category': str(row['category']) if row['category'] is not None else '',
+                        'description': str(row['description']) if row['description'] is not None else ''
+                    }
+                except (KeyError, IndexError) as e:
+                    # Fallback to index-based access if name access fails
+                    medicine = {
+                        'medicine_name': str(row[0]) if len(row) > 0 and row[0] is not None else '',
+                        'company_name': str(row[1]) if len(row) > 1 and row[1] is not None else '',
+                        'dosage_mg': str(row[2]) if len(row) > 2 and row[2] is not None else '',
+                        'dosage_form': str(row[3]) if len(row) > 3 and row[3] is not None else '',
+                        'category': str(row[4]) if len(row) > 4 and row[4] is not None else '',
+                        'description': str(row[5]) if len(row) > 5 and row[5] is not None else ''
+                    }
+                medicines.append(medicine)
+            return medicines
         except Exception as e:
             log_error("Failed to search medicines", e)
             return []
@@ -887,4 +953,227 @@ class Database:
         except Exception as e:
             log_error(f"Failed to retrieve medicine {medicine_name}", e)
             return None
-
+    
+    def add_medicine_to_master(self, medicine_data: Dict) -> bool:
+        """Add a single medicine to the master table"""
+        try:
+            log_debug(f"Adding medicine to master: {medicine_data.get('medicine_name')}")
+            self.cursor.execute("""
+                INSERT OR IGNORE INTO medicines_master 
+                (medicine_name, company_name, category, dosage_mg, dosage_form, description, is_pediatric)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                medicine_data.get('medicine_name', ''),
+                medicine_data.get('company_name', ''),
+                medicine_data.get('category', ''),
+                medicine_data.get('dosage_mg', ''),
+                medicine_data.get('dosage_form', ''),
+                medicine_data.get('description', ''),
+                medicine_data.get('is_pediatric', 0)
+            ))
+            self.conn.commit()
+            return True
+        except Exception as e:
+            log_error(f"Failed to add medicine to master: {medicine_data.get('medicine_name')}", e)
+            return False
+    
+    def batch_add_medicines_to_master(self, medicines_list: List[Dict]) -> int:
+        """Add multiple medicines to the master table in a single transaction"""
+        if not medicines_list:
+            return 0
+        
+        imported = 0
+        try:
+            for medicine_data in medicines_list:
+                self.cursor.execute("""
+                    INSERT OR IGNORE INTO medicines_master 
+                    (medicine_name, company_name, category, dosage_mg, dosage_form, description, is_pediatric)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    medicine_data.get('medicine_name', ''),
+                    medicine_data.get('company_name', ''),
+                    medicine_data.get('category', ''),
+                    medicine_data.get('dosage_mg', ''),
+                    medicine_data.get('dosage_form', ''),
+                    medicine_data.get('description', ''),
+                    medicine_data.get('is_pediatric', 0)
+                ))
+                if self.cursor.rowcount > 0:
+                    imported += 1
+            
+            self.conn.commit()
+            return imported
+        except Exception as e:
+            self.conn.rollback()
+            log_error(f"Failed to batch add medicines to master", e)
+            return 0
+    
+    def import_medicines_from_csv(self, csv_file_path: str, batch_size: int = 1000) -> Dict:
+        """Import medicines from CSV file into medicines_master table"""
+        import csv
+        import os
+        
+        if not os.path.exists(csv_file_path):
+            log_error(f"CSV file not found: {csv_file_path}")
+            return {'success': False, 'message': f'File not found: {csv_file_path}', 'imported': 0, 'failed': 0}
+        
+        imported = 0
+        failed = 0
+        skipped = 0
+        
+        try:
+            log_info(f"Starting CSV import from: {csv_file_path}")
+            
+            with open(csv_file_path, 'r', encoding='utf-8') as file:
+                # Detect delimiter with fallback to common delimiters
+                sample = file.read(1024)
+                file.seek(0)
+                
+                delimiter = ','
+                try:
+                    sniffer = csv.Sniffer()
+                    delimiter = sniffer.sniff(sample).delimiter
+                    log_info(f"Detected CSV delimiter: '{delimiter}'")
+                except Exception:
+                    # If sniffer fails, try common delimiters
+                    log_info("CSV sniffer failed, trying common delimiters...")
+                    common_delimiters = [',', ';', '\t', '|']
+                    for delim in common_delimiters:
+                        # Count occurrences in first line
+                        first_line = sample.split('\n')[0] if '\n' in sample else sample
+                        if first_line.count(delim) > 0:
+                            delimiter = delim
+                            log_info(f"Using delimiter: '{delimiter}'")
+                            break
+                
+                reader = csv.DictReader(file, delimiter=delimiter)
+                
+                # Map CSV columns to database columns (case-insensitive)
+                column_mapping = {}
+                fieldnames_lower = [col.lower().strip() for col in reader.fieldnames]
+                
+                for csv_col in reader.fieldnames:
+                    csv_col_lower = csv_col.lower().strip()
+                    
+                    # Medicine name mapping (priority order)
+                    if 'medicine_name' not in column_mapping:
+                        if csv_col_lower in ['product_name', 'medicine_name', 'drug_name', 'name']:
+                            column_mapping['medicine_name'] = csv_col
+                        elif 'medicine' in csv_col_lower and 'name' in csv_col_lower:
+                            column_mapping['medicine_name'] = csv_col
+                        elif 'product' in csv_col_lower and 'name' in csv_col_lower:
+                            column_mapping['medicine_name'] = csv_col
+                        elif csv_col_lower in ['medicine', 'drug', 'medication']:
+                            column_mapping['medicine_name'] = csv_col
+                        elif 'name' in csv_col_lower and csv_col_lower not in ['company_name', 'company name']:
+                            # Only if we don't have a better match
+                            if 'medicine_name' not in column_mapping:
+                                column_mapping['medicine_name'] = csv_col
+                    
+                    # Company name mapping
+                    if 'company_name' not in column_mapping:
+                        if csv_col_lower in ['product_manufactured', 'manufacturer', 'company_name', 'company', 'maker', 'brand']:
+                            column_mapping['company_name'] = csv_col
+                        elif 'company' in csv_col_lower and 'name' in csv_col_lower:
+                            column_mapping['company_name'] = csv_col
+                        elif 'manufactured' in csv_col_lower or 'manufacturer' in csv_col_lower:
+                            column_mapping['company_name'] = csv_col
+                    
+                    # Category mapping
+                    if 'category' not in column_mapping:
+                        if csv_col_lower in ['sub_category', 'category', 'type', 'class', 'classification', 'drug_category']:
+                            column_mapping['category'] = csv_col
+                        elif 'category' in csv_col_lower:
+                            column_mapping['category'] = csv_col
+                    
+                    # Dosage mapping (check dosage_mg first, then dosage_form)
+                    if csv_col_lower in ['salt_composition', 'dosage', 'dose', 'strength']:
+                        if 'dosage_mg' not in column_mapping:
+                            column_mapping['dosage_mg'] = csv_col
+                    elif 'dosage' in csv_col_lower or 'dose' in csv_col_lower or 'strength' in csv_col_lower:
+                        if 'dosage_mg' not in column_mapping and ('mg' in csv_col_lower or 'form' not in csv_col_lower):
+                            column_mapping['dosage_mg'] = csv_col
+                        elif 'dosage_form' not in column_mapping and 'form' in csv_col_lower:
+                            column_mapping['dosage_form'] = csv_col
+                    elif 'form' in csv_col_lower and 'dosage_form' not in column_mapping:
+                        column_mapping['dosage_form'] = csv_col
+                    
+                    # Description mapping
+                    if 'description' not in column_mapping:
+                        if csv_col_lower in ['medicine_desc', 'description', 'desc', 'details', 'notes', 'remarks']:
+                            column_mapping['description'] = csv_col
+                        elif 'desc' in csv_col_lower:
+                            column_mapping['description'] = csv_col
+                    
+                    # Pediatric mapping
+                    if 'is_pediatric' not in column_mapping:
+                        if csv_col_lower in ['pediatric', 'paediatric', 'child', 'children', 'is_pediatric', 'pediatric_use']:
+                            column_mapping['is_pediatric'] = csv_col
+                
+                # If medicine_name still not found, use first column as fallback
+                if 'medicine_name' not in column_mapping and reader.fieldnames:
+                    column_mapping['medicine_name'] = reader.fieldnames[0]
+                    log_info(f"Using first column '{reader.fieldnames[0]}' as medicine_name")
+                
+                log_info(f"Column mapping: {column_mapping}")
+                
+                batch = []
+                for row_num, row in enumerate(reader, start=2):  # Start at 2 because row 1 is header
+                    try:
+                        medicine_data = {}
+                        
+                        # Extract data using column mapping
+                        medicine_data['medicine_name'] = row.get(column_mapping.get('medicine_name', reader.fieldnames[0] if reader.fieldnames else ''), '').strip()
+                        
+                        if not medicine_data['medicine_name']:
+                            skipped += 1
+                            continue
+                        
+                        medicine_data['company_name'] = row.get(column_mapping.get('company_name', ''), '').strip() if column_mapping.get('company_name') else ''
+                        medicine_data['category'] = row.get(column_mapping.get('category', ''), '').strip() if column_mapping.get('category') else ''
+                        medicine_data['dosage_mg'] = row.get(column_mapping.get('dosage_mg', ''), '').strip() if column_mapping.get('dosage_mg') else ''
+                        medicine_data['dosage_form'] = row.get(column_mapping.get('dosage_form', ''), '').strip() if column_mapping.get('dosage_form') else ''
+                        medicine_data['description'] = row.get(column_mapping.get('description', ''), '').strip() if column_mapping.get('description') else ''
+                        
+                        # Handle is_pediatric - convert to integer
+                        pediatric_val = row.get(column_mapping.get('is_pediatric', ''), '0').strip() if column_mapping.get('is_pediatric') else '0'
+                        if pediatric_val.lower() in ['yes', 'true', '1', 'y']:
+                            medicine_data['is_pediatric'] = 1
+                        else:
+                            medicine_data['is_pediatric'] = 0
+                        
+                        batch.append(medicine_data)
+                        
+                        if len(batch) >= batch_size:
+                            # Insert batch
+                            batch_imported = self.batch_add_medicines_to_master(batch)
+                            imported += batch_imported
+                            failed += (len(batch) - batch_imported)
+                            batch = []
+                            log_info(f"Processed {row_num} rows. Imported: {imported}, Failed: {failed}, Skipped: {skipped}")
+                    
+                    except Exception as e:
+                        failed += 1
+                        log_error(f"Error processing row {row_num}", e)
+                        continue
+                
+                # Insert remaining batch
+                if batch:
+                    batch_imported = self.batch_add_medicines_to_master(batch)
+                    imported += batch_imported
+                    failed += (len(batch) - batch_imported)
+                    batch = []
+            
+            log_info(f"CSV import completed. Imported: {imported}, Failed: {failed}, Skipped: {skipped}")
+            return {
+                'success': True,
+                'imported': imported,
+                'failed': failed,
+                'skipped': skipped,
+                'total': imported + failed + skipped
+            }
+        
+        except Exception as e:
+            log_error(f"Failed to import medicines from CSV: {csv_file_path}", e)
+            return {'success': False, 'message': str(e), 'imported': imported, 'failed': failed}
+    

@@ -22,7 +22,7 @@ class HospitalManagementSystem:
     
     def __init__(self, root):
         self.root = root
-        self.root.title("Hospital Management System - Offline")
+        self.root.title("Hospital Management System")
         self.root.geometry("1400x800")
         # Modern gradient-like background
         self.root.configure(bg='#f5f7fa')
