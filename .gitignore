@@ -26,6 +26,17 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+*.csv
+*.txt
+*.json
+*.xml
+*.yaml
+*.yml
+*.html
+*.css
+*.js
+*.php
+*.sql
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
