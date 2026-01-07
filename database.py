@@ -178,6 +178,19 @@ class Database:
             )
         """)
         
+        # Users table for login system
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                full_name TEXT,
+                role TEXT DEFAULT 'admin',
+                is_active INTEGER DEFAULT 1,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         # Migration: Add is_pediatric column if it doesn't exist
         try:
             self.cursor.execute("PRAGMA table_info(medicines_master)")
@@ -195,6 +208,9 @@ class Database:
         
         self.conn.commit()
         log_info("Database initialized successfully")
+        
+        # Create default user if no users exist
+        self.create_default_user()
         
         # Populate medicines if table is empty
         self.populate_medicines()
@@ -1483,4 +1499,63 @@ class Database:
         except Exception as e:
             log_error(f"Failed to import medicines from CSV: {csv_file_path}", e)
             return {'success': False, 'message': str(e), 'imported': imported, 'failed': failed}
+    
+    # User authentication operations
+    def create_default_user(self) -> None:
+        """Create default user if no users exist"""
+        try:
+            # Check if any users exist
+            self.cursor.execute("SELECT COUNT(*) FROM users")
+            count = self.cursor.fetchone()[0]
+            
+            if count == 0:
+                # Create default user: username='admin', password='admin'
+                import hashlib
+                # Simple password hashing (in production, use bcrypt or similar)
+                password_hash = hashlib.sha256('admin'.encode()).hexdigest()
+                
+                self.cursor.execute("""
+                    INSERT INTO users (username, password, full_name, role, is_active)
+                    VALUES (?, ?, ?, ?, ?)
+                """, ('admin', password_hash, 'System Administrator', 'admin', 1))
+                
+                self.conn.commit()
+                log_info("Default user created: username='admin', password='admin'")
+            else:
+                log_debug(f"Users table already has {count} user(s), skipping default user creation")
+        except Exception as e:
+            log_error("Failed to create default user", e)
+    
+    def authenticate_user(self, username: str, password: str) -> Optional[Dict]:
+        """Authenticate user with username and password"""
+        try:
+            import hashlib
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            
+            self.cursor.execute("""
+                SELECT * FROM users 
+                WHERE username = ? AND password = ? AND is_active = 1
+            """, (username, password_hash))
+            
+            row = self.cursor.fetchone()
+            if row:
+                user = dict(row)
+                log_info(f"User authenticated successfully: {username}")
+                return user
+            else:
+                log_warning(f"Authentication failed for username: {username}")
+                return None
+        except Exception as e:
+            log_error(f"Error authenticating user: {username}", e)
+            return None
+    
+    def get_user_by_username(self, username: str) -> Optional[Dict]:
+        """Get user by username"""
+        try:
+            self.cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+            row = self.cursor.fetchone()
+            return dict(row) if row else None
+        except Exception as e:
+            log_error(f"Error getting user: {username}", e)
+            return None
     

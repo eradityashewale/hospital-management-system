@@ -21,8 +21,10 @@ from modules.reports_module import ReportsModule
 class HospitalManagementSystem:
     """Main application class"""
     
-    def __init__(self, root):
+    def __init__(self, root, authenticated_user=None, logout_callback=None):
         self.root = root
+        self.authenticated_user = authenticated_user
+        self.logout_callback = logout_callback
         self.root.title("Hospital Management System")
         self.root.geometry("1400x800")
         # Modern gradient-like background
@@ -30,6 +32,8 @@ class HospitalManagementSystem:
         
         log_info("=" * 60)
         log_info("Hospital Management System Starting")
+        if authenticated_user:
+            log_info(f"User: {authenticated_user.get('username', 'Unknown')}")
         log_info("=" * 60)
         
         # Create UI first to make buttons immediately responsive
@@ -157,19 +161,51 @@ class HospitalManagementSystem:
         menu_frame.pack(fill=tk.X, padx=0, pady=0)
         menu_frame.pack_propagate(False)
         
-        # Title with modern font
+        # Title with modern font - reduced size to make room for all buttons
         title_label = tk.Label(
             menu_frame,
             text="🏥 Hospital Management System",
-            font=('Segoe UI', 20, 'bold'),
+            font=('Segoe UI', 18, 'bold'),
             bg='#1a237e',
             fg='white'
         )
-        title_label.pack(side=tk.LEFT, padx=25, pady=20)
+        title_label.pack(side=tk.LEFT, padx=15, pady=20)
         
-        # Navigation buttons
+        # Navigation buttons - place in the middle area with proper spacing
         nav_frame = tk.Frame(menu_frame, bg='#1a237e')
-        nav_frame.pack(side=tk.RIGHT, padx=20)
+        nav_frame.pack(side=tk.LEFT, padx=(10, 10), fill=tk.X, expand=True)
+        
+        # User info and logout button frame
+        user_frame = tk.Frame(menu_frame, bg='#1a237e')
+        user_frame.pack(side=tk.RIGHT, padx=10)
+        
+        # User info label (will be updated with actual user info)
+        self.user_info_label = tk.Label(
+            user_frame,
+            text="",
+            font=('Segoe UI', 9),
+            bg='#1a237e',
+            fg='#e0e0e0'
+        )
+        self.user_info_label.pack(side=tk.RIGHT, padx=(0, 10))
+        
+        # Logout button
+        logout_btn = tk.Button(
+            user_frame,
+            text="🚪 Logout",
+            font=('Segoe UI', 9, 'bold'),
+            bg='#d32f2f',
+            fg='white',
+            activebackground='#c62828',
+            activeforeground='white',
+            relief=tk.FLAT,
+            bd=0,
+            padx=12,
+            pady=8,
+            cursor='hand2',
+            command=self.logout
+        )
+        logout_btn.pack(side=tk.RIGHT)
         
         buttons = [
             ("Dashboard", self.show_dashboard),
@@ -197,26 +233,26 @@ class HospitalManagementSystem:
                     self._handle_navigation(btn_name)
                 return handler
             
-            # Modern button styling with hover effects
+            # Modern button styling with hover effects - reduced padding to fit all buttons
             btn = tk.Button(
                 nav_frame,
                 text=text,
                 command=make_handler(text),
-                font=('Segoe UI', 11, 'bold'),
+                font=('Segoe UI', 10, 'bold'),
                 bg='#3949ab',
                 fg='white',
                 activebackground='#5c6bc0',
                 activeforeground='white',
                 relief=tk.FLAT,
                 bd=0,
-                padx=20,
-                pady=12,
+                padx=12,
+                pady=10,
                 cursor='hand2',
                 highlightthickness=0,
                 state=tk.NORMAL,
                 takefocus=0
             )
-            btn.pack(side=tk.LEFT, padx=4)
+            btn.pack(side=tk.LEFT, padx=2)
             self.nav_buttons[text] = btn
             # Ensure button is immediately enabled and ready
             btn.config(state=tk.NORMAL)
@@ -228,6 +264,15 @@ class HospitalManagementSystem:
             log_debug(f"Navigation button '{text}' created and bound to {command.__name__}")
         
         log_info("Main layout created successfully")
+        
+        # Update user info label if user is authenticated
+        if hasattr(self, 'authenticated_user') and self.authenticated_user:
+            username = self.authenticated_user.get('username', 'User')
+            full_name = self.authenticated_user.get('full_name', '')
+            if full_name:
+                self.user_info_label.config(text=f"👤 {full_name} ({username})")
+            else:
+                self.user_info_label.config(text=f"👤 {username}")
         
         # Main content area with modern background
         self.content_frame = tk.Frame(self.root, bg='#f5f7fa')
@@ -2093,6 +2138,26 @@ class HospitalManagementSystem:
             log_error("Failed to load Reports module", e)
             messagebox.showerror("Error", f"Failed to load Reports module: {str(e)}")
     
+    def logout(self):
+        """Handle user logout"""
+        from tkinter import messagebox
+        
+        # Confirm logout
+        if messagebox.askyesno("Logout", "Are you sure you want to logout?"):
+            log_info("User logging out...")
+            self.db.close()
+            log_info("Database connection closed")
+            log_info("=" * 60)
+            log_info("User logged out")
+            log_info("=" * 60)
+            
+            # Destroy main window
+            self.root.destroy()
+            
+            # Call logout callback if provided (to show login window again)
+            if self.logout_callback:
+                self.logout_callback()
+    
     def on_closing(self):
         """Handle application closing"""
         log_info("Application closing...")
@@ -2107,13 +2172,63 @@ class HospitalManagementSystem:
 def main():
     """Main entry point"""
     try:
-        root = tk.Tk()
-        app = HospitalManagementSystem(root)
-        # Store app instance in root for easy access from modules
-        root.app_instance = app
-        root.protocol("WM_DELETE_WINDOW", app.on_closing)
-        # Start mainloop immediately - window is already shown in __init__
-        root.mainloop()
+        while True:  # Loop to allow re-login after logout
+            # Show login window first
+            from login_window import LoginWindow
+            
+            login_root = tk.Tk()
+            authenticated_user = None
+            login_successful = False
+            
+            def on_login_success(user):
+                """Callback when login is successful"""
+                nonlocal authenticated_user, login_successful
+                authenticated_user = user
+                login_successful = True
+                login_root.quit()
+            
+            # Create and show login window
+            login_app = LoginWindow(login_root, on_login_success)
+            # Ensure window is visible
+            login_root.deiconify()
+            login_root.lift()
+            login_root.focus_force()
+            login_root.mainloop()
+            login_root.destroy()
+            
+            # Check if user was authenticated
+            if not authenticated_user or not login_successful:
+                log_info("Login cancelled or failed - exiting application")
+                break  # Exit the loop and close application
+            
+            log_info(f"User authenticated: {authenticated_user.get('username', 'Unknown')}")
+            
+            # Create main application window
+            root = tk.Tk()
+            
+            # Track if logout was called
+            logout_called = [False]  # Use list to allow modification in nested function
+            
+            # Define logout callback to return to login
+            def on_logout():
+                """Handle logout - destroy main window and return to login loop"""
+                logout_called[0] = True
+                root.destroy()
+            
+            app = HospitalManagementSystem(root, authenticated_user, on_logout)
+            # Store app instance and authenticated user in root for easy access from modules
+            root.app_instance = app
+            root.authenticated_user = authenticated_user
+            root.protocol("WM_DELETE_WINDOW", app.on_closing)
+            # Start mainloop immediately - window is already shown in __init__
+            root.mainloop()
+            
+            # If we reach here, the main window was closed
+            # If logout was called, continue the loop to show login again
+            # Otherwise, break to exit application
+            if not logout_called[0]:
+                break  # Window was closed normally, exit application
+            
     except KeyboardInterrupt:
         log_info("Application interrupted by user")
     except Exception as e:
