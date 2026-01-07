@@ -318,7 +318,301 @@ class HospitalManagementSystem:
                 bg='#f5f7fa',
                 fg='#1a237e'
             )
-            title.pack(pady=30)
+            title.pack(pady=(30, 10))
+            
+            # Filter frame
+            filter_frame = tk.Frame(self.content_frame, bg='#f5f7fa')
+            filter_frame.pack(fill=tk.X, padx=25, pady=(10, 20))
+            
+            # Filter label
+            filter_label = tk.Label(
+                filter_frame,
+                text="Filter by:",
+                font=('Segoe UI', 11, 'bold'),
+                bg='#f5f7fa',
+                fg='#374151'
+            )
+            filter_label.pack(side=tk.LEFT, padx=(0, 10))
+            
+            # Store current filter state
+            self.current_filter = {'type': 'all', 'date': None}
+            self.stat_value_labels = []  # Store references to value labels for updating
+            
+            # Filter buttons
+            filter_buttons_frame = tk.Frame(filter_frame, bg='#f5f7fa')
+            filter_buttons_frame.pack(side=tk.LEFT, padx=5)
+            
+            # Date input frame (initially hidden)
+            date_input_frame = tk.Frame(filter_frame, bg='#f5f7fa')
+            date_input_frame.pack(side=tk.LEFT, padx=10)
+            
+            date_label = tk.Label(
+                date_input_frame,
+                text="Date:",
+                font=('Segoe UI', 10),
+                bg='#f5f7fa',
+                fg='#6b7280'
+            )
+            date_label.pack(side=tk.LEFT, padx=(0, 5))
+            
+            from utils import get_current_date
+            self.filter_date_var = tk.StringVar(value=get_current_date())
+            date_entry = tk.Entry(
+                date_input_frame,
+                textvariable=self.filter_date_var,
+                font=('Segoe UI', 10),
+                width=12,
+                relief=tk.SOLID,
+                bd=1
+            )
+            date_entry.pack(side=tk.LEFT, padx=5)
+            
+            # Month input frame (initially hidden)
+            month_input_frame = tk.Frame(filter_frame, bg='#f5f7fa')
+            month_input_frame.pack(side=tk.LEFT, padx=10)
+            
+            month_label = tk.Label(
+                month_input_frame,
+                text="Month (YYYY-MM):",
+                font=('Segoe UI', 10),
+                bg='#f5f7fa',
+                fg='#6b7280'
+            )
+            month_label.pack(side=tk.LEFT, padx=(0, 5))
+            
+            from datetime import datetime
+            current_month = datetime.now().strftime('%Y-%m')
+            self.filter_month_var = tk.StringVar(value=current_month)
+            month_entry = tk.Entry(
+                month_input_frame,
+                textvariable=self.filter_month_var,
+                font=('Segoe UI', 10),
+                width=12,
+                relief=tk.SOLID,
+                bd=1
+            )
+            month_entry.pack(side=tk.LEFT, padx=5)
+            
+            # Year input frame (initially hidden)
+            year_input_frame = tk.Frame(filter_frame, bg='#f5f7fa')
+            year_input_frame.pack(side=tk.LEFT, padx=10)
+            
+            year_label = tk.Label(
+                year_input_frame,
+                text="Year (YYYY):",
+                font=('Segoe UI', 10),
+                bg='#f5f7fa',
+                fg='#6b7280'
+            )
+            year_label.pack(side=tk.LEFT, padx=(0, 5))
+            
+            current_year = datetime.now().strftime('%Y')
+            self.filter_year_var = tk.StringVar(value=current_year)
+            year_entry = tk.Entry(
+                year_input_frame,
+                textvariable=self.filter_year_var,
+                font=('Segoe UI', 10),
+                width=12,
+                relief=tk.SOLID,
+                bd=1
+            )
+            year_entry.pack(side=tk.LEFT, padx=5)
+            
+            # Initially hide date inputs
+            date_input_frame.pack_forget()
+            month_input_frame.pack_forget()
+            year_input_frame.pack_forget()
+            
+            # Create filter buttons list (will be populated)
+            filter_btns = []
+            
+            
+            def refresh_statistics():
+                """Refresh statistics based on current filter"""
+                try:
+                    filter_type = self.current_filter['type']
+                    filter_date = None
+                    
+                    if filter_type == 'daily':
+                        filter_date = self.filter_date_var.get()
+                        stats = self.db.get_daily_statistics(filter_date)
+                    elif filter_type == 'monthly':
+                        filter_date = self.filter_month_var.get()
+                        stats = self.db.get_monthly_statistics(filter_date)
+                    elif filter_type == 'yearly':
+                        filter_date = self.filter_year_var.get()
+                        stats = self.db.get_yearly_statistics(filter_date)
+                    elif filter_type == 'datewise':
+                        filter_date = self.filter_date_var.get()
+                        stats = self.db.get_datewise_statistics(filter_date)
+                    else:  # 'all'
+                        stats = self.db.get_statistics()
+                    
+                    # Update value labels
+                    values = [
+                        stats['total_patients'],
+                        stats['total_doctors'],
+                        stats['scheduled_appointments'],
+                        stats['completed_appointments'],
+                        f"${stats['total_revenue']:.2f}"
+                    ]
+                    
+                    for i, label in enumerate(self.stat_value_labels):
+                        label.config(text=str(values[i]))
+                    
+                except Exception as e:
+                    log_error("Failed to refresh statistics", e)
+                    messagebox.showerror("Error", f"Failed to refresh statistics: {str(e)}")
+            
+            # Create filter buttons
+            all_btn = tk.Button(
+                filter_buttons_frame,
+                text="All",
+                command=lambda: apply_filter('all'),
+                font=('Segoe UI', 10, 'bold'),
+                bg='#10b981',
+                fg='white',
+                padx=20,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#059669'
+            )
+            all_btn.pack(side=tk.LEFT, padx=3)
+            filter_btns.append(all_btn)
+            
+            daily_btn = tk.Button(
+                filter_buttons_frame,
+                text="Daily",
+                command=lambda: apply_filter('daily'),
+                font=('Segoe UI', 10, 'bold'),
+                bg='#6b7280',
+                fg='white',
+                padx=20,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#4b5563'
+            )
+            daily_btn.pack(side=tk.LEFT, padx=3)
+            filter_btns.append(daily_btn)
+            
+            monthly_btn = tk.Button(
+                filter_buttons_frame,
+                text="Monthly",
+                command=lambda: apply_filter('monthly'),
+                font=('Segoe UI', 10, 'bold'),
+                bg='#6b7280',
+                fg='white',
+                padx=20,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#4b5563'
+            )
+            monthly_btn.pack(side=tk.LEFT, padx=3)
+            filter_btns.append(monthly_btn)
+            
+            yearly_btn = tk.Button(
+                filter_buttons_frame,
+                text="Yearly",
+                command=lambda: apply_filter('yearly'),
+                font=('Segoe UI', 10, 'bold'),
+                bg='#6b7280',
+                fg='white',
+                padx=20,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#4b5563'
+            )
+            yearly_btn.pack(side=tk.LEFT, padx=3)
+            filter_btns.append(yearly_btn)
+            
+            datewise_btn = tk.Button(
+                filter_buttons_frame,
+                text="Datewise",
+                command=lambda: apply_filter('datewise'),
+                font=('Segoe UI', 10, 'bold'),
+                bg='#6b7280',
+                fg='white',
+                padx=20,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#4b5563'
+            )
+            datewise_btn.pack(side=tk.LEFT, padx=3)
+            filter_btns.append(datewise_btn)
+            
+            # Store button map for apply_filter function
+            button_map = {
+                'all': all_btn,
+                'daily': daily_btn,
+                'monthly': monthly_btn,
+                'yearly': yearly_btn,
+                'datewise': datewise_btn
+            }
+            
+            # Update apply_filter to use button_map
+            def apply_filter_updated(filter_type):
+                """Apply filter and update statistics with button highlighting"""
+                self.current_filter['type'] = filter_type
+                
+                # Show/hide appropriate input fields
+                if filter_type == 'daily' or filter_type == 'datewise':
+                    date_input_frame.pack(side=tk.LEFT, padx=10, before=filter_buttons_frame)
+                    month_input_frame.pack_forget()
+                    year_input_frame.pack_forget()
+                elif filter_type == 'monthly':
+                    month_input_frame.pack(side=tk.LEFT, padx=10, before=filter_buttons_frame)
+                    date_input_frame.pack_forget()
+                    year_input_frame.pack_forget()
+                elif filter_type == 'yearly':
+                    year_input_frame.pack(side=tk.LEFT, padx=10, before=filter_buttons_frame)
+                    date_input_frame.pack_forget()
+                    month_input_frame.pack_forget()
+                else:  # 'all'
+                    date_input_frame.pack_forget()
+                    month_input_frame.pack_forget()
+                    year_input_frame.pack_forget()
+                
+                # Update button styles - reset all buttons
+                for btn in filter_btns:
+                    btn_text = btn['text'].replace('✓ ', '')
+                    btn.config(bg='#6b7280', fg='white', text=btn_text)
+                
+                # Highlight selected button
+                if filter_type in button_map:
+                    selected_btn = button_map[filter_type]
+                    selected_btn.config(bg='#10b981', fg='white')
+                    selected_btn['text'] = '✓ ' + selected_btn['text'].replace('✓ ', '')
+                
+                # Refresh statistics
+                refresh_statistics()
+            
+            # Update button commands to use the updated function
+            all_btn.config(command=lambda: apply_filter_updated('all'))
+            daily_btn.config(command=lambda: apply_filter_updated('daily'))
+            monthly_btn.config(command=lambda: apply_filter_updated('monthly'))
+            yearly_btn.config(command=lambda: apply_filter_updated('yearly'))
+            datewise_btn.config(command=lambda: apply_filter_updated('datewise'))
+            
+            # Apply button for date inputs
+            apply_btn = tk.Button(
+                filter_frame,
+                text="Apply Filter",
+                command=refresh_statistics,
+                font=('Segoe UI', 10, 'bold'),
+                bg='#3b82f6',
+                fg='white',
+                padx=15,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#2563eb'
+            )
+            apply_btn.pack(side=tk.LEFT, padx=(15, 0))
             
             # Statistics frame
             stats_frame = tk.Frame(self.content_frame, bg='#f5f7fa')
@@ -370,6 +664,7 @@ class HospitalManagementSystem:
                     fg='white'
                 )
                 value_label.pack(pady=(25, 10))
+                self.stat_value_labels.append(value_label)  # Store reference
                 
                 label_label = tk.Label(
                     card,

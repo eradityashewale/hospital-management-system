@@ -629,27 +629,80 @@ class Database:
         """)
         return [dict(row) for row in self.cursor.fetchall()]
     
-    def get_statistics(self) -> Dict:
-        """Get system statistics"""
+    def get_statistics(self, filter_type: str = 'all', filter_date: str = None) -> Dict:
+        """Get system statistics with optional filters
+        
+        Args:
+            filter_type: 'all', 'daily', 'monthly', 'yearly', 'datewise'
+            filter_date: Date string in 'YYYY-MM-DD' format (required for 'daily' and 'datewise')
+        """
         stats = {}
         
+        # Build date filter conditions for appointments
+        appointment_filter = ""
+        bill_filter = ""
+        
+        if filter_type == 'daily' and filter_date:
+            appointment_filter = f"AND appointment_date = '{filter_date}'"
+            bill_filter = f"AND bill_date = '{filter_date}'"
+        elif filter_type == 'monthly' and filter_date:
+            # filter_date should be in 'YYYY-MM' format
+            appointment_filter = f"AND strftime('%Y-%m', appointment_date) = '{filter_date}'"
+            bill_filter = f"AND strftime('%Y-%m', bill_date) = '{filter_date}'"
+        elif filter_type == 'yearly' and filter_date:
+            # filter_date should be in 'YYYY' format
+            appointment_filter = f"AND strftime('%Y', appointment_date) = '{filter_date}'"
+            bill_filter = f"AND strftime('%Y', bill_date) = '{filter_date}'"
+        elif filter_type == 'datewise' and filter_date:
+            appointment_filter = f"AND appointment_date = '{filter_date}'"
+            bill_filter = f"AND bill_date = '{filter_date}'"
+        
+        # Total patients and doctors are not date-filtered (they're cumulative)
         self.cursor.execute("SELECT COUNT(*) FROM patients")
         stats['total_patients'] = self.cursor.fetchone()[0]
         
         self.cursor.execute("SELECT COUNT(*) FROM doctors")
         stats['total_doctors'] = self.cursor.fetchone()[0]
         
-        self.cursor.execute("SELECT COUNT(*) FROM appointments WHERE status = 'Scheduled'")
-        stats['scheduled_appointments'] = self.cursor.fetchone()[0]
+        # Appointments with date filter
+        if appointment_filter:
+            self.cursor.execute(f"SELECT COUNT(*) FROM appointments WHERE status = 'Scheduled' {appointment_filter}")
+            stats['scheduled_appointments'] = self.cursor.fetchone()[0]
+            
+            self.cursor.execute(f"SELECT COUNT(*) FROM appointments WHERE status = 'Completed' {appointment_filter}")
+            stats['completed_appointments'] = self.cursor.fetchone()[0]
+        else:
+            self.cursor.execute("SELECT COUNT(*) FROM appointments WHERE status = 'Scheduled'")
+            stats['scheduled_appointments'] = self.cursor.fetchone()[0]
+            
+            self.cursor.execute("SELECT COUNT(*) FROM appointments WHERE status = 'Completed'")
+            stats['completed_appointments'] = self.cursor.fetchone()[0]
         
-        self.cursor.execute("SELECT COUNT(*) FROM appointments WHERE status = 'Completed'")
-        stats['completed_appointments'] = self.cursor.fetchone()[0]
-        
-        self.cursor.execute("SELECT SUM(total_amount) FROM billing WHERE payment_status = 'Paid'")
+        # Revenue with date filter
+        if bill_filter:
+            self.cursor.execute(f"SELECT SUM(total_amount) FROM billing WHERE payment_status = 'Paid' {bill_filter}")
+        else:
+            self.cursor.execute("SELECT SUM(total_amount) FROM billing WHERE payment_status = 'Paid'")
         result = self.cursor.fetchone()[0]
         stats['total_revenue'] = result if result else 0
         
         return stats
+    
+    def get_daily_statistics(self, date_str: str) -> Dict:
+        """Get statistics for a specific date"""
+        return self.get_statistics('daily', date_str)
+    
+    def get_monthly_statistics(self, month_str: str) -> Dict:
+        """Get statistics for a specific month (format: 'YYYY-MM')"""
+        return self.get_statistics('monthly', month_str)
+    
+    def get_yearly_statistics(self, year_str: str) -> Dict:
+        """Get statistics for a specific year (format: 'YYYY')"""
+        return self.get_statistics('yearly', year_str)
+    
+    def get_datewise_statistics(self, date_str: str) -> Dict:
+        """Get statistics for a specific date (same as daily)"""
+        return self.get_statistics('datewise', date_str)
     
     # Medicine master operations
     def populate_medicines(self) -> None:
