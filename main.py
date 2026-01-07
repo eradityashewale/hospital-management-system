@@ -367,6 +367,260 @@ class HospitalManagementSystem:
             )
             date_entry.pack(side=tk.LEFT, padx=5)
             
+            # Calendar button for date
+            def open_calendar_for_date(entry_widget, var):
+                """Open calendar for date entry"""
+                calendar_window = tk.Toplevel(self.root)
+                calendar_window.title("Select Date")
+                calendar_window.geometry("300x280")
+                calendar_window.configure(bg='#ffffff')
+                calendar_window.transient(self.root)
+                calendar_window.grab_set()
+                
+                # Center the window
+                calendar_window.update_idletasks()
+                x = (calendar_window.winfo_screenwidth() // 2) - (300 // 2)
+                y = (calendar_window.winfo_screenheight() // 2) - (280 // 2)
+                calendar_window.geometry(f"300x280+{x}+{y}")
+                
+                # Header
+                header_frame = tk.Frame(calendar_window, bg='#1e40af', height=40)
+                header_frame.pack(fill=tk.X)
+                header_frame.pack_propagate(False)
+                
+                tk.Label(
+                    header_frame,
+                    text="Select Date",
+                    font=('Segoe UI', 12, 'bold'),
+                    bg='#1e40af',
+                    fg='white'
+                ).pack(pady=10)
+                
+                # Calendar frame
+                cal_frame = tk.Frame(calendar_window, bg='#ffffff')
+                cal_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+                
+                # Get current date from entry or use today
+                current_date_str = var.get()
+                try:
+                    current_date = datetime.strptime(current_date_str, '%Y-%m-%d')
+                except:
+                    current_date = datetime.now()
+                
+                # Variables for month and year
+                month_var = tk.IntVar(value=current_date.month)
+                year_var = tk.IntVar(value=current_date.year)
+                
+                # Month and year navigation
+                nav_frame = tk.Frame(cal_frame, bg='#ffffff')
+                nav_frame.pack(fill=tk.X, pady=(0, 10))
+                
+                def update_calendar():
+                    """Update calendar display"""
+                    # Clear existing calendar
+                    for widget in cal_days_frame.winfo_children():
+                        widget.destroy()
+                    
+                    month = month_var.get()
+                    year = year_var.get()
+                    
+                    # Update month/year label
+                    month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                                 'July', 'August', 'September', 'October', 'November', 'December']
+                    month_label.config(text=f"{month_names[month-1]} {year}")
+                    
+                    # Get first day of month and number of days
+                    first_day = datetime(year, month, 1)
+                    first_weekday = first_day.weekday()  # 0 = Monday, 6 = Sunday
+                    
+                    # Adjust to Sunday = 0
+                    first_weekday = (first_weekday + 1) % 7
+                    
+                    # Get number of days in month
+                    if month == 12:
+                        next_month = datetime(year + 1, 1, 1)
+                    else:
+                        next_month = datetime(year, month + 1, 1)
+                    days_in_month = (next_month - first_day).days
+                    
+                    # Day labels
+                    day_labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+                    for i, day in enumerate(day_labels):
+                        label = tk.Label(
+                            cal_days_frame,
+                            text=day,
+                            font=('Segoe UI', 9, 'bold'),
+                            bg='#f3f4f6',
+                            fg='#374151',
+                            width=4
+                        )
+                        label.grid(row=0, column=i, padx=1, pady=1)
+                    
+                    # Fill empty cells before first day
+                    for i in range(first_weekday):
+                        empty = tk.Label(cal_days_frame, text="", bg='#ffffff', width=4)
+                        empty.grid(row=1, column=i, padx=1, pady=1)
+                    
+                    # Fill days
+                    row = 1
+                    col = first_weekday
+                    for day in range(1, days_in_month + 1):
+                        day_str = str(day)
+                        day_btn = tk.Button(
+                            cal_days_frame,
+                            text=day_str,
+                            font=('Segoe UI', 9),
+                            bg='#ffffff',
+                            fg='#374151',
+                            width=4,
+                            relief=tk.FLAT,
+                            cursor='hand2',
+                            command=lambda d=day: select_date(d)
+                        )
+                        
+                        # Highlight today
+                        today = datetime.now()
+                        if day == today.day and month == today.month and year == today.year:
+                            day_btn.config(bg='#3b82f6', fg='white')
+                        
+                        # Highlight current selected date
+                        try:
+                            current_selected = datetime.strptime(var.get(), '%Y-%m-%d')
+                            if day == current_selected.day and month == current_selected.month and year == current_selected.year:
+                                day_btn.config(bg='#10b981', fg='white')
+                        except:
+                            pass
+                        
+                        day_btn.grid(row=row, column=col, padx=1, pady=1)
+                        
+                        col += 1
+                        if col > 6:
+                            col = 0
+                            row += 1
+                
+                def select_date(day):
+                    """Select a date"""
+                    month = month_var.get()
+                    year = year_var.get()
+                    selected = datetime(year, month, day)
+                    date_str = selected.strftime('%Y-%m-%d')
+                    var.set(date_str)
+                    entry_widget.delete(0, tk.END)
+                    entry_widget.insert(0, date_str)
+                    calendar_window.destroy()
+                
+                def prev_month():
+                    """Go to previous month"""
+                    month = month_var.get()
+                    year = year_var.get()
+                    if month == 1:
+                        month_var.set(12)
+                        year_var.set(year - 1)
+                    else:
+                        month_var.set(month - 1)
+                    update_calendar()
+                
+                def next_month():
+                    """Go to next month"""
+                    month = month_var.get()
+                    year = year_var.get()
+                    if month == 12:
+                        month_var.set(1)
+                        year_var.set(year + 1)
+                    else:
+                        month_var.set(month + 1)
+                    update_calendar()
+                
+                # Navigation buttons
+                prev_btn = tk.Button(
+                    nav_frame,
+                    text="◀",
+                    command=prev_month,
+                    font=('Segoe UI', 10, 'bold'),
+                    bg='#e5e7eb',
+                    fg='#374151',
+                    width=3,
+                    relief=tk.FLAT,
+                    cursor='hand2'
+                )
+                prev_btn.pack(side=tk.LEFT, padx=5)
+                
+                month_label = tk.Label(
+                    nav_frame,
+                    text="",
+                    font=('Segoe UI', 11, 'bold'),
+                    bg='#ffffff',
+                    fg='#1a237e'
+                )
+                month_label.pack(side=tk.LEFT, expand=True)
+                
+                next_btn = tk.Button(
+                    nav_frame,
+                    text="▶",
+                    command=next_month,
+                    font=('Segoe UI', 10, 'bold'),
+                    bg='#e5e7eb',
+                    fg='#374151',
+                    width=3,
+                    relief=tk.FLAT,
+                    cursor='hand2'
+                )
+                next_btn.pack(side=tk.LEFT, padx=5)
+                
+                # Calendar days frame
+                cal_days_frame = tk.Frame(cal_frame, bg='#ffffff')
+                cal_days_frame.pack(fill=tk.BOTH, expand=True)
+                
+                # Button frame
+                btn_frame = tk.Frame(calendar_window, bg='#ffffff')
+                btn_frame.pack(fill=tk.X, padx=10, pady=10)
+                
+                today_btn = tk.Button(
+                    btn_frame,
+                    text="Today",
+                    command=lambda: select_date(datetime.now().day),
+                    font=('Segoe UI', 9),
+                    bg='#3b82f6',
+                    fg='white',
+                    padx=15,
+                    pady=5,
+                    relief=tk.FLAT,
+                    cursor='hand2'
+                )
+                today_btn.pack(side=tk.LEFT, padx=5)
+                
+                cancel_btn = tk.Button(
+                    btn_frame,
+                    text="Cancel",
+                    command=calendar_window.destroy,
+                    font=('Segoe UI', 9),
+                    bg='#6b7280',
+                    fg='white',
+                    padx=15,
+                    pady=5,
+                    relief=tk.FLAT,
+                    cursor='hand2'
+                )
+                cancel_btn.pack(side=tk.RIGHT, padx=5)
+                
+                # Initialize calendar
+                update_calendar()
+            
+            # Calendar button for date
+            date_cal_btn = tk.Button(
+                date_input_frame,
+                text="📅",
+                command=lambda: open_calendar_for_date(date_entry, self.filter_date_var),
+                font=('Segoe UI', 12),
+                bg='#3b82f6',
+                fg='white',
+                width=3,
+                relief=tk.FLAT,
+                cursor='hand2',
+                activebackground='#2563eb'
+            )
+            date_cal_btn.pack(side=tk.LEFT, padx=2)
+            
             # Month input frame (initially hidden)
             month_input_frame = tk.Frame(filter_frame, bg='#f5f7fa')
             month_input_frame.pack(side=tk.LEFT, padx=10)
@@ -418,14 +672,86 @@ class HospitalManagementSystem:
             )
             year_entry.pack(side=tk.LEFT, padx=5)
             
+            # Date range input frame (initially hidden)
+            date_range_frame = tk.Frame(filter_frame, bg='#f5f7fa')
+            date_range_frame.pack(side=tk.LEFT, padx=10)
+            
+            from_label = tk.Label(
+                date_range_frame,
+                text="From:",
+                font=('Segoe UI', 10),
+                bg='#f5f7fa',
+                fg='#6b7280'
+            )
+            from_label.pack(side=tk.LEFT, padx=(0, 5))
+            
+            self.filter_from_date_var = tk.StringVar(value=get_current_date())
+            from_date_entry = tk.Entry(
+                date_range_frame,
+                textvariable=self.filter_from_date_var,
+                font=('Segoe UI', 10),
+                width=12,
+                relief=tk.SOLID,
+                bd=1
+            )
+            from_date_entry.pack(side=tk.LEFT, padx=2)
+            
+            from_cal_btn = tk.Button(
+                date_range_frame,
+                text="📅",
+                command=lambda: open_calendar_for_date(from_date_entry, self.filter_from_date_var),
+                font=('Segoe UI', 12),
+                bg='#3b82f6',
+                fg='white',
+                width=3,
+                relief=tk.FLAT,
+                cursor='hand2',
+                activebackground='#2563eb'
+            )
+            from_cal_btn.pack(side=tk.LEFT, padx=2)
+            
+            to_label = tk.Label(
+                date_range_frame,
+                text="To:",
+                font=('Segoe UI', 10),
+                bg='#f5f7fa',
+                fg='#6b7280'
+            )
+            to_label.pack(side=tk.LEFT, padx=(5, 5))
+            
+            self.filter_to_date_var = tk.StringVar(value=get_current_date())
+            to_date_entry = tk.Entry(
+                date_range_frame,
+                textvariable=self.filter_to_date_var,
+                font=('Segoe UI', 10),
+                width=12,
+                relief=tk.SOLID,
+                bd=1
+            )
+            to_date_entry.pack(side=tk.LEFT, padx=2)
+            
+            to_cal_btn = tk.Button(
+                date_range_frame,
+                text="📅",
+                command=lambda: open_calendar_for_date(to_date_entry, self.filter_to_date_var),
+                font=('Segoe UI', 12),
+                bg='#3b82f6',
+                fg='white',
+                width=3,
+                relief=tk.FLAT,
+                cursor='hand2',
+                activebackground='#2563eb'
+            )
+            to_cal_btn.pack(side=tk.LEFT, padx=2)
+            
             # Initially hide date inputs
             date_input_frame.pack_forget()
+            date_range_frame.pack_forget()
             month_input_frame.pack_forget()
             year_input_frame.pack_forget()
             
             # Create filter buttons list (will be populated)
             filter_btns = []
-            
             
             def refresh_statistics():
                 """Refresh statistics based on current filter"""
@@ -445,6 +771,16 @@ class HospitalManagementSystem:
                     elif filter_type == 'datewise':
                         filter_date = self.filter_date_var.get()
                         stats = self.db.get_datewise_statistics(filter_date)
+                    elif filter_type == 'daterange':
+                        from_date = self.filter_from_date_var.get()
+                        to_date = self.filter_to_date_var.get()
+                        if not from_date or not to_date:
+                            messagebox.showwarning("Warning", "Please select both 'From' and 'To' dates")
+                            return
+                        if from_date > to_date:
+                            messagebox.showwarning("Warning", "'From' date cannot be after 'To' date")
+                            return
+                        stats = self.db.get_date_range_statistics(from_date, to_date)
                     else:  # 'all'
                         stats = self.db.get_statistics()
                     
@@ -545,13 +881,30 @@ class HospitalManagementSystem:
             datewise_btn.pack(side=tk.LEFT, padx=3)
             filter_btns.append(datewise_btn)
             
+            date_range_btn = tk.Button(
+                filter_buttons_frame,
+                text="Date Range",
+                command=lambda: apply_filter('daterange'),
+                font=('Segoe UI', 10, 'bold'),
+                bg='#6b7280',
+                fg='white',
+                padx=20,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#4b5563'
+            )
+            date_range_btn.pack(side=tk.LEFT, padx=3)
+            filter_btns.append(date_range_btn)
+            
             # Store button map for apply_filter function
             button_map = {
                 'all': all_btn,
                 'daily': daily_btn,
                 'monthly': monthly_btn,
                 'yearly': yearly_btn,
-                'datewise': datewise_btn
+                'datewise': datewise_btn,
+                'daterange': date_range_btn
             }
             
             # Update apply_filter to use button_map
@@ -562,18 +915,27 @@ class HospitalManagementSystem:
                 # Show/hide appropriate input fields
                 if filter_type == 'daily' or filter_type == 'datewise':
                     date_input_frame.pack(side=tk.LEFT, padx=10, before=filter_buttons_frame)
+                    date_range_frame.pack_forget()
+                    month_input_frame.pack_forget()
+                    year_input_frame.pack_forget()
+                elif filter_type == 'daterange':
+                    date_range_frame.pack(side=tk.LEFT, padx=10, before=filter_buttons_frame)
+                    date_input_frame.pack_forget()
                     month_input_frame.pack_forget()
                     year_input_frame.pack_forget()
                 elif filter_type == 'monthly':
                     month_input_frame.pack(side=tk.LEFT, padx=10, before=filter_buttons_frame)
                     date_input_frame.pack_forget()
+                    date_range_frame.pack_forget()
                     year_input_frame.pack_forget()
                 elif filter_type == 'yearly':
                     year_input_frame.pack(side=tk.LEFT, padx=10, before=filter_buttons_frame)
                     date_input_frame.pack_forget()
+                    date_range_frame.pack_forget()
                     month_input_frame.pack_forget()
                 else:  # 'all'
                     date_input_frame.pack_forget()
+                    date_range_frame.pack_forget()
                     month_input_frame.pack_forget()
                     year_input_frame.pack_forget()
                 
@@ -597,6 +959,7 @@ class HospitalManagementSystem:
             monthly_btn.config(command=lambda: apply_filter_updated('monthly'))
             yearly_btn.config(command=lambda: apply_filter_updated('yearly'))
             datewise_btn.config(command=lambda: apply_filter_updated('datewise'))
+            date_range_btn.config(command=lambda: apply_filter_updated('daterange'))
             
             # Apply button for date inputs
             apply_btn = tk.Button(

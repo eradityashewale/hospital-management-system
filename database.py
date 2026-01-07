@@ -704,6 +704,35 @@ class Database:
         """Get statistics for a specific date (same as daily)"""
         return self.get_statistics('datewise', date_str)
     
+    def get_date_range_statistics(self, from_date: str, to_date: str) -> Dict:
+        """Get statistics for a date range"""
+        stats = {}
+        
+        # Build date filter conditions for appointments
+        appointment_filter = f"AND appointment_date >= '{from_date}' AND appointment_date <= '{to_date}'"
+        bill_filter = f"AND bill_date >= '{from_date}' AND bill_date <= '{to_date}'"
+        
+        # Total patients and doctors are not date-filtered (they're cumulative)
+        self.cursor.execute("SELECT COUNT(*) FROM patients")
+        stats['total_patients'] = self.cursor.fetchone()[0]
+        
+        self.cursor.execute("SELECT COUNT(*) FROM doctors")
+        stats['total_doctors'] = self.cursor.fetchone()[0]
+        
+        # Appointments with date range filter
+        self.cursor.execute(f"SELECT COUNT(*) FROM appointments WHERE status = 'Scheduled' {appointment_filter}")
+        stats['scheduled_appointments'] = self.cursor.fetchone()[0]
+        
+        self.cursor.execute(f"SELECT COUNT(*) FROM appointments WHERE status = 'Completed' {appointment_filter}")
+        stats['completed_appointments'] = self.cursor.fetchone()[0]
+        
+        # Revenue with date range filter
+        self.cursor.execute(f"SELECT SUM(total_amount) FROM billing WHERE payment_status = 'Paid' {bill_filter}")
+        result = self.cursor.fetchone()[0]
+        stats['total_revenue'] = result if result else 0
+        
+        return stats
+    
     # Medicine master operations
     def populate_medicines(self) -> None:
         """Populate medicines master table with comprehensive branded medicine list"""

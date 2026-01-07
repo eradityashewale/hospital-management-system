@@ -2,9 +2,11 @@
 Prescription Management Module
 """
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from database import Database
 from utils import generate_id, get_current_date
+import os
+from datetime import datetime
 
 
 class PrescriptionModule:
@@ -453,13 +455,270 @@ class PrescriptionModule:
         appointment_entry = tk.Entry(form_frame, textvariable=appointment_var, font=('Segoe UI', 10), relief=tk.SOLID, bd=1)
         appointment_entry.pack(fill=tk.X, pady=(0, 15), ipady=5)
         
-        # Date
+        # Date with calendar picker
         date_label_frame = tk.Frame(form_frame, bg='#ffffff')
         date_label_frame.pack(fill=tk.X, pady=(0, 8))
         tk.Label(date_label_frame, text="Date", font=('Segoe UI', 10, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
-        date_entry = tk.Entry(form_frame, font=('Segoe UI', 10), relief=tk.SOLID, bd=1)
+        
+        date_input_frame = tk.Frame(form_frame, bg='#ffffff')
+        date_input_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        date_entry = tk.Entry(date_input_frame, font=('Segoe UI', 10), relief=tk.SOLID, bd=1)
         date_entry.insert(0, get_current_date())
-        date_entry.pack(fill=tk.X, pady=(0, 15), ipady=5)
+        date_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=5, padx=(0, 5))
+        
+        def open_calendar():
+            """Open calendar date picker"""
+            calendar_window = tk.Toplevel(self.parent)
+            calendar_window.title("Select Date")
+            calendar_window.geometry("300x280")
+            calendar_window.configure(bg='#ffffff')
+            calendar_window.transient(self.parent)
+            calendar_window.grab_set()
+            
+            # Center the window
+            calendar_window.update_idletasks()
+            x = (calendar_window.winfo_screenwidth() // 2) - (300 // 2)
+            y = (calendar_window.winfo_screenheight() // 2) - (280 // 2)
+            calendar_window.geometry(f"300x280+{x}+{y}")
+            
+            # Header
+            header_frame = tk.Frame(calendar_window, bg='#1e40af', height=40)
+            header_frame.pack(fill=tk.X)
+            header_frame.pack_propagate(False)
+            
+            tk.Label(
+                header_frame,
+                text="Select Date",
+                font=('Segoe UI', 12, 'bold'),
+                bg='#1e40af',
+                fg='white'
+            ).pack(pady=10)
+            
+            # Calendar frame
+            cal_frame = tk.Frame(calendar_window, bg='#ffffff')
+            cal_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            
+            # Get current date from entry or use today
+            current_date_str = date_entry.get()
+            try:
+                current_date = datetime.strptime(current_date_str, '%Y-%m-%d')
+            except:
+                current_date = datetime.now()
+            
+            # Variables for month and year
+            month_var = tk.IntVar(value=current_date.month)
+            year_var = tk.IntVar(value=current_date.year)
+            selected_date = tk.StringVar()
+            
+            # Month and year navigation
+            nav_frame = tk.Frame(cal_frame, bg='#ffffff')
+            nav_frame.pack(fill=tk.X, pady=(0, 10))
+            
+            def update_calendar():
+                """Update calendar display"""
+                # Clear existing calendar
+                for widget in cal_days_frame.winfo_children():
+                    widget.destroy()
+                
+                month = month_var.get()
+                year = year_var.get()
+                
+                # Update month/year label
+                month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                             'July', 'August', 'September', 'October', 'November', 'December']
+                month_label.config(text=f"{month_names[month-1]} {year}")
+                
+                # Get first day of month and number of days
+                first_day = datetime(year, month, 1)
+                first_weekday = first_day.weekday()  # 0 = Monday, 6 = Sunday
+                
+                # Adjust to Sunday = 0
+                first_weekday = (first_weekday + 1) % 7
+                
+                # Get number of days in month
+                if month == 12:
+                    next_month = datetime(year + 1, 1, 1)
+                else:
+                    next_month = datetime(year, month + 1, 1)
+                days_in_month = (next_month - first_day).days
+                
+                # Day labels
+                day_labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+                for i, day in enumerate(day_labels):
+                    label = tk.Label(
+                        cal_days_frame,
+                        text=day,
+                        font=('Segoe UI', 9, 'bold'),
+                        bg='#f3f4f6',
+                        fg='#374151',
+                        width=4
+                    )
+                    label.grid(row=0, column=i, padx=1, pady=1)
+                
+                # Fill empty cells before first day
+                for i in range(first_weekday):
+                    empty = tk.Label(cal_days_frame, text="", bg='#ffffff', width=4)
+                    empty.grid(row=1, column=i, padx=1, pady=1)
+                
+                # Fill days
+                row = 1
+                col = first_weekday
+                for day in range(1, days_in_month + 1):
+                    day_str = str(day)
+                    day_btn = tk.Button(
+                        cal_days_frame,
+                        text=day_str,
+                        font=('Segoe UI', 9),
+                        bg='#ffffff',
+                        fg='#374151',
+                        width=4,
+                        relief=tk.FLAT,
+                        cursor='hand2',
+                        command=lambda d=day: select_date(d)
+                    )
+                    
+                    # Highlight today
+                    today = datetime.now()
+                    if day == today.day and month == today.month and year == today.year:
+                        day_btn.config(bg='#3b82f6', fg='white')
+                    
+                    # Highlight current selected date
+                    try:
+                        current_selected = datetime.strptime(date_entry.get(), '%Y-%m-%d')
+                        if day == current_selected.day and month == current_selected.month and year == current_selected.year:
+                            day_btn.config(bg='#10b981', fg='white')
+                    except:
+                        pass
+                    
+                    day_btn.grid(row=row, column=col, padx=1, pady=1)
+                    
+                    col += 1
+                    if col > 6:
+                        col = 0
+                        row += 1
+            
+            def select_date(day):
+                """Select a date"""
+                month = month_var.get()
+                year = year_var.get()
+                selected = datetime(year, month, day)
+                date_str = selected.strftime('%Y-%m-%d')
+                date_entry.delete(0, tk.END)
+                date_entry.insert(0, date_str)
+                calendar_window.destroy()
+            
+            def prev_month():
+                """Go to previous month"""
+                month = month_var.get()
+                year = year_var.get()
+                if month == 1:
+                    month_var.set(12)
+                    year_var.set(year - 1)
+                else:
+                    month_var.set(month - 1)
+                update_calendar()
+            
+            def next_month():
+                """Go to next month"""
+                month = month_var.get()
+                year = year_var.get()
+                if month == 12:
+                    month_var.set(1)
+                    year_var.set(year + 1)
+                else:
+                    month_var.set(month + 1)
+                update_calendar()
+            
+            # Navigation buttons
+            prev_btn = tk.Button(
+                nav_frame,
+                text="◀",
+                command=prev_month,
+                font=('Segoe UI', 10, 'bold'),
+                bg='#e5e7eb',
+                fg='#374151',
+                width=3,
+                relief=tk.FLAT,
+                cursor='hand2'
+            )
+            prev_btn.pack(side=tk.LEFT, padx=5)
+            
+            month_label = tk.Label(
+                nav_frame,
+                text="",
+                font=('Segoe UI', 11, 'bold'),
+                bg='#ffffff',
+                fg='#1a237e'
+            )
+            month_label.pack(side=tk.LEFT, expand=True)
+            
+            next_btn = tk.Button(
+                nav_frame,
+                text="▶",
+                command=next_month,
+                font=('Segoe UI', 10, 'bold'),
+                bg='#e5e7eb',
+                fg='#374151',
+                width=3,
+                relief=tk.FLAT,
+                cursor='hand2'
+            )
+            next_btn.pack(side=tk.LEFT, padx=5)
+            
+            # Calendar days frame
+            cal_days_frame = tk.Frame(cal_frame, bg='#ffffff')
+            cal_days_frame.pack(fill=tk.BOTH, expand=True)
+            
+            # Button frame
+            btn_frame = tk.Frame(calendar_window, bg='#ffffff')
+            btn_frame.pack(fill=tk.X, padx=10, pady=10)
+            
+            today_btn = tk.Button(
+                btn_frame,
+                text="Today",
+                command=lambda: select_date(datetime.now().day),
+                font=('Segoe UI', 9),
+                bg='#3b82f6',
+                fg='white',
+                padx=15,
+                pady=5,
+                relief=tk.FLAT,
+                cursor='hand2'
+            )
+            today_btn.pack(side=tk.LEFT, padx=5)
+            
+            cancel_btn = tk.Button(
+                btn_frame,
+                text="Cancel",
+                command=calendar_window.destroy,
+                font=('Segoe UI', 9),
+                bg='#6b7280',
+                fg='white',
+                padx=15,
+                pady=5,
+                relief=tk.FLAT,
+                cursor='hand2'
+            )
+            cancel_btn.pack(side=tk.RIGHT, padx=5)
+            
+            # Initialize calendar
+            update_calendar()
+        
+        # Calendar button
+        calendar_btn = tk.Button(
+            date_input_frame,
+            text="📅",
+            command=open_calendar,
+            font=('Segoe UI', 12),
+            bg='#3b82f6',
+            fg='white',
+            width=3,
+            relief=tk.FLAT,
+            cursor='hand2',
+            activebackground='#2563eb'
+        )
+        calendar_btn.pack(side=tk.LEFT)
         
         # Diagnosis
         diagnosis_label_frame = tk.Frame(form_frame, bg='#ffffff')
@@ -1528,6 +1787,470 @@ class PrescriptionModule:
                 else:
                     messagebox.showerror("Error", "Failed to create prescription")
         
+        def print_prescription():
+            """Generate and print professional prescription PDF"""
+            # Get selected patient ID
+            patient_display = patient_var.get()
+            patient_id = None
+            if patient_display in patient_id_map:
+                patient_id = patient_id_map[patient_display]
+            else:
+                parts = patient_display.split(' - ')
+                if parts and parts[0].startswith('PAT-'):
+                    patient_id = parts[0]
+            
+            # Get selected doctor ID
+            doctor_display = doctor_var.get()
+            doctor_id = None
+            if doctor_display in doctor_id_map:
+                doctor_id = doctor_id_map[doctor_display]
+            else:
+                parts = doctor_display.split(' - ')
+                if parts and parts[0].startswith('DOC-'):
+                    doctor_id = parts[0]
+            
+            if not patient_id:
+                messagebox.showwarning("Warning", "Please select a patient to print prescription")
+                return
+            
+            if not doctor_id:
+                messagebox.showwarning("Warning", "Please select a doctor to print prescription")
+                return
+            
+            if not medicines:
+                messagebox.showwarning("Warning", "Please add at least one medicine to print prescription")
+                return
+            
+            # Get patient and doctor details
+            patient = self.db.get_patient_by_id(patient_id)
+            doctor = self.db.get_doctor_by_id(doctor_id)
+            
+            if not patient or not doctor:
+                messagebox.showerror("Error", "Could not retrieve patient or doctor information")
+                return
+            
+            # Get prescription details
+            prescription_date = date_entry.get() or get_current_date()
+            diagnosis = diagnosis_text.get('1.0', tk.END).strip()
+            notes = notes_text.get('1.0', tk.END).strip()
+            
+            # Try to generate PDF using reportlab
+            try:
+                from reportlab.lib.pagesizes import A4
+                from reportlab.lib.units import mm
+                from reportlab.lib import colors
+                from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+                from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT
+                from reportlab.pdfbase import pdfmetrics
+                from reportlab.pdfbase.ttfonts import TTFont
+                
+                # Ask user where to save PDF
+                filename = filedialog.asksaveasfilename(
+                    defaultextension=".pdf",
+                    filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+                    initialfile=f"Prescription_{prescription_id}_{prescription_date.replace('-', '')}.pdf"
+                )
+                
+                if not filename:
+                    return  # User cancelled
+                
+                # Create PDF document
+                doc = SimpleDocTemplate(filename, pagesize=A4,
+                                      rightMargin=15*mm, leftMargin=15*mm,
+                                      topMargin=15*mm, bottomMargin=15*mm)
+                
+                # Container for the 'Flowable' objects
+                elements = []
+                
+                # Define styles
+                styles = getSampleStyleSheet()
+                title_style = ParagraphStyle(
+                    'CustomTitle',
+                    parent=styles['Heading1'],
+                    fontSize=18,
+                    textColor=colors.HexColor('#1a237e'),
+                    spaceAfter=12,
+                    alignment=TA_CENTER,
+                    fontName='Helvetica-Bold'
+                )
+                
+                heading_style = ParagraphStyle(
+                    'CustomHeading',
+                    parent=styles['Heading2'],
+                    fontSize=12,
+                    textColor=colors.HexColor('#1a237e'),
+                    spaceAfter=6,
+                    spaceBefore=12,
+                    fontName='Helvetica-Bold'
+                )
+                
+                normal_style = ParagraphStyle(
+                    'CustomNormal',
+                    parent=styles['Normal'],
+                    fontSize=10,
+                    textColor=colors.black,
+                    spaceAfter=6,
+                    fontName='Helvetica'
+                )
+                
+                small_style = ParagraphStyle(
+                    'CustomSmall',
+                    parent=styles['Normal'],
+                    fontSize=9,
+                    textColor=colors.black,
+                    spaceAfter=4,
+                    fontName='Helvetica'
+                )
+                
+                # Header - Doctor info on left, Clinic info on right
+                doctor_name = f"Dr. {doctor.get('first_name', '')} {doctor.get('last_name', '')}".strip()
+                doctor_qual = doctor.get('qualification', '')
+                doctor_spec = doctor.get('specialization', '')
+                
+                # Calculate patient age
+                patient_age = ""
+                patient_gender = patient.get('gender', '')
+                if patient.get('date_of_birth'):
+                    try:
+                        dob = datetime.strptime(patient['date_of_birth'], '%Y-%m-%d')
+                        age = (datetime.now() - dob).days // 365
+                        patient_age = f"{age}"
+                    except:
+                        pass
+                
+                patient_name = f"{patient.get('first_name', '')} {patient.get('last_name', '')}".strip().upper()
+                
+                # Format date for display
+                try:
+                    date_obj = datetime.strptime(prescription_date, '%Y-%m-%d')
+                    formatted_date = date_obj.strftime('%d.%m.%Y')
+                except:
+                    formatted_date = prescription_date
+                
+                # Header table
+                header_data = [
+                    [
+                        Paragraph(f"<b>{doctor_name}</b><br/>"
+                                 f"{doctor_qual}<br/>"
+                                 f"Specialization: {doctor_spec}<br/>"
+                                 f"Mobile: {doctor.get('phone', 'N/A')}<br/>"
+                                 f"Email: {doctor.get('email', 'N/A')}", 
+                                 normal_style),
+                        Paragraph(f"<b>PRESCRIPTION</b><br/>"
+                                 f"Date: {formatted_date}<br/>"
+                                 f"Prescription ID: {prescription_id}", 
+                                 normal_style)
+                    ]
+                ]
+                
+                header_table = Table(header_data, colWidths=[90*mm, 90*mm])
+                header_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ]))
+                elements.append(header_table)
+                elements.append(Spacer(1, 8*mm))
+                
+                # Patient Information
+                patient_info_data = [
+                    ['Name:', patient_name],
+                    ['Age/Gender:', f"{patient_age}/{patient_gender}" if patient_age else patient_gender],
+                    ['Patient ID:', patient_id],
+                ]
+                if patient.get('phone'):
+                    patient_info_data.append(['Phone:', patient.get('phone')])
+                if patient.get('address'):
+                    patient_info_data.append(['Address:', patient.get('address')])
+                
+                patient_table = Table(patient_info_data, colWidths=[30*mm, 150*mm])
+                patient_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                    ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                    ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                    ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ]))
+                elements.append(Paragraph("<b>PATIENT INFORMATION</b>", heading_style))
+                elements.append(patient_table)
+                elements.append(Spacer(1, 6*mm))
+                
+                # Diagnosis
+                if diagnosis:
+                    elements.append(Paragraph("<b>DIAGNOSIS</b>", heading_style))
+                    elements.append(Paragraph(diagnosis.replace('\n', '<br/>'), normal_style))
+                    elements.append(Spacer(1, 6*mm))
+                
+                # Medicines
+                elements.append(Paragraph("<b>PRESCRIBED MEDICINES</b>", heading_style))
+                
+                med_data = [['R', 'Medicine Name', 'Dosage', 'Frequency', 'Duration', 'Instructions']]
+                for idx, med in enumerate(medicines, 1):
+                    med_data.append([
+                        str(idx),
+                        med['medicine_name'],
+                        med['dosage'],
+                        med['frequency'],
+                        med['duration'],
+                        med.get('instructions', '')
+                    ])
+                
+                med_table = Table(med_data, colWidths=[8*mm, 50*mm, 25*mm, 35*mm, 25*mm, 37*mm])
+                med_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a237e')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('ALIGN', (1, 1), (1, -1), 'LEFT'),
+                    ('ALIGN', (5, 1), (5, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9f9f9')]),
+                ]))
+                elements.append(med_table)
+                elements.append(Spacer(1, 8*mm))
+                
+                # Doctor's Notes
+                if notes:
+                    elements.append(Paragraph("<b>DOCTOR'S NOTES</b>", heading_style))
+                    elements.append(Paragraph(notes.replace('\n', '<br/>'), normal_style))
+                    elements.append(Spacer(1, 8*mm))
+                
+                # Footer
+                footer_data = [
+                    ['Signature: _________________________', f'Date: {formatted_date}']
+                ]
+                footer_table = Table(footer_data, colWidths=[90*mm, 90*mm])
+                footer_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 20),
+                ]))
+                elements.append(footer_table)
+                
+                # Build PDF
+                doc.build(elements)
+                messagebox.showinfo("Success", f"Prescription saved successfully!\n\n{filename}")
+                
+                # Ask if user wants to open the PDF
+                import platform
+                import subprocess
+                if messagebox.askyesno("Open PDF", "Do you want to open the PDF now?"):
+                    system = platform.system()
+                    if system == "Windows":
+                        os.startfile(filename)
+                    elif system == "Darwin":  # macOS
+                        subprocess.run(['open', filename])
+                    else:  # Linux
+                        subprocess.run(['xdg-open', filename])
+                        
+            except ImportError:
+                # Fallback to text printing if reportlab not available
+                messagebox.showwarning("PDF Library Not Found", 
+                    "reportlab library is not installed.\n\n"
+                    "Please install it using: pip install reportlab\n\n"
+                    "Falling back to text format...")
+                _generate_text_prescription(patient, doctor, prescription_id, prescription_date, 
+                                          diagnosis, notes, medicines, patient_id)
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to generate PDF: {str(e)}\n\nFalling back to text format...")
+                _generate_text_prescription(patient, doctor, prescription_id, prescription_date, 
+                                          diagnosis, notes, medicines, patient_id)
+        
+        def _generate_text_prescription(patient, doctor, prescription_id, prescription_date, 
+                                       diagnosis, notes, medicines, patient_id):
+            """Fallback text prescription generator"""
+            patient_name = f"{patient.get('first_name', '')} {patient.get('last_name', '')}".strip()
+            doctor_name = f"Dr. {doctor.get('first_name', '')} {doctor.get('last_name', '')}".strip()
+            
+            # Calculate age
+            patient_age = ""
+            if patient.get('date_of_birth'):
+                try:
+                    dob = datetime.strptime(patient['date_of_birth'], '%Y-%m-%d')
+                    age = (datetime.now() - dob).days // 365
+                    patient_age = f"{age} years"
+                except:
+                    pass
+            
+            print_text = f"""
+================================================================
+                    PRESCRIPTION
+================================================================
+
+Prescription ID: {prescription_id}
+Date: {prescription_date}
+
+----------------------------------------------------------------
+DOCTOR INFORMATION
+----------------------------------------------------------------
+  Name: {doctor_name}
+  Specialization: {doctor.get('specialization', 'N/A')}
+  Qualification: {doctor.get('qualification', 'N/A')}
+
+----------------------------------------------------------------
+PATIENT INFORMATION
+----------------------------------------------------------------
+  Name: {patient_name}
+  Patient ID: {patient_id}
+  Age: {patient_age if patient_age else 'N/A'}
+  Gender: {patient.get('gender', 'N/A')}
+  Phone: {patient.get('phone', 'N/A')}
+
+----------------------------------------------------------------
+DIAGNOSIS
+----------------------------------------------------------------
+{diagnosis if diagnosis else 'N/A'}
+
+----------------------------------------------------------------
+PRESCRIBED MEDICINES
+----------------------------------------------------------------
+"""
+            
+            for idx, med in enumerate(medicines, 1):
+                print_text += f"""
+{idx}. {med['medicine_name']}
+   Dosage: {med['dosage']}
+   Frequency: {med['frequency']}
+   Duration: {med['duration']}"""
+                if med.get('instructions'):
+                    print_text += f"\n   Instructions: {med['instructions']}"
+                print_text += "\n"
+            
+            if notes:
+                print_text += f"""
+----------------------------------------------------------------
+DOCTOR'S NOTES
+----------------------------------------------------------------
+{notes}
+"""
+            
+            print_text += f"""
+----------------------------------------------------------------
+
+Signature: _________________________
+
+Date: {prescription_date}
+"""
+            
+            _show_print_dialog(print_text, f"Prescription - {prescription_id}", self.parent)
+        
+        def _show_print_dialog(text, title="Print", parent_window=None):
+            """Show print dialog with formatted text"""
+            import tempfile
+            import os
+            import subprocess
+            import platform
+            
+            # Use parent_window if provided, otherwise use self.parent from closure
+            dialog_parent = parent_window if parent_window else self.parent
+            
+            print_dialog = tk.Toplevel(dialog_parent)
+            print_dialog.title(title)
+            print_dialog.geometry("700x600")
+            print_dialog.configure(bg='#f0f0f0')
+            print_dialog.transient(dialog_parent)
+            
+            # Text widget for display
+            text_frame = tk.Frame(print_dialog, bg='#f0f0f0')
+            text_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+            
+            text_widget = tk.Text(text_frame, font=('Courier', 10), wrap=tk.WORD, bg='white')
+            scrollbar = tk.Scrollbar(text_frame, orient=tk.VERTICAL, command=text_widget.yview)
+            text_widget.configure(yscrollcommand=scrollbar.set)
+            
+            text_widget.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            
+            text_widget.insert('1.0', text)
+            text_widget.config(state=tk.DISABLED)
+            
+            # Button frame
+            button_frame = tk.Frame(print_dialog, bg='#f0f0f0')
+            button_frame.pack(fill=tk.X, padx=20, pady=10)
+            
+            def print_text():
+                """Print the text"""
+                try:
+                    # Create temporary file with UTF-8 encoding for proper character support
+                    temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8', newline='')
+                    temp_file.write(text)
+                    temp_file.flush()  # Ensure all data is written
+                    temp_file.close()
+                    
+                    # Print based on OS
+                    system = platform.system()
+                    if system == "Windows":
+                        # On Windows, use PowerShell to print
+                        try:
+                            subprocess.run(['powershell', '-Command', 
+                                          f'Get-Content "{temp_file.name}" | Out-Printer'], 
+                                         check=True, timeout=10)
+                            messagebox.showinfo("Print", "Document sent to default printer!")
+                        except:
+                            # Fallback: open in notepad for manual printing
+                            os.startfile(temp_file.name, 'print')
+                            messagebox.showinfo("Print", "Print dialog opened. Please select your printer and click Print.")
+                    elif system == "Darwin":  # macOS
+                        subprocess.run(['lpr', temp_file.name], check=True)
+                        messagebox.showinfo("Print", "Document sent to default printer!")
+                    else:  # Linux
+                        subprocess.run(['lpr', temp_file.name], check=True)
+                        messagebox.showinfo("Print", "Document sent to default printer!")
+                    
+                    # Clean up temp file after a delay
+                    try:
+                        import time
+                        time.sleep(2)
+                        os.unlink(temp_file.name)
+                    except:
+                        pass
+                except Exception as e:
+                    messagebox.showerror("Print Error", f"Failed to print: {str(e)}\n\nYou can copy the text and print manually.")
+            
+            print_btn = tk.Button(
+                button_frame,
+                text="🖨️ Print",
+                command=print_text,
+                font=('Segoe UI', 10, 'bold'),
+                bg='#f59e0b',
+                fg='white',
+                padx=20,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#d97706'
+            )
+            print_btn.pack(side=tk.LEFT, padx=5)
+            
+            close_btn = tk.Button(
+                button_frame,
+                text="Close",
+                command=print_dialog.destroy,
+                font=('Segoe UI', 10),
+                bg='#6b7280',
+                fg='white',
+                padx=20,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#4b5563'
+            )
+            close_btn.pack(side=tk.LEFT, padx=5)
+        
         save_btn = tk.Button(
             inner_button_frame,
             text="💾 Save Prescription",
@@ -1544,6 +2267,23 @@ class PrescriptionModule:
             activeforeground='white'
         )
         save_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        print_btn = tk.Button(
+            inner_button_frame,
+            text="🖨️ Print Prescription",
+            command=print_prescription,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#f59e0b',
+            fg='white',
+            padx=30,
+            pady=12,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#d97706',
+            activeforeground='white'
+        )
+        print_btn.pack(side=tk.LEFT, padx=(0, 10))
         
         cancel_btn = tk.Button(
             inner_button_frame,
