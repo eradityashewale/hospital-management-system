@@ -879,15 +879,14 @@ class Database:
             return []
     
     def search_medicines_master(self, query: str) -> List[Dict]:
-        """Search medicines by name, company, or category"""
+        """Search medicines by medicine name only"""
         try:
             self.cursor.execute("""
                 SELECT medicine_name, company_name, dosage_mg, dosage_form, category, description 
                 FROM medicines_master 
-                WHERE medicine_name LIKE ? OR company_name LIKE ? 
-                OR category LIKE ? OR dosage_mg LIKE ?
+                WHERE medicine_name LIKE ?
                 ORDER BY medicine_name ASC
-            """, (f'%{query}%', f'%{query}%', f'%{query}%', f'%{query}%'))
+            """, (f'%{query}%',))
             rows = self.cursor.fetchall()
             medicines = []
             for row in rows:
@@ -917,6 +916,102 @@ class Database:
         except Exception as e:
             log_error("Failed to search medicines", e)
             return []
+    
+    def get_all_medicines_master_paginated(self, limit: int = 50, offset: int = 0) -> List[Dict]:
+        """Get paginated medicines from master table"""
+        try:
+            self.cursor.execute("""
+                SELECT medicine_name, company_name, dosage_mg, dosage_form, category, description 
+                FROM medicines_master 
+                ORDER BY medicine_name ASC
+                LIMIT ? OFFSET ?
+            """, (limit, offset))
+            rows = self.cursor.fetchall()
+            medicines = []
+            for row in rows:
+                try:
+                    medicine = {
+                        'medicine_name': str(row['medicine_name']) if row['medicine_name'] is not None else '',
+                        'company_name': str(row['company_name']) if row['company_name'] is not None else '',
+                        'dosage_mg': str(row['dosage_mg']) if row['dosage_mg'] is not None else '',
+                        'dosage_form': str(row['dosage_form']) if row['dosage_form'] is not None else '',
+                        'category': str(row['category']) if row['category'] is not None else '',
+                        'description': str(row['description']) if row['description'] is not None else ''
+                    }
+                except (KeyError, IndexError):
+                    medicine = {
+                        'medicine_name': str(row[0]) if len(row) > 0 and row[0] is not None else '',
+                        'company_name': str(row[1]) if len(row) > 1 and row[1] is not None else '',
+                        'dosage_mg': str(row[2]) if len(row) > 2 and row[2] is not None else '',
+                        'dosage_form': str(row[3]) if len(row) > 3 and row[3] is not None else '',
+                        'category': str(row[4]) if len(row) > 4 and row[4] is not None else '',
+                        'description': str(row[5]) if len(row) > 5 and row[5] is not None else ''
+                    }
+                medicines.append(medicine)
+            return medicines
+        except Exception as e:
+            log_error("Failed to retrieve paginated medicines from master table", e)
+            return []
+    
+    def search_medicines_master_paginated(self, query: str, limit: int = 50, offset: int = 0) -> List[Dict]:
+        """Search medicines by medicine name only with pagination"""
+        try:
+            self.cursor.execute("""
+                SELECT medicine_name, company_name, dosage_mg, dosage_form, category, description 
+                FROM medicines_master 
+                WHERE medicine_name LIKE ?
+                ORDER BY medicine_name ASC
+                LIMIT ? OFFSET ?
+            """, (f'%{query}%', limit, offset))
+            rows = self.cursor.fetchall()
+            medicines = []
+            for row in rows:
+                try:
+                    medicine = {
+                        'medicine_name': str(row['medicine_name']) if row['medicine_name'] is not None else '',
+                        'company_name': str(row['company_name']) if row['company_name'] is not None else '',
+                        'dosage_mg': str(row['dosage_mg']) if row['dosage_mg'] is not None else '',
+                        'dosage_form': str(row['dosage_form']) if row['dosage_form'] is not None else '',
+                        'category': str(row['category']) if row['category'] is not None else '',
+                        'description': str(row['description']) if row['description'] is not None else ''
+                    }
+                except (KeyError, IndexError):
+                    medicine = {
+                        'medicine_name': str(row[0]) if len(row) > 0 and row[0] is not None else '',
+                        'company_name': str(row[1]) if len(row) > 1 and row[1] is not None else '',
+                        'dosage_mg': str(row[2]) if len(row) > 2 and row[2] is not None else '',
+                        'dosage_form': str(row[3]) if len(row) > 3 and row[3] is not None else '',
+                        'category': str(row[4]) if len(row) > 4 and row[4] is not None else '',
+                        'description': str(row[5]) if len(row) > 5 and row[5] is not None else ''
+                    }
+                medicines.append(medicine)
+            return medicines
+        except Exception as e:
+            log_error("Failed to search medicines with pagination", e)
+            return []
+    
+    def get_total_medicines_count(self) -> int:
+        """Get total count of medicines in master table"""
+        try:
+            self.cursor.execute("SELECT COUNT(*) FROM medicines_master")
+            count = self.cursor.fetchone()[0]
+            return count if count else 0
+        except Exception as e:
+            log_error("Failed to get total medicines count", e)
+            return 0
+    
+    def get_search_medicines_count(self, query: str) -> int:
+        """Get total count of medicines matching search query"""
+        try:
+            self.cursor.execute("""
+                SELECT COUNT(*) FROM medicines_master 
+                WHERE medicine_name LIKE ?
+            """, (f'%{query}%',))
+            count = self.cursor.fetchone()[0]
+            return count if count else 0
+        except Exception as e:
+            log_error("Failed to get search medicines count", e)
+            return 0
     
     def get_medicine_dosages(self, medicine_name: str) -> List[str]:
         """Get all available dosages for a specific medicine"""

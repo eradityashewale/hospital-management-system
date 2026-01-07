@@ -11,3 +11,7 @@
 # Optional dependencies (uncomment if needed):
 # python-dateutil==2.8.2  # For enhanced date handling
 # reportlab==4.0.4        # For PDF generation (reports/printouts)
+
+# Build dependencies:
+pyinstaller>=5.0.0        # For creating .exe files
+reportlab>=4.0.0          # For PDF generation (reports/printouts)

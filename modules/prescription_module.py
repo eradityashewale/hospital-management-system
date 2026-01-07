@@ -688,9 +688,18 @@ class PrescriptionModule:
             search_entry.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True)
             search_entry.focus_set()
             
-            # Main content frame with scrollbar
+            # Button frame - pack first to reserve space at bottom
+            button_frame = tk.Frame(medicine_window, bg='#f0f0f0', padx=20, pady=15)
+            button_frame.pack(fill=tk.X, side=tk.BOTTOM)
+            
+            # Pagination frame - pack before button frame to reserve space (bright red for debugging, will change)
+            pagination_frame = tk.Frame(medicine_window, bg='#2c3e50', relief=tk.RAISED, bd=3, padx=20, pady=15, height=70)
+            pagination_frame.pack_propagate(False)
+            pagination_frame.pack(fill=tk.X, side=tk.BOTTOM)
+            
+            # Main content frame with scrollbar - pack after reserving space for pagination/buttons
             content_frame = tk.Frame(medicine_window, bg='#f0f0f0')
-            content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+            content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(10, 0))
             
             # Treeview with scrollbars
             tree_frame = tk.Frame(content_frame, bg='#f0f0f0')
@@ -728,8 +737,62 @@ class PrescriptionModule:
             tree_frame.grid_rowconfigure(0, weight=1)
             tree_frame.grid_columnconfigure(0, weight=1)
             
-            # Load medicines from database - show all medicines as stored
-            all_medicines = self.db.get_all_medicines_master()
+            # Pagination settings
+            items_per_page = 50
+            current_page = 1
+            current_search_query = ""
+            total_items = 0
+            
+            # Left side - Previous button
+            prev_btn = tk.Button(
+                pagination_frame,
+                text="< Prev",
+                font=('Arial', 11, 'bold'),
+                bg='#3498db',
+                fg='white',
+                width=8,
+                padx=15,
+                pady=10,
+                cursor='hand2',
+                relief=tk.RAISED,
+                bd=2,
+                state=tk.DISABLED,
+                activebackground='#2980b9',
+                activeforeground='white',
+                disabledforeground='#bdc3c7'
+            )
+            prev_btn.pack(side=tk.LEFT, padx=(20, 10), pady=10)
+            
+            # Center - Page number display
+            page_info_label = tk.Label(
+                pagination_frame,
+                text="Page 1 of 1",
+                font=('Arial', 12, 'bold'),
+                bg='#2c3e50',
+                fg='white',
+                padx=30
+            )
+            page_info_label.pack(side=tk.LEFT, padx=20, pady=10, expand=True)
+            
+            # Right side - Next button
+            next_btn = tk.Button(
+                pagination_frame,
+                text="Next >",
+                font=('Arial', 11, 'bold'),
+                bg='#3498db',
+                fg='white',
+                width=8,
+                padx=15,
+                pady=10,
+                cursor='hand2',
+                relief=tk.RAISED,
+                bd=2,
+                state=tk.DISABLED,
+                activebackground='#2980b9',
+                activeforeground='white',
+                disabledforeground='#bdc3c7'
+            )
+            next_btn.pack(side=tk.LEFT, padx=(10, 20), pady=10)
             
             def populate_tree(medicines_list):
                 """Populate tree with medicines - displays all available data"""
@@ -756,18 +819,62 @@ class PrescriptionModule:
                         description        # Maps to 'Description' column
                     ))
             
-            # Populate with all medicines from database (in database order)
-            populate_tree(all_medicines)
+            def load_page(page_num, search_query=""):
+                """Load a specific page of medicines"""
+                try:
+                    nonlocal current_page, current_search_query, total_items
+                    current_page = page_num
+                    current_search_query = search_query
+                    
+                    offset = (page_num - 1) * items_per_page
+                    
+                    if search_query:
+                        medicines = self.db.search_medicines_master_paginated(search_query, items_per_page, offset)
+                        total_items = self.db.get_search_medicines_count(search_query)
+                    else:
+                        medicines = self.db.get_all_medicines_master_paginated(items_per_page, offset)
+                        total_items = self.db.get_total_medicines_count()
+                    
+                    populate_tree(medicines)
+                    
+                    # Update pagination controls
+                    total_pages = (total_items + items_per_page - 1) // items_per_page if total_items > 0 else 1
+                    
+                    if total_pages > 0:
+                        page_info_label.config(text=f"Page {current_page} of {total_pages}")
+                    else:
+                        page_info_label.config(text="No medicines found")
+                    
+                    # Enable/disable navigation buttons
+                    prev_btn.config(state=tk.NORMAL if current_page > 1 else tk.DISABLED)
+                    next_btn.config(state=tk.NORMAL if current_page < total_pages else tk.DISABLED)
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to load medicines: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+            
+            def go_to_previous_page():
+                """Go to previous page"""
+                if current_page > 1:
+                    load_page(current_page - 1, current_search_query)
+            
+            def go_to_next_page():
+                """Go to next page"""
+                total_pages = (total_items + items_per_page - 1) // items_per_page if total_items > 0 else 1
+                if current_page < total_pages:
+                    load_page(current_page + 1, current_search_query)
+            
+            prev_btn.config(command=go_to_previous_page)
+            next_btn.config(command=go_to_next_page)
+            
+            # Load first page
+            load_page(1, "")
             
             # Search functionality
             def on_search(*args):
                 query = search_var.get().strip()
-                if query:
-                    filtered = self.db.search_medicines_master(query)
-                    populate_tree(filtered)
-                else:
-                    # Show all medicines when search is cleared
-                    populate_tree(all_medicines)
+                # Reset to first page when searching
+                load_page(1, query)
             
             search_var.trace('w', on_search)
             search_entry.bind('<Return>', lambda e: on_search())
@@ -795,10 +902,6 @@ class PrescriptionModule:
                         medicine_window.destroy()
             
             medicine_tree.bind('<Double-1>', on_double_click)
-            
-            # Button frame
-            button_frame = tk.Frame(medicine_window, bg='#f0f0f0', padx=20, pady=15)
-            button_frame.pack(fill=tk.X)
             
             def select_medicine():
                 selection = medicine_tree.selection()
