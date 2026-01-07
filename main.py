@@ -311,16 +311,6 @@ class HospitalManagementSystem:
             # Ensure UI is ready
             self.root.update_idletasks()
             
-            # Dashboard title with modern styling
-            title = tk.Label(
-                self.content_frame,
-                text="Dashboard",
-                font=('Segoe UI', 28, 'bold'),
-                bg='#f5f7fa',
-                fg='#1a237e'
-            )
-            title.pack(pady=(30, 10))
-            
             # Filter frame
             filter_frame = tk.Frame(self.content_frame, bg='#f5f7fa')
             filter_frame.pack(fill=tk.X, padx=25, pady=(10, 20))
@@ -754,6 +744,40 @@ class HospitalManagementSystem:
             # Create filter buttons list (will be populated)
             filter_btns = []
             
+            # Define apply_filter function before creating buttons
+            def apply_filter(filter_type):
+                """Apply filter - basic version (will be enhanced after buttons are created)"""
+                self.current_filter['type'] = filter_type
+                
+                # Show/hide appropriate input fields
+                if filter_type == 'daily':
+                    date_input_frame.pack(side=tk.LEFT, padx=10, before=filter_buttons_frame)
+                    date_range_frame.pack_forget()
+                    month_input_frame.pack_forget()
+                    year_input_frame.pack_forget()
+                elif filter_type == 'daterange':
+                    date_range_frame.pack(side=tk.LEFT, padx=10, before=filter_buttons_frame)
+                    date_input_frame.pack_forget()
+                    month_input_frame.pack_forget()
+                    year_input_frame.pack_forget()
+                elif filter_type == 'monthly':
+                    month_input_frame.pack(side=tk.LEFT, padx=10, before=filter_buttons_frame)
+                    date_input_frame.pack_forget()
+                    date_range_frame.pack_forget()
+                    year_input_frame.pack_forget()
+                elif filter_type == 'yearly':
+                    year_input_frame.pack(side=tk.LEFT, padx=10, before=filter_buttons_frame)
+                    date_input_frame.pack_forget()
+                    date_range_frame.pack_forget()
+                    month_input_frame.pack_forget()
+                else:  # 'all'
+                    date_input_frame.pack_forget()
+                    date_range_frame.pack_forget()
+                    month_input_frame.pack_forget()
+                    year_input_frame.pack_forget()
+                
+                # Button highlighting will be added after button_map is created
+            
             def refresh_statistics():
                 """Refresh statistics based on current filter"""
                 try:
@@ -769,9 +793,6 @@ class HospitalManagementSystem:
                     elif filter_type == 'yearly':
                         filter_date = self.filter_year_var.get()
                         stats = self.db.get_yearly_statistics(filter_date)
-                    elif filter_type == 'datewise':
-                        filter_date = self.filter_date_var.get()
-                        stats = self.db.get_datewise_statistics(filter_date)
                     elif filter_type == 'daterange':
                         from_date = self.filter_from_date_var.get()
                         to_date = self.filter_to_date_var.get()
@@ -785,12 +806,13 @@ class HospitalManagementSystem:
                     else:  # 'all'
                         stats = self.db.get_statistics()
                     
-                    # Update value labels (only first 4 cards now)
+                    # Update value labels (5 cards now)
                     values = [
                         stats['total_patients'],
                         stats['total_doctors'],
                         stats['scheduled_appointments'],
-                        stats['completed_appointments']
+                        stats['completed_appointments'],
+                        f"${stats['total_revenue']:.2f}"
                     ]
                     
                     for i, label in enumerate(self.stat_value_labels):
@@ -866,22 +888,6 @@ class HospitalManagementSystem:
             yearly_btn.pack(side=tk.LEFT, padx=3)
             filter_btns.append(yearly_btn)
             
-            datewise_btn = tk.Button(
-                filter_buttons_frame,
-                text="Datewise",
-                command=lambda: apply_filter('datewise'),
-                font=('Segoe UI', 10, 'bold'),
-                bg='#6b7280',
-                fg='white',
-                padx=20,
-                pady=8,
-                cursor='hand2',
-                relief=tk.FLAT,
-                activebackground='#4b5563'
-            )
-            datewise_btn.pack(side=tk.LEFT, padx=3)
-            filter_btns.append(datewise_btn)
-            
             date_range_btn = tk.Button(
                 filter_buttons_frame,
                 text="Date Range",
@@ -904,7 +910,6 @@ class HospitalManagementSystem:
                 'daily': daily_btn,
                 'monthly': monthly_btn,
                 'yearly': yearly_btn,
-                'datewise': datewise_btn,
                 'daterange': date_range_btn
             }
             
@@ -914,7 +919,7 @@ class HospitalManagementSystem:
                 self.current_filter['type'] = filter_type
                 
                 # Show/hide appropriate input fields
-                if filter_type == 'daily' or filter_type == 'datewise':
+                if filter_type == 'daily':
                     date_input_frame.pack(side=tk.LEFT, padx=10, before=filter_buttons_frame)
                     date_range_frame.pack_forget()
                     month_input_frame.pack_forget()
@@ -959,7 +964,6 @@ class HospitalManagementSystem:
             daily_btn.config(command=lambda: apply_filter_updated('daily'))
             monthly_btn.config(command=lambda: apply_filter_updated('monthly'))
             yearly_btn.config(command=lambda: apply_filter_updated('yearly'))
-            datewise_btn.config(command=lambda: apply_filter_updated('datewise'))
             date_range_btn.config(command=lambda: apply_filter_updated('daterange'))
             
             # Apply button for date inputs
@@ -998,7 +1002,8 @@ class HospitalManagementSystem:
                 ("👥", "Total Patients", stats['total_patients'], "+12%", '#3b82f6'),
                 ("👨‍⚕️", "Active Doctors", stats['total_doctors'], "", '#8b5cf6'),
                 ("📅", "Today's Appointments", stats['scheduled_appointments'], "", '#ec4899'),
-                ("✅", "Completed Appointments", stats['completed_appointments'], "", '#f59e0b')
+                ("✅", "Completed Appointments", stats['completed_appointments'], "", '#f59e0b'),
+                ("💰", "Total Revenue", f"${stats['total_revenue']:.2f}", "", '#10b981')
             ]
             
             cards_frame = tk.Frame(stats_frame, bg='#f5f7fa')
@@ -1011,6 +1016,7 @@ class HospitalManagementSystem:
                     relief=tk.FLAT,
                     bd=0
                 )
+                # Arrange all 5 cards in a single row
                 card.grid(row=0, column=i, padx=12, pady=12, sticky='nsew')
                 cards_frame.grid_columnconfigure(i, weight=1)
                 
