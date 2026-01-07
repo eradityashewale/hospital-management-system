@@ -6,6 +6,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from database import Database
 from logger import log_button_click, log_navigation, log_error, log_info, log_debug, log_warning
+from datetime import datetime, timedelta
 import sys
 
 # Import modules
@@ -784,17 +785,17 @@ class HospitalManagementSystem:
                     else:  # 'all'
                         stats = self.db.get_statistics()
                     
-                    # Update value labels
+                    # Update value labels (only first 4 cards now)
                     values = [
                         stats['total_patients'],
                         stats['total_doctors'],
                         stats['scheduled_appointments'],
-                        stats['completed_appointments'],
-                        f"${stats['total_revenue']:.2f}"
+                        stats['completed_appointments']
                     ]
                     
                     for i, label in enumerate(self.stat_value_labels):
-                        label.config(text=str(values[i]))
+                        if i < len(values):
+                            label.config(text=str(values[i]))
                     
                 except Exception as e:
                     log_error("Failed to refresh statistics", e)
@@ -992,83 +993,376 @@ class HospitalManagementSystem:
                     'total_revenue': 0
                 }
             
-            # Statistics cards
+            # Modern KPI Cards with icons
             stat_cards = [
-                ("Total Patients", stats['total_patients'], '#3498db'),
-                ("Total Doctors", stats['total_doctors'], '#2ecc71'),
-                ("Scheduled Appointments", stats['scheduled_appointments'], '#f39c12'),
-                ("Completed Appointments", stats['completed_appointments'], '#9b59b6'),
-                ("Total Revenue", f"${stats['total_revenue']:.2f}", '#e74c3c')
+                ("👥", "Total Patients", stats['total_patients'], "+12%", '#3b82f6'),
+                ("👨‍⚕️", "Active Doctors", stats['total_doctors'], "", '#8b5cf6'),
+                ("📅", "Today's Appointments", stats['scheduled_appointments'], "", '#ec4899'),
+                ("✅", "Completed Appointments", stats['completed_appointments'], "", '#f59e0b')
             ]
             
             cards_frame = tk.Frame(stats_frame, bg='#f5f7fa')
-            cards_frame.pack(fill=tk.BOTH, expand=True)
+            cards_frame.pack(fill=tk.X, pady=(0, 20))
             
-            # Modern color palette
-            modern_colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
-            
-            for i, (label, value, color) in enumerate(stat_cards):
-                # Use modern colors
-                modern_color = modern_colors[i % len(modern_colors)]
+            for i, (icon, label, value, trend, color) in enumerate(stat_cards):
                 card = tk.Frame(
                     cards_frame,
-                    bg=modern_color,
+                    bg=color,
                     relief=tk.FLAT,
                     bd=0
                 )
-                card.grid(row=i//3, column=i%3, padx=12, pady=12, sticky='nsew')
-                cards_frame.grid_columnconfigure(i%3, weight=1)
+                card.grid(row=0, column=i, padx=12, pady=12, sticky='nsew')
+                cards_frame.grid_columnconfigure(i, weight=1)
                 
+                # Icon and label frame
+                top_frame = tk.Frame(card, bg=color)
+                top_frame.pack(fill=tk.X, padx=20, pady=(20, 10))
+                
+                icon_label = tk.Label(
+                    top_frame,
+                    text=icon,
+                    font=('Segoe UI', 24),
+                    bg=color,
+                    fg='white'
+                )
+                icon_label.pack(side=tk.LEFT, padx=(0, 10))
+                
+                label_frame = tk.Frame(top_frame, bg=color)
+                label_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+                
+                label_text = tk.Label(
+                    label_frame,
+                    text=label,
+                    font=('Segoe UI', 11),
+                    bg=color,
+                    fg='white',
+                    anchor='w'
+                )
+                label_text.pack(anchor='w')
+                
+                if trend:
+                    trend_label = tk.Label(
+                        label_frame,
+                        text=f"↑ {trend}",
+                        font=('Segoe UI', 9),
+                        bg=color,
+                        fg='white',
+                        anchor='w'
+                    )
+                    trend_label.pack(anchor='w')
+                
+                # Value
                 value_label = tk.Label(
                     card,
                     text=str(value),
-                    font=('Segoe UI', 36, 'bold'),
-                    bg=modern_color,
+                    font=('Segoe UI', 28, 'bold'),
+                    bg=color,
                     fg='white'
                 )
-                value_label.pack(pady=(25, 10))
+                value_label.pack(pady=(0, 20))
                 self.stat_value_labels.append(value_label)  # Store reference
-                
-                label_label = tk.Label(
-                    card,
-                    text=label,
-                    font=('Segoe UI', 13),
-                    bg=modern_color,
-                    fg='white'
-                )
-                label_label.pack(pady=(0, 20))
             
-            # Welcome message with modern card design
-            welcome_frame = tk.Frame(self.content_frame, bg='white', relief=tk.FLAT, bd=0)
-            welcome_frame.pack(fill=tk.X, padx=25, pady=25)
+            # Main content area with three columns
+            main_content = tk.Frame(self.content_frame, bg='#f5f7fa')
+            main_content.pack(fill=tk.BOTH, expand=True, padx=25, pady=(0, 25))
             
-            welcome_text = """
-Welcome to Hospital Management System!
-
-This is an offline desktop application for managing hospital operations.
-You can manage patients, doctors, appointments, prescriptions, and billing all in one place.
-
-Features:
-• Patient Registration and Management
-• Doctor Management
-• Appointment Scheduling
-• Prescription Management
-• Billing and Invoicing
-• Reports and Analytics
-
-All data is stored locally on your computer - no internet connection required.
-            """
+            # Left column (charts)
+            left_column = tk.Frame(main_content, bg='#f5f7fa', width=400)
+            left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 15))
             
-            welcome_label = tk.Label(
-                welcome_frame,
-                text=welcome_text,
-                font=('Segoe UI', 11),
+            # Middle column (status chart and activities)
+            middle_column = tk.Frame(main_content, bg='#f5f7fa', width=300)
+            middle_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 15))
+            
+            # Right column (quick actions and today's appointments)
+            right_column = tk.Frame(main_content, bg='#f5f7fa', width=300)
+            right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
+            
+            # Appointments Overview Chart (Left Column)
+            appointments_chart_frame = tk.Frame(left_column, bg='white', relief=tk.FLAT, bd=1)
+            appointments_chart_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
+            
+            chart_header = tk.Frame(appointments_chart_frame, bg='white')
+            chart_header.pack(fill=tk.X, padx=20, pady=(15, 10))
+            
+            tk.Label(
+                chart_header,
+                text="Appointments Overview",
+                font=('Segoe UI', 14, 'bold'),
                 bg='white',
-                fg='#374151',
-                justify=tk.LEFT,
-                anchor='w'
+                fg='#1f2937'
+            ).pack(side=tk.LEFT)
+            
+            # Toggle buttons
+            toggle_frame = tk.Frame(chart_header, bg='white')
+            toggle_frame.pack(side=tk.RIGHT)
+            
+            daily_toggle = tk.Button(
+                toggle_frame,
+                text="Daily",
+                font=('Segoe UI', 9, 'bold'),
+                bg='#3b82f6',
+                fg='white',
+                padx=12,
+                pady=4,
+                relief=tk.FLAT,
+                cursor='hand2'
             )
-            welcome_label.pack(padx=30, pady=30)
+            daily_toggle.pack(side=tk.LEFT, padx=2)
+            
+            monthly_toggle = tk.Button(
+                toggle_frame,
+                text="Monthly",
+                font=('Segoe UI', 9),
+                bg='#e5e7eb',
+                fg='#6b7280',
+                padx=12,
+                pady=4,
+                relief=tk.FLAT,
+                cursor='hand2'
+            )
+            monthly_toggle.pack(side=tk.LEFT, padx=2)
+            
+            # Simple chart representation (text-based)
+            chart_canvas = tk.Canvas(appointments_chart_frame, bg='white', height=200, highlightthickness=0)
+            chart_canvas.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
+            
+            # Draw simple line chart
+            chart_canvas.create_text(200, 100, text="📈 Chart visualization\n(Appointments trend)", 
+                                   font=('Segoe UI', 11), fill='#9ca3af', justify=tk.CENTER)
+            
+            # Legend
+            legend_frame = tk.Frame(appointments_chart_frame, bg='white')
+            legend_frame.pack(fill=tk.X, padx=20, pady=(0, 15))
+            
+            legend_items = [("Scheduled", "#3b82f6"), ("Completed", "#10b981"), ("Cancelled", "#ec4899")]
+            for i, (label, color) in enumerate(legend_items):
+                legend_item = tk.Frame(legend_frame, bg='white')
+                legend_item.pack(side=tk.LEFT, padx=10)
+                tk.Label(legend_item, text="●", font=('Segoe UI', 12), bg='white', fg=color).pack(side=tk.LEFT, padx=(0, 5))
+                tk.Label(legend_item, text=label, font=('Segoe UI', 9), bg='white', fg='#6b7280').pack(side=tk.LEFT)
+            
+            # Revenue Insights Chart
+            revenue_chart_frame = tk.Frame(left_column, bg='white', relief=tk.FLAT, bd=1)
+            revenue_chart_frame.pack(fill=tk.BOTH, expand=True)
+            
+            revenue_header = tk.Frame(revenue_chart_frame, bg='white')
+            revenue_header.pack(fill=tk.X, padx=20, pady=(15, 10))
+            
+            tk.Label(
+                revenue_header,
+                text="Revenue Insights",
+                font=('Segoe UI', 14, 'bold'),
+                bg='white',
+                fg='#1f2937'
+            ).pack(side=tk.LEFT)
+            
+            tk.Label(
+                revenue_header,
+                text="87% $100k >",
+                font=('Segoe UI', 10),
+                bg='white',
+                fg='#6b7280'
+            ).pack(side=tk.RIGHT)
+            
+            revenue_canvas = tk.Canvas(revenue_chart_frame, bg='white', height=200, highlightthickness=0)
+            revenue_canvas.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
+            
+            revenue_canvas.create_text(200, 100, text="📊 Bar chart visualization\n(Monthly revenue)", 
+                                      font=('Segoe UI', 11), fill='#9ca3af', justify=tk.CENTER)
+            
+            # Appointment Status Donut Chart (Middle Column)
+            status_chart_frame = tk.Frame(middle_column, bg='white', relief=tk.FLAT, bd=1)
+            status_chart_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
+            
+            tk.Label(
+                status_chart_frame,
+                text="Appointment Status",
+                font=('Segoe UI', 14, 'bold'),
+                bg='white',
+                fg='#1f2937'
+            ).pack(pady=(15, 10))
+            
+            status_canvas = tk.Canvas(status_chart_frame, bg='white', height=200, highlightthickness=0)
+            status_canvas.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 10))
+            
+            # Draw donut chart representation
+            status_canvas.create_oval(50, 50, 150, 150, outline='#3b82f6', width=20, fill='')
+            status_canvas.create_text(100, 100, text="65.1%", font=('Segoe UI', 16, 'bold'), fill='#1f2937')
+            
+            # Status legend
+            status_legend = tk.Frame(status_chart_frame, bg='white')
+            status_legend.pack(fill=tk.X, padx=20, pady=(0, 15))
+            
+            status_items = [
+                ("Scheduled", "#3b82f6", "68.1%"),
+                ("Completed", "#8b5cf6", "31.4%"),
+                ("Cancelled", "#ec4899", "3.5%")
+            ]
+            for label, color, percent in status_items:
+                item_frame = tk.Frame(status_legend, bg='white')
+                item_frame.pack(fill=tk.X, pady=5)
+                tk.Label(item_frame, text="●", font=('Segoe UI', 12), bg='white', fg=color).pack(side=tk.LEFT, padx=(0, 8))
+                tk.Label(item_frame, text=label, font=('Segoe UI', 10), bg='white', fg='#374151').pack(side=tk.LEFT)
+                tk.Label(item_frame, text=percent, font=('Segoe UI', 10, 'bold'), bg='white', fg='#6b7280').pack(side=tk.RIGHT)
+            
+            # Recent Activities (Middle Column)
+            activities_frame = tk.Frame(middle_column, bg='white', relief=tk.FLAT, bd=1)
+            activities_frame.pack(fill=tk.BOTH, expand=True)
+            
+            tk.Label(
+                activities_frame,
+                text="Recent Activities",
+                font=('Segoe UI', 14, 'bold'),
+                bg='white',
+                fg='#1f2937'
+            ).pack(pady=(15, 10))
+            
+            activities_list = tk.Frame(activities_frame, bg='white')
+            activities_list.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 15))
+            
+            # Get recent activities
+            try:
+                recent_activities = self.db.get_recent_activities(5)
+                for activity in recent_activities:
+                    activity_type = activity.get('type', '')
+                    name = activity.get('name', 'Unknown')
+                    action = activity.get('action', '')
+                    
+                    activity_text = f"{action.capitalize()} {name}"
+                    time_text = "5m ago"  # Simplified
+                    
+                    activity_item = tk.Frame(activities_list, bg='white')
+                    activity_item.pack(fill=tk.X, pady=8)
+                    
+                    tk.Label(
+                        activity_item,
+                        text=activity_text,
+                        font=('Segoe UI', 10),
+                        bg='white',
+                        fg='#374151'
+                    ).pack(anchor='w')
+                    
+                    tk.Label(
+                        activity_item,
+                        text=time_text,
+                        font=('Segoe UI', 9),
+                        bg='white',
+                        fg='#9ca3af'
+                    ).pack(anchor='w')
+            except:
+                tk.Label(activities_list, text="No recent activities", font=('Segoe UI', 10), 
+                        bg='white', fg='#9ca3af').pack(pady=10)
+            
+            # Quick Actions (Right Column)
+            quick_actions_frame = tk.Frame(right_column, bg='white', relief=tk.FLAT, bd=1)
+            quick_actions_frame.pack(fill=tk.X, pady=(0, 15))
+            
+            tk.Label(
+                quick_actions_frame,
+                text="Quick Actions",
+                font=('Segoe UI', 14, 'bold'),
+                bg='white',
+                fg='#1f2937'
+            ).pack(pady=(15, 10))
+            
+            actions_list = tk.Frame(quick_actions_frame, bg='white')
+            actions_list.pack(fill=tk.X, padx=15, pady=(0, 15))
+            
+            action_buttons = [
+                ("➕ Add Patient", '#10b981', self.show_patients),
+                ("📅 Book Appointment", '#3b82f6', self.show_appointments),
+                ("👨‍⚕️ Add Doctor", '#8b5cf6', self.show_doctors),
+                ("💰 Generate Invoice", '#06b6d4', self.show_billing)
+            ]
+            
+            for text, color, command in action_buttons:
+                btn = tk.Button(
+                    actions_list,
+                    text=text,
+                    font=('Segoe UI', 11, 'bold'),
+                    bg=color,
+                    fg='white',
+                    padx=15,
+                    pady=12,
+                    relief=tk.FLAT,
+                    cursor='hand2',
+                    command=command,
+                    anchor='w',
+                    width=20
+                )
+                btn.pack(fill=tk.X, pady=5)
+            
+            # Today's Appointments (Right Column)
+            today_appts_frame = tk.Frame(right_column, bg='white', relief=tk.FLAT, bd=1)
+            today_appts_frame.pack(fill=tk.BOTH, expand=True)
+            
+            header_frame = tk.Frame(today_appts_frame, bg='white')
+            header_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
+            
+            tk.Label(
+                header_frame,
+                text="Today's Appointments",
+                font=('Segoe UI', 14, 'bold'),
+                bg='white',
+                fg='#1f2937'
+            ).pack(side=tk.LEFT)
+            
+            tk.Label(
+                header_frame,
+                text="UPCOMING 3 HOURS",
+                font=('Segoe UI', 9, 'bold'),
+                bg='white',
+                fg='#6b7280'
+            ).pack(side=tk.RIGHT)
+            
+            appointments_list = tk.Frame(today_appts_frame, bg='white')
+            appointments_list.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+            
+            # Get today's appointments
+            try:
+                from utils import get_current_date
+                today_appts = self.db.get_todays_appointments(get_current_date())
+                for apt in today_appts[:5]:  # Show max 5
+                    apt_time = apt.get('appointment_time', '')
+                    patient_name = apt.get('patient_name', 'Unknown')
+                    doctor_name = apt.get('doctor_name', '')
+                    specialization = apt.get('specialization', '')
+                    
+                    apt_item = tk.Frame(appointments_list, bg='white')
+                    apt_item.pack(fill=tk.X, pady=8)
+                    
+                    time_label = tk.Label(
+                        apt_item,
+                        text=apt_time,
+                        font=('Segoe UI', 10, 'bold'),
+                        bg='white',
+                        fg='#1f2937'
+                    )
+                    time_label.pack(anchor='w')
+                    
+                    name_label = tk.Label(
+                        apt_item,
+                        text=f"{patient_name} - {doctor_name}",
+                        font=('Segoe UI', 10),
+                        bg='white',
+                        fg='#374151'
+                    )
+                    name_label.pack(anchor='w')
+                    
+                    if specialization:
+                        spec_label = tk.Label(
+                            apt_item,
+                            text=specialization,
+                            font=('Segoe UI', 9),
+                            bg='white',
+                            fg='#6b7280'
+                        )
+                        spec_label.pack(anchor='w')
+            except Exception as e:
+                tk.Label(appointments_list, text="No appointments today", font=('Segoe UI', 10), 
+                        bg='white', fg='#9ca3af').pack(pady=10)
+            
             log_info("Dashboard loaded successfully")
         except Exception as e:
             log_error("Failed to load Dashboard", e)

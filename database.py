@@ -733,6 +733,70 @@ class Database:
         
         return stats
     
+    def get_todays_appointments(self, date: str = None) -> List[Dict]:
+        """Get today's appointments"""
+        from utils import get_current_date
+        if not date:
+            date = get_current_date()
+        
+        self.cursor.execute("""
+            SELECT a.*, p.first_name || ' ' || p.last_name as patient_name,
+            d.first_name || ' ' || d.last_name as doctor_name,
+            d.specialization
+            FROM appointments a
+            LEFT JOIN patients p ON a.patient_id = p.patient_id
+            LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE a.appointment_date = ?
+            ORDER BY a.appointment_time ASC
+        """, (date,))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_recent_activities(self, limit: int = 10) -> List[Dict]:
+        """Get recent activities from appointments, patients, and bills"""
+        activities = []
+        
+        # Recent patients
+        self.cursor.execute("""
+            SELECT 'patient' as type, patient_id as id, first_name || ' ' || last_name as name,
+            'registered' as action, created_at as timestamp
+            FROM patients
+            ORDER BY created_at DESC
+            LIMIT ?
+        """, (limit,))
+        for row in self.cursor.fetchall():
+            activities.append(dict(row))
+        
+        # Recent appointments
+        self.cursor.execute("""
+            SELECT 'appointment' as type, appointment_id as id, 
+            p.first_name || ' ' || p.last_name as name,
+            'completed' as action, a.appointment_date || ' ' || a.appointment_time as timestamp
+            FROM appointments a
+            LEFT JOIN patients p ON a.patient_id = p.patient_id
+            WHERE a.status = 'Completed'
+            ORDER BY a.appointment_date DESC, a.appointment_time DESC
+            LIMIT ?
+        """, (limit,))
+        for row in self.cursor.fetchall():
+            activities.append(dict(row))
+        
+        # Recent bills
+        self.cursor.execute("""
+            SELECT 'bill' as type, bill_id as id,
+            p.first_name || ' ' || p.last_name as name,
+            'generated' as action, b.bill_date as timestamp
+            FROM billing b
+            LEFT JOIN patients p ON b.patient_id = p.patient_id
+            ORDER BY b.bill_date DESC, b.created_at DESC
+            LIMIT ?
+        """, (limit,))
+        for row in self.cursor.fetchall():
+            activities.append(dict(row))
+        
+        # Sort by timestamp and return limited results
+        activities.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+        return activities[:limit]
+    
     # Medicine master operations
     def populate_medicines(self) -> None:
         """Populate medicines master table with comprehensive branded medicine list"""
