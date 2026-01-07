@@ -446,6 +446,19 @@ class Database:
         """, (date,))
         return [dict(row) for row in self.cursor.fetchall()]
     
+    def get_appointment_by_id(self, appointment_id: str) -> Optional[Dict]:
+        """Get appointment by ID"""
+        self.cursor.execute("""
+            SELECT a.*, p.first_name || ' ' || p.last_name as patient_name,
+            d.first_name || ' ' || d.last_name as doctor_name
+            FROM appointments a
+            LEFT JOIN patients p ON a.patient_id = p.patient_id
+            LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE a.appointment_id = ?
+        """, (appointment_id,))
+        row = self.cursor.fetchone()
+        return dict(row) if row else None
+    
     # Prescription operations
     def add_prescription(self, prescription_data: Dict, items: List[Dict]) -> bool:
         """Add a new prescription with items"""
@@ -628,6 +641,59 @@ class Database:
             ORDER BY b.bill_date DESC
         """)
         return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_bill_by_id(self, bill_id: str) -> Optional[Dict]:
+        """Get bill by ID"""
+        self.cursor.execute("""
+            SELECT b.*, p.first_name || ' ' || p.last_name as patient_name
+            FROM billing b
+            LEFT JOIN patients p ON b.patient_id = p.patient_id
+            WHERE b.bill_id = ?
+        """, (bill_id,))
+        row = self.cursor.fetchone()
+        return dict(row) if row else None
+    
+    def update_bill(self, bill_id: str, bill_data: Dict) -> bool:
+        """Update an existing bill"""
+        log_debug(f"Updating bill: {bill_id}")
+        try:
+            self.cursor.execute("""
+                UPDATE billing SET
+                patient_id = ?, appointment_id = ?, bill_date = ?,
+                consultation_fee = ?, medicine_cost = ?, other_charges = ?,
+                total_amount = ?, payment_status = ?, payment_method = ?, notes = ?
+                WHERE bill_id = ?
+            """, (
+                bill_data['patient_id'],
+                bill_data.get('appointment_id'),
+                bill_data['bill_date'],
+                bill_data.get('consultation_fee', 0),
+                bill_data.get('medicine_cost', 0),
+                bill_data.get('other_charges', 0),
+                bill_data['total_amount'],
+                bill_data.get('payment_status', 'Pending'),
+                bill_data.get('payment_method', ''),
+                bill_data.get('notes', ''),
+                bill_id
+            ))
+            self.conn.commit()
+            log_info(f"Bill updated successfully: {bill_id}")
+            return True
+        except Exception as e:
+            log_error(f"Failed to update bill: {bill_id}", e)
+            return False
+    
+    def delete_bill(self, bill_id: str) -> bool:
+        """Delete a bill"""
+        log_debug(f"Deleting bill: {bill_id}")
+        try:
+            self.cursor.execute("DELETE FROM billing WHERE bill_id = ?", (bill_id,))
+            self.conn.commit()
+            log_info(f"Bill deleted successfully: {bill_id}")
+            return True
+        except Exception as e:
+            log_error(f"Failed to delete bill: {bill_id}", e)
+            return False
     
     def get_statistics(self, filter_type: str = 'all', filter_date: str = None) -> Dict:
         """Get system statistics with optional filters
