@@ -638,6 +638,376 @@ class HospitalManagementSystem:
             )
             month_entry.pack(side=tk.LEFT, padx=5)
             
+            # Month/Year picker for monthly filter - Grid-based Calendar Style
+            def open_month_picker(entry_widget, var):
+                """Open month and year picker with grid-based calendar design"""
+                picker_window = tk.Toplevel(self.root)
+                picker_window.title("Select Month")
+                picker_window.geometry("320x280")
+                picker_window.configure(bg='#ffffff')
+                picker_window.transient(self.root)
+                picker_window.grab_set()
+                
+                # Center the window
+                picker_window.update_idletasks()
+                x = (picker_window.winfo_screenwidth() // 2) - (320 // 2)
+                y = (picker_window.winfo_screenheight() // 2) - (280 // 2)
+                picker_window.geometry(f"320x280+{x}+{y}")
+                
+                # Get current month from entry or use current month
+                current_month_str = var.get()
+                try:
+                    current_date = datetime.strptime(current_month_str + '-01', '%Y-%m-%d')
+                    initial_year = current_date.year
+                    initial_month = current_date.month
+                except:
+                    current_date = datetime.now()
+                    initial_year = current_date.year
+                    initial_month = current_date.month
+                
+                # Use mutable containers for selected values (for closure access)
+                selected_state = {'year': initial_year, 'month': initial_month}
+                
+                # Year variable
+                year_var = tk.IntVar(value=initial_year)
+                
+                # Month abbreviations
+                month_abbr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                             'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+                
+                # Main container with border
+                main_container = tk.Frame(picker_window, bg='#ffffff', relief=tk.SOLID, bd=1)
+                main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+                main_container.config(highlightbackground='#3b82f6', highlightthickness=1)
+                
+                # Year navigation frame
+                year_nav_frame = tk.Frame(main_container, bg='#ffffff')
+                year_nav_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
+                
+                # Previous year button
+                prev_year_btn = tk.Button(
+                    year_nav_frame,
+                    text="«",
+                    font=('Segoe UI', 12, 'bold'),
+                    bg='#ffffff',
+                    fg='#374151',
+                    relief=tk.FLAT,
+                    bd=0,
+                    cursor='hand2',
+                    activebackground='#f3f4f6',
+                    activeforeground='#1f2937',
+                    width=3
+                )
+                prev_year_btn.pack(side=tk.LEFT)
+                
+                # Year label
+                year_label = tk.Label(
+                    year_nav_frame,
+                    text=str(initial_year),
+                    font=('Segoe UI', 14, 'bold'),
+                    bg='#ffffff',
+                    fg='#1f2937'
+                )
+                year_label.pack(side=tk.LEFT, expand=True)
+                
+                # Next year button
+                next_year_btn = tk.Button(
+                    year_nav_frame,
+                    text="»",
+                    font=('Segoe UI', 12, 'bold'),
+                    bg='#ffffff',
+                    fg='#374151',
+                    relief=tk.FLAT,
+                    bd=0,
+                    cursor='hand2',
+                    activebackground='#f3f4f6',
+                    activeforeground='#1f2937',
+                    width=3
+                )
+                next_year_btn.pack(side=tk.LEFT)
+                
+                # Month grid frame
+                month_grid_frame = tk.Frame(main_container, bg='#ffffff')
+                month_grid_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+                
+                # Store month buttons for updating
+                month_buttons = []
+                
+                def update_year_display():
+                    """Update year label and month button highlights"""
+                    current_year = year_var.get()
+                    year_label.config(text=str(current_year))
+                    # Update month button highlights
+                    for i, btn in enumerate(month_buttons):
+                        month_num = i + 1
+                        # Highlight if this is the selected month for the current year
+                        if month_num == selected_state['month'] and current_year == selected_state['year']:
+                            btn.config(bg='#3b82f6', fg='white', relief=tk.SOLID, bd=1)
+                        else:
+                            btn.config(bg='#ffffff', fg='#374151', relief=tk.FLAT, bd=0)
+                
+                def prev_year():
+                    """Go to previous year"""
+                    year_var.set(year_var.get() - 1)
+                    update_year_display()
+                
+                def next_year():
+                    """Go to next year"""
+                    year_var.set(year_var.get() + 1)
+                    update_year_display()
+                
+                def select_month(month_index):
+                    """Select a month"""
+                    year = year_var.get()
+                    month_str = f"{year}-{month_index:02d}"
+                    var.set(month_str)
+                    entry_widget.delete(0, tk.END)
+                    entry_widget.insert(0, month_str)
+                    picker_window.destroy()
+                
+                # Bind year navigation
+                prev_year_btn.config(command=prev_year)
+                next_year_btn.config(command=next_year)
+                
+                # Create month buttons in 4x3 grid
+                for i, month_name in enumerate(month_abbr):
+                    row = i // 4
+                    col = i % 4
+                    month_num = i + 1
+                    
+                    # Determine if this month should be highlighted
+                    is_selected = (month_num == initial_month and year_var.get() == initial_year)
+                    
+                    month_btn = tk.Button(
+                        month_grid_frame,
+                        text=month_name,
+                        font=('Segoe UI', 10),
+                        bg='#3b82f6' if is_selected else '#ffffff',
+                        fg='white' if is_selected else '#374151',
+                        relief=tk.SOLID if is_selected else tk.FLAT,
+                        bd=1 if is_selected else 0,
+                        cursor='hand2',
+                        activebackground='#2563eb' if not is_selected else '#3b82f6',
+                        activeforeground='white',
+                        padx=15,
+                        pady=10,
+                        command=lambda m=month_num: select_month(m)
+                    )
+                    month_btn.grid(row=row, column=col, padx=3, pady=3, sticky='nsew')
+                    month_buttons.append(month_btn)
+                
+                # Configure grid weights for even spacing
+                for i in range(4):
+                    month_grid_frame.grid_columnconfigure(i, weight=1)
+                for i in range(3):
+                    month_grid_frame.grid_rowconfigure(i, weight=1)
+            
+            # Year picker for yearly filter - Grid-based Calendar Style
+            def open_year_picker(entry_widget, var):
+                """Open year picker with grid-based calendar design"""
+                picker_window = tk.Toplevel(self.root)
+                picker_window.title("Select Year")
+                picker_window.geometry("320x280")
+                picker_window.configure(bg='#ffffff')
+                picker_window.transient(self.root)
+                picker_window.grab_set()
+                
+                # Center the window
+                picker_window.update_idletasks()
+                x = (picker_window.winfo_screenwidth() // 2) - (320 // 2)
+                y = (picker_window.winfo_screenheight() // 2) - (280 // 2)
+                picker_window.geometry(f"320x280+{x}+{y}")
+                
+                # Get current year from entry or use current year
+                current_year_str = var.get()
+                try:
+                    initial_year = int(current_year_str)
+                except:
+                    initial_year = datetime.now().year
+                
+                # Calculate decade range (e.g., 2010-2019)
+                # Find the start of the decade containing the selected year
+                decade_start = (initial_year // 10) * 10
+                # Display years from decade_start-1 to decade_start+10 (12 years total)
+                # This gives us a range like 2009-2020 for decade 2010-2019
+                
+                # Use mutable containers (for closure access)
+                decade_state = {'start': decade_start}
+                selected_state = {'year': initial_year}
+                
+                # Main container with border
+                main_container = tk.Frame(picker_window, bg='#ffffff', relief=tk.SOLID, bd=1)
+                main_container.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+                main_container.config(highlightbackground='#3b82f6', highlightthickness=1)
+                
+                # Decade navigation frame
+                decade_nav_frame = tk.Frame(main_container, bg='#ffffff')
+                decade_nav_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
+                
+                # Previous decade button
+                prev_decade_btn = tk.Button(
+                    decade_nav_frame,
+                    text="<",
+                    font=('Segoe UI', 12, 'bold'),
+                    bg='#ffffff',
+                    fg='#374151',
+                    relief=tk.FLAT,
+                    bd=0,
+                    cursor='hand2',
+                    activebackground='#f3f4f6',
+                    activeforeground='#1f2937',
+                    width=3
+                )
+                prev_decade_btn.pack(side=tk.LEFT)
+                
+                # Decade range label (e.g., "2010-2019")
+                def get_decade_range():
+                    """Get the decade range string"""
+                    start = decade_state['start']
+                    return f"{start}-{start+9}"
+                
+                decade_label = tk.Label(
+                    decade_nav_frame,
+                    text=get_decade_range(),
+                    font=('Segoe UI', 12, 'bold'),
+                    bg='#ffffff',
+                    fg='#1f2937'
+                )
+                decade_label.pack(side=tk.LEFT, expand=True)
+                
+                # Next decade button
+                next_decade_btn = tk.Button(
+                    decade_nav_frame,
+                    text=">",
+                    font=('Segoe UI', 12, 'bold'),
+                    bg='#ffffff',
+                    fg='#374151',
+                    relief=tk.FLAT,
+                    bd=0,
+                    cursor='hand2',
+                    activebackground='#f3f4f6',
+                    activeforeground='#1f2937',
+                    width=3
+                )
+                next_decade_btn.pack(side=tk.LEFT)
+                
+                # Year grid frame
+                year_grid_frame = tk.Frame(main_container, bg='#ffffff')
+                year_grid_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+                
+                # Store year buttons for updating
+                year_buttons = []
+                
+                def get_years_for_decade():
+                    """Get list of years to display (12 years: decade_start-1 to decade_start+10)"""
+                    start = decade_state['start']
+                    return list(range(start - 1, start + 11))
+                
+                def update_decade_display():
+                    """Update decade label and recreate year buttons"""
+                    decade_label.config(text=get_decade_range())
+                    # Clear existing buttons
+                    for btn in year_buttons:
+                        btn.destroy()
+                    year_buttons.clear()
+                    
+                    # Recreate year buttons with new decade
+                    years = get_years_for_decade()
+                    for i, year_value in enumerate(years):
+                        row = i // 4
+                        col = i % 4
+                        
+                        # Determine if this year should be highlighted
+                        is_selected = (year_value == selected_state['year'])
+                        
+                        year_btn = tk.Button(
+                            year_grid_frame,
+                            text=str(year_value),
+                            font=('Segoe UI', 10),
+                            bg='#3b82f6' if is_selected else '#ffffff',
+                            fg='white' if is_selected else '#374151',
+                            relief=tk.SOLID if is_selected else tk.FLAT,
+                            bd=1 if is_selected else 0,
+                            cursor='hand2',
+                            activebackground='#2563eb' if not is_selected else '#3b82f6',
+                            activeforeground='white',
+                            padx=15,
+                            pady=10,
+                            command=lambda y=year_value: select_year(y)
+                        )
+                        year_btn.grid(row=row, column=col, padx=3, pady=3, sticky='nsew')
+                        year_buttons.append(year_btn)
+                
+                def prev_decade():
+                    """Go to previous decade"""
+                    decade_state['start'] -= 10
+                    update_decade_display()
+                
+                def next_decade():
+                    """Go to next decade"""
+                    decade_state['start'] += 10
+                    update_decade_display()
+                
+                def select_year(year_value):
+                    """Select a year"""
+                    year_str = str(year_value)
+                    var.set(year_str)
+                    entry_widget.delete(0, tk.END)
+                    entry_widget.insert(0, year_str)
+                    picker_window.destroy()
+                
+                # Bind decade navigation
+                prev_decade_btn.config(command=prev_decade)
+                next_decade_btn.config(command=next_decade)
+                
+                # Create year buttons in 4x3 grid
+                years = get_years_for_decade()
+                for i, year_value in enumerate(years):
+                    row = i // 4
+                    col = i % 4
+                    
+                    # Determine if this year should be highlighted
+                    is_selected = (year_value == initial_year)
+                    
+                    year_btn = tk.Button(
+                        year_grid_frame,
+                        text=str(year_value),
+                        font=('Segoe UI', 10),
+                        bg='#3b82f6' if is_selected else '#ffffff',
+                        fg='white' if is_selected else '#374151',
+                        relief=tk.SOLID if is_selected else tk.FLAT,
+                        bd=1 if is_selected else 0,
+                        cursor='hand2',
+                        activebackground='#2563eb' if not is_selected else '#3b82f6',
+                        activeforeground='white',
+                        padx=15,
+                        pady=10,
+                        command=lambda y=year_value: select_year(y)
+                    )
+                    year_btn.grid(row=row, column=col, padx=3, pady=3, sticky='nsew')
+                    year_buttons.append(year_btn)
+                
+                # Configure grid weights for even spacing
+                for i in range(4):
+                    year_grid_frame.grid_columnconfigure(i, weight=1)
+                for i in range(3):
+                    year_grid_frame.grid_rowconfigure(i, weight=1)
+            
+            # Calendar button for month picker
+            month_cal_btn = tk.Button(
+                month_input_frame,
+                text="📅",
+                command=lambda: open_month_picker(month_entry, self.filter_month_var),
+                font=('Segoe UI', 12),
+                bg='#3b82f6',
+                fg='white',
+                width=3,
+                relief=tk.FLAT,
+                cursor='hand2',
+                activebackground='#2563eb'
+            )
+            month_cal_btn.pack(side=tk.LEFT, padx=2)
+            
             # Year input frame (initially hidden)
             year_input_frame = tk.Frame(filter_frame, bg='#f5f7fa')
             year_input_frame.pack(side=tk.LEFT, padx=10)
@@ -662,6 +1032,21 @@ class HospitalManagementSystem:
                 bd=1
             )
             year_entry.pack(side=tk.LEFT, padx=5)
+            
+            # Calendar button for year picker
+            year_cal_btn = tk.Button(
+                year_input_frame,
+                text="📅",
+                command=lambda: open_year_picker(year_entry, self.filter_year_var),
+                font=('Segoe UI', 12),
+                bg='#3b82f6',
+                fg='white',
+                width=3,
+                relief=tk.FLAT,
+                cursor='hand2',
+                activebackground='#2563eb'
+            )
+            year_cal_btn.pack(side=tk.LEFT, padx=2)
             
             # Date range input frame (initially hidden)
             date_range_frame = tk.Frame(filter_frame, bg='#f5f7fa')
@@ -1129,24 +1514,192 @@ class HospitalManagementSystem:
             )
             monthly_toggle.pack(side=tk.LEFT, padx=2)
             
-            # Simple chart representation (text-based)
-            chart_canvas = tk.Canvas(appointments_chart_frame, bg='white', height=200, highlightthickness=0)
-            chart_canvas.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
+            # Chart canvas for appointments overview - larger for better visibility
+            chart_canvas = tk.Canvas(appointments_chart_frame, bg='white', height=280, highlightthickness=0)
+            chart_canvas.pack(fill=tk.BOTH, expand=True, padx=25, pady=(0, 25))
             
-            # Draw simple line chart
-            chart_canvas.create_text(200, 100, text="📈 Chart visualization\n(Appointments trend)", 
-                                   font=('Segoe UI', 11), fill='#9ca3af', justify=tk.CENTER)
+            # Store chart mode
+            self.appointments_chart_mode = 'daily'
             
-            # Legend
+            def draw_appointments_chart(mode='daily'):
+                """Draw appointments chart based on mode"""
+                chart_canvas.delete("all")
+                
+                # Get appointments data
+                all_appointments = self.db.get_all_appointments()
+                
+                if not all_appointments:
+                    canvas_width = chart_canvas.winfo_width() or 500
+                    canvas_height = chart_canvas.winfo_height() or 280
+                    chart_canvas.create_text(canvas_width/2, canvas_height/2, text="No appointment data available", 
+                                           font=('Segoe UI', 11), fill='#9ca3af', justify=tk.CENTER)
+                    return
+                
+                # Prepare data based on mode
+                if mode == 'daily':
+                    # Last 7 days
+                    dates = []
+                    for i in range(6, -1, -1):
+                        date = (datetime.now() - timedelta(days=i)).strftime('%Y-%m-%d')
+                        dates.append(date)
+                    
+                    scheduled_data = []
+                    completed_data = []
+                    cancelled_data = []
+                    
+                    for date in dates:
+                        day_appts = [a for a in all_appointments if a.get('appointment_date') == date]
+                        scheduled_data.append(sum(1 for a in day_appts if a.get('status') == 'Scheduled'))
+                        completed_data.append(sum(1 for a in day_appts if a.get('status') == 'Completed'))
+                        cancelled_data.append(sum(1 for a in day_appts if a.get('status') in ['Cancelled', 'No Show']))
+                    
+                    labels = [datetime.strptime(d, '%Y-%m-%d').strftime('%m/%d') for d in dates]
+                else:  # monthly
+                    # Last 6 months
+                    months = []
+                    for i in range(5, -1, -1):
+                        month_date = datetime.now() - timedelta(days=30*i)
+                        month_str = month_date.strftime('%Y-%m')
+                        months.append(month_str)
+                    
+                    scheduled_data = []
+                    completed_data = []
+                    cancelled_data = []
+                    
+                    for month in months:
+                        month_appts = [a for a in all_appointments if a.get('appointment_date', '')[:7] == month]
+                        scheduled_data.append(sum(1 for a in month_appts if a.get('status') == 'Scheduled'))
+                        completed_data.append(sum(1 for a in month_appts if a.get('status') == 'Completed'))
+                        cancelled_data.append(sum(1 for a in month_appts if a.get('status') in ['Cancelled', 'No Show']))
+                    
+                    labels = [datetime.strptime(m + '-01', '%Y-%m-%d').strftime('%b') for m in months]
+                
+                # Calculate max value for scaling
+                max_val = max(max(scheduled_data) if scheduled_data else 0,
+                            max(completed_data) if completed_data else 0,
+                            max(cancelled_data) if cancelled_data else 0, 1)
+                
+                # Get canvas dimensions
+                chart_canvas.update_idletasks()
+                chart_width = chart_canvas.winfo_width() or 500
+                chart_height = chart_canvas.winfo_height() or 280
+                
+                # Chart dimensions with better margins
+                margin_left = 60
+                margin_bottom = 50
+                margin_top = 20
+                margin_right = 30
+                
+                plot_width = chart_width - margin_left - margin_right
+                plot_height = chart_height - margin_top - margin_bottom
+                
+                # Draw axes
+                chart_canvas.create_line(margin_left, margin_top, margin_left, chart_height - margin_bottom, fill='#d1d5db', width=2)
+                chart_canvas.create_line(margin_left, chart_height - margin_bottom, chart_width - margin_right, chart_height - margin_bottom, fill='#d1d5db', width=2)
+                
+                # Draw grid lines and labels
+                num_points = len(labels)
+                if num_points > 0:
+                    # Better spacing - more space between bar groups
+                    group_spacing = plot_width / (num_points + 1)  # Space between groups
+                    bar_group_width = group_spacing * 0.7  # Width of the 3-bar group
+                    bar_width = bar_group_width / 3.5  # Individual bar width
+                    bar_gap = bar_width * 0.15  # Small gap between bars
+                    
+                    for i, label in enumerate(labels):
+                        # Center of bar group
+                        x_center = margin_left + (i + 1) * group_spacing
+                        
+                        # X positions for each bar
+                        x_scheduled = x_center - bar_group_width/2 + bar_width/2
+                        x_completed = x_center
+                        x_cancelled = x_center + bar_group_width/2 - bar_width/2
+                        
+                        # Draw label below bars
+                        chart_canvas.create_text(x_center, chart_height - margin_bottom + 20, text=label, 
+                                                font=('Segoe UI', 9, 'bold'), fill='#374151', anchor='n')
+                        
+                        # Draw bars for each status with better spacing
+                        if scheduled_data[i] > 0:
+                            bar_height = (scheduled_data[i] / max_val) * plot_height
+                            chart_canvas.create_rectangle(
+                                x_scheduled - bar_width/2, chart_height - margin_bottom,
+                                x_scheduled + bar_width/2, chart_height - margin_bottom - bar_height,
+                                fill='#3b82f6', outline='', width=0
+                            )
+                        
+                        if completed_data[i] > 0:
+                            bar_height = (completed_data[i] / max_val) * plot_height
+                            chart_canvas.create_rectangle(
+                                x_completed - bar_width/2, chart_height - margin_bottom,
+                                x_completed + bar_width/2, chart_height - margin_bottom - bar_height,
+                                fill='#10b981', outline='', width=0
+                            )
+                        
+                        if cancelled_data[i] > 0:
+                            bar_height = (cancelled_data[i] / max_val) * plot_height
+                            chart_canvas.create_rectangle(
+                                x_cancelled - bar_width/2, chart_height - margin_bottom,
+                                x_cancelled + bar_width/2, chart_height - margin_bottom - bar_height,
+                                fill='#ec4899', outline='', width=0
+                            )
+                    
+                    # Y-axis labels with grid lines
+                    num_grid_lines = 5
+                    for i in range(num_grid_lines):
+                        y_val = max_val * (i / (num_grid_lines - 1))
+                        y_pos = chart_height - margin_bottom - (plot_height * i / (num_grid_lines - 1))
+                        
+                        # Grid line
+                        chart_canvas.create_line(margin_left, y_pos, chart_width - margin_right, y_pos, 
+                                               fill='#e5e7eb', width=1, dash=(2, 2))
+                        
+                        # Y-axis label
+                        chart_canvas.create_text(margin_left - 10, y_pos, text=str(int(y_val)), 
+                                                font=('Segoe UI', 9), fill='#6b7280', anchor='e')
+            
+            # Draw initial chart after a short delay to ensure canvas is sized
+            def draw_initial_chart():
+                chart_canvas.update_idletasks()
+                draw_appointments_chart('daily')
+            
+            self.root.after(100, draw_initial_chart)
+            
+            # Toggle button handlers
+            def toggle_daily():
+                self.appointments_chart_mode = 'daily'
+                daily_toggle.config(bg='#3b82f6', fg='white', font=('Segoe UI', 9, 'bold'))
+                monthly_toggle.config(bg='#e5e7eb', fg='#6b7280', font=('Segoe UI', 9))
+                chart_canvas.update_idletasks()
+                draw_appointments_chart('daily')
+            
+            def toggle_monthly():
+                self.appointments_chart_mode = 'monthly'
+                monthly_toggle.config(bg='#3b82f6', fg='white', font=('Segoe UI', 9, 'bold'))
+                daily_toggle.config(bg='#e5e7eb', fg='#6b7280', font=('Segoe UI', 9))
+                chart_canvas.update_idletasks()
+                draw_appointments_chart('monthly')
+            
+            daily_toggle.config(command=toggle_daily)
+            monthly_toggle.config(command=toggle_monthly)
+            
+            # Redraw on canvas resize
+            def on_canvas_configure(event):
+                if event.width > 1 and event.height > 1:
+                    draw_appointments_chart(self.appointments_chart_mode)
+            
+            chart_canvas.bind('<Configure>', on_canvas_configure)
+            
+            # Legend with better spacing
             legend_frame = tk.Frame(appointments_chart_frame, bg='white')
-            legend_frame.pack(fill=tk.X, padx=20, pady=(0, 15))
+            legend_frame.pack(fill=tk.X, padx=25, pady=(0, 20))
             
             legend_items = [("Scheduled", "#3b82f6"), ("Completed", "#10b981"), ("Cancelled", "#ec4899")]
             for i, (label, color) in enumerate(legend_items):
                 legend_item = tk.Frame(legend_frame, bg='white')
-                legend_item.pack(side=tk.LEFT, padx=10)
-                tk.Label(legend_item, text="●", font=('Segoe UI', 12), bg='white', fg=color).pack(side=tk.LEFT, padx=(0, 5))
-                tk.Label(legend_item, text=label, font=('Segoe UI', 9), bg='white', fg='#6b7280').pack(side=tk.LEFT)
+                legend_item.pack(side=tk.LEFT, padx=15)
+                tk.Label(legend_item, text="●", font=('Segoe UI', 14), bg='white', fg=color).pack(side=tk.LEFT, padx=(0, 8))
+                tk.Label(legend_item, text=label, font=('Segoe UI', 10, 'bold'), bg='white', fg='#374151').pack(side=tk.LEFT)
             
             # Revenue Insights Chart
             revenue_chart_frame = tk.Frame(left_column, bg='white', relief=tk.FLAT, bd=1)
@@ -1189,28 +1742,109 @@ class HospitalManagementSystem:
                 fg='#1f2937'
             ).pack(pady=(15, 10))
             
-            status_canvas = tk.Canvas(status_chart_frame, bg='white', height=200, highlightthickness=0)
-            status_canvas.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 10))
+            status_canvas = tk.Canvas(status_chart_frame, bg='white', height=250, highlightthickness=0)
+            status_canvas.pack(fill=tk.BOTH, expand=True, padx=25, pady=(0, 15))
             
-            # Draw donut chart representation
-            status_canvas.create_oval(50, 50, 150, 150, outline='#3b82f6', width=20, fill='')
-            status_canvas.create_text(100, 100, text="65.1%", font=('Segoe UI', 16, 'bold'), fill='#1f2937')
+            # Get real appointment status data
+            all_appointments = self.db.get_all_appointments()
+            total_appointments = len(all_appointments) if all_appointments else 0
             
-            # Status legend
+            scheduled_count = sum(1 for a in all_appointments if a.get('status') == 'Scheduled') if all_appointments else 0
+            completed_count = sum(1 for a in all_appointments if a.get('status') == 'Completed') if all_appointments else 0
+            cancelled_count = sum(1 for a in all_appointments if a.get('status') in ['Cancelled', 'No Show']) if all_appointments else 0
+            
+            # Calculate percentages
+            if total_appointments > 0:
+                scheduled_pct = (scheduled_count / total_appointments) * 100
+                completed_pct = (completed_count / total_appointments) * 100
+                cancelled_pct = (cancelled_count / total_appointments) * 100
+            else:
+                scheduled_pct = completed_pct = cancelled_pct = 0
+            
+            def draw_donut_chart():
+                """Draw donut chart with proper sizing"""
+                status_canvas.delete("all")
+                
+                # Get canvas size for proper centering
+                status_canvas.update_idletasks()
+                canvas_width = status_canvas.winfo_width() or 300
+                canvas_height = status_canvas.winfo_height() or 250
+                
+                center_x = canvas_width / 2
+                center_y = canvas_height / 2 - 5  # Slightly above center
+                radius = min(canvas_width, canvas_height) / 4.2  # Responsive size
+                thickness = radius * 0.45  # Proportional thickness
+            
+                if total_appointments > 0:
+                    # Draw donut chart segments
+                    start_angle = -90  # Start at top
+                    
+                    # Scheduled (blue)
+                    if scheduled_pct > 0:
+                        extent = (scheduled_pct / 100) * 360
+                        status_canvas.create_arc(
+                            center_x - radius, center_y - radius,
+                            center_x + radius, center_y + radius,
+                            start=start_angle, extent=extent,
+                            outline='#3b82f6', width=thickness, style='arc'
+                        )
+                        start_angle += extent
+                    
+                    # Completed (purple)
+                    if completed_pct > 0:
+                        extent = (completed_pct / 100) * 360
+                        status_canvas.create_arc(
+                            center_x - radius, center_y - radius,
+                            center_x + radius, center_y + radius,
+                            start=start_angle, extent=extent,
+                            outline='#8b5cf6', width=thickness, style='arc'
+                        )
+                        start_angle += extent
+                    
+                    # Cancelled (pink)
+                    if cancelled_pct > 0:
+                        extent = (cancelled_pct / 100) * 360
+                        status_canvas.create_arc(
+                            center_x - radius, center_y - radius,
+                            center_x + radius, center_y + radius,
+                            start=start_angle, extent=extent,
+                            outline='#ec4899', width=thickness, style='arc'
+                        )
+                    
+                    # Center text with largest percentage
+                    max_pct = max(scheduled_pct, completed_pct, cancelled_pct)
+                    status_canvas.create_text(center_x, center_y, text=f"{max_pct:.1f}%", 
+                                            font=('Segoe UI', 18, 'bold'), fill='#1f2937')
+                else:
+                    # No data
+                    status_canvas.create_text(center_x, center_y, text="No Data", 
+                                            font=('Segoe UI', 12), fill='#9ca3af')
+            
+            # Draw initial chart
+            self.root.after(100, draw_donut_chart)
+            
+            # Redraw on canvas resize
+            def on_status_canvas_configure(event):
+                if event.width > 1 and event.height > 1:
+                    draw_donut_chart()
+            
+            status_canvas.bind('<Configure>', on_status_canvas_configure)
+            
+            # Status legend with real data - better spacing
             status_legend = tk.Frame(status_chart_frame, bg='white')
-            status_legend.pack(fill=tk.X, padx=20, pady=(0, 15))
+            status_legend.pack(fill=tk.X, padx=25, pady=(0, 20))
             
             status_items = [
-                ("Scheduled", "#3b82f6", "68.1%"),
-                ("Completed", "#8b5cf6", "31.4%"),
-                ("Cancelled", "#ec4899", "3.5%")
+                ("Scheduled", "#3b82f6", f"{scheduled_pct:.1f}%", scheduled_count),
+                ("Completed", "#8b5cf6", f"{completed_pct:.1f}%", completed_count),
+                ("Cancelled", "#ec4899", f"{cancelled_pct:.1f}%", cancelled_count)
             ]
-            for label, color, percent in status_items:
+            for label, color, percent, count in status_items:
                 item_frame = tk.Frame(status_legend, bg='white')
-                item_frame.pack(fill=tk.X, pady=5)
-                tk.Label(item_frame, text="●", font=('Segoe UI', 12), bg='white', fg=color).pack(side=tk.LEFT, padx=(0, 8))
-                tk.Label(item_frame, text=label, font=('Segoe UI', 10), bg='white', fg='#374151').pack(side=tk.LEFT)
-                tk.Label(item_frame, text=percent, font=('Segoe UI', 10, 'bold'), bg='white', fg='#6b7280').pack(side=tk.RIGHT)
+                item_frame.pack(fill=tk.X, pady=8, padx=10)
+                tk.Label(item_frame, text="●", font=('Segoe UI', 14), bg='white', fg=color).pack(side=tk.LEFT, padx=(0, 12))
+                tk.Label(item_frame, text=label, font=('Segoe UI', 11), bg='white', fg='#374151').pack(side=tk.LEFT)
+                tk.Label(item_frame, text=f"{percent} ({count})", font=('Segoe UI', 11, 'bold'), bg='white', fg='#6b7280').pack(side=tk.RIGHT)
             
             # Recent Activities (Middle Column)
             activities_frame = tk.Frame(middle_column, bg='white', relief=tk.FLAT, bd=1)
