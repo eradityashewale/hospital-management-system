@@ -462,6 +462,32 @@ class Database:
         """, (date,))
         return [dict(row) for row in self.cursor.fetchall()]
     
+    def get_appointments_by_status(self, status: str) -> List[Dict]:
+        """Get appointments by status"""
+        self.cursor.execute("""
+            SELECT a.*, p.first_name || ' ' || p.last_name as patient_name,
+            d.first_name || ' ' || d.last_name as doctor_name
+            FROM appointments a
+            LEFT JOIN patients p ON a.patient_id = p.patient_id
+            LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE a.status = ?
+            ORDER BY a.appointment_date DESC, a.appointment_time DESC
+        """, (status,))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_appointments_by_date_and_status(self, date: str, status: str) -> List[Dict]:
+        """Get appointments by date and status"""
+        self.cursor.execute("""
+            SELECT a.*, p.first_name || ' ' || p.last_name as patient_name,
+            d.first_name || ' ' || d.last_name as doctor_name
+            FROM appointments a
+            LEFT JOIN patients p ON a.patient_id = p.patient_id
+            LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE a.appointment_date = ? AND a.status = ?
+            ORDER BY a.appointment_time
+        """, (date, status))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
     def get_appointment_by_id(self, appointment_id: str) -> Optional[Dict]:
         """Get appointment by ID"""
         self.cursor.execute("""
@@ -474,6 +500,33 @@ class Database:
         """, (appointment_id,))
         row = self.cursor.fetchone()
         return dict(row) if row else None
+    
+    def update_appointment(self, appointment_id: str, appointment_data: Dict) -> bool:
+        """Update an existing appointment"""
+        log_debug(f"Updating appointment: {appointment_id}")
+        try:
+            self.cursor.execute("""
+                UPDATE appointments SET
+                patient_id = ?, doctor_id = ?, appointment_date = ?,
+                appointment_time = ?, status = ?, notes = ?
+                WHERE appointment_id = ?
+            """, (
+                appointment_data['patient_id'],
+                appointment_data['doctor_id'],
+                appointment_data['appointment_date'],
+                appointment_data['appointment_time'],
+                appointment_data.get('status', 'Scheduled'),
+                appointment_data.get('notes', ''),
+                appointment_id
+            ))
+            self.conn.commit()
+            log_database_operation("UPDATE", "appointments", True, f"Appointment ID: {appointment_id}")
+            log_info(f"Appointment updated successfully: {appointment_id}")
+            return True
+        except Exception as e:
+            log_database_operation("UPDATE", "appointments", False, f"Appointment ID: {appointment_id} - Error: {str(e)}")
+            log_error(f"Error updating appointment: {appointment_id}", e)
+            return False
     
     # Prescription operations
     def add_prescription(self, prescription_data: Dict, items: List[Dict]) -> bool:
