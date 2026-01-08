@@ -442,11 +442,38 @@ class HospitalManagementSystem:
                 calendar_window.transient(self.root)
                 calendar_window.grab_set()
                 
-                # Center the window
+                # Position calendar near the entry widget
                 calendar_window.update_idletasks()
-                x = (calendar_window.winfo_screenwidth() // 2) - (300 // 2)
-                y = (calendar_window.winfo_screenheight() // 2) - (280 // 2)
-                calendar_window.geometry(f"300x280+{x}+{y}")
+                entry_widget.update_idletasks()
+                
+                # Get entry widget position relative to root window
+                entry_x = entry_widget.winfo_rootx()
+                entry_y = entry_widget.winfo_rooty()
+                entry_height = entry_widget.winfo_height()
+                
+                # Calculate position: below the entry widget with small offset
+                window_width = 300
+                window_height = 280
+                offset_x = 0  # Align with left edge of entry
+                offset_y = entry_height + 5  # Small gap below entry
+                
+                x = entry_x + offset_x
+                y = entry_y + offset_y
+                
+                # Ensure window stays on screen
+                screen_width = calendar_window.winfo_screenwidth()
+                screen_height = calendar_window.winfo_screenheight()
+                
+                if x + window_width > screen_width:
+                    x = screen_width - window_width - 10
+                if x < 0:
+                    x = 10
+                if y + window_height > screen_height:
+                    y = entry_y - window_height - 5  # Show above if no space below
+                if y < 0:
+                    y = 10
+                
+                calendar_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
                 
                 # Header
                 header_frame = tk.Frame(calendar_window, bg='#1e40af', height=40)
@@ -722,11 +749,38 @@ class HospitalManagementSystem:
                 picker_window.transient(self.root)
                 picker_window.grab_set()
                 
-                # Center the window
+                # Position picker near the entry widget
                 picker_window.update_idletasks()
-                x = (picker_window.winfo_screenwidth() // 2) - (320 // 2)
-                y = (picker_window.winfo_screenheight() // 2) - (280 // 2)
-                picker_window.geometry(f"320x280+{x}+{y}")
+                entry_widget.update_idletasks()
+                
+                # Get entry widget position relative to root window
+                entry_x = entry_widget.winfo_rootx()
+                entry_y = entry_widget.winfo_rooty()
+                entry_height = entry_widget.winfo_height()
+                
+                # Calculate position: below the entry widget with small offset
+                window_width = 320
+                window_height = 280
+                offset_x = 0  # Align with left edge of entry
+                offset_y = entry_height + 5  # Small gap below entry
+                
+                x = entry_x + offset_x
+                y = entry_y + offset_y
+                
+                # Ensure window stays on screen
+                screen_width = picker_window.winfo_screenwidth()
+                screen_height = picker_window.winfo_screenheight()
+                
+                if x + window_width > screen_width:
+                    x = screen_width - window_width - 10
+                if x < 0:
+                    x = 10
+                if y + window_height > screen_height:
+                    y = entry_y - window_height - 5  # Show above if no space below
+                if y < 0:
+                    y = 10
+                
+                picker_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
                 
                 # Get current month from entry or use current month
                 current_month_str = var.get()
@@ -886,11 +940,38 @@ class HospitalManagementSystem:
                 picker_window.transient(self.root)
                 picker_window.grab_set()
                 
-                # Center the window
+                # Position picker near the entry widget
                 picker_window.update_idletasks()
-                x = (picker_window.winfo_screenwidth() // 2) - (320 // 2)
-                y = (picker_window.winfo_screenheight() // 2) - (280 // 2)
-                picker_window.geometry(f"320x280+{x}+{y}")
+                entry_widget.update_idletasks()
+                
+                # Get entry widget position relative to root window
+                entry_x = entry_widget.winfo_rootx()
+                entry_y = entry_widget.winfo_rooty()
+                entry_height = entry_widget.winfo_height()
+                
+                # Calculate position: below the entry widget with small offset
+                window_width = 320
+                window_height = 280
+                offset_x = 0  # Align with left edge of entry
+                offset_y = entry_height + 5  # Small gap below entry
+                
+                x = entry_x + offset_x
+                y = entry_y + offset_y
+                
+                # Ensure window stays on screen
+                screen_width = picker_window.winfo_screenwidth()
+                screen_height = picker_window.winfo_screenheight()
+                
+                if x + window_width > screen_width:
+                    x = screen_width - window_width - 10
+                if x < 0:
+                    x = 10
+                if y + window_height > screen_height:
+                    y = entry_y - window_height - 5  # Show above if no space below
+                if y < 0:
+                    y = 10
+                
+                picker_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
                 
                 # Get current year from entry or use current year
                 current_year_str = var.get()
@@ -1425,21 +1506,33 @@ class HospitalManagementSystem:
             yearly_btn.config(command=lambda: apply_filter_updated('yearly'))
             date_range_btn.config(command=lambda: apply_filter_updated('daterange'))
             
-            # Apply button for date inputs
-            apply_btn = tk.Button(
-                filter_frame,
-                text="Apply Filter",
-                command=refresh_statistics,
-                font=('Segoe UI', 10, 'bold'),
-                bg='#3b82f6',
-                fg='white',
-                padx=15,
-                pady=8,
-                cursor='hand2',
-                relief=tk.FLAT,
-                activebackground='#2563eb'
-            )
-            apply_btn.pack(side=tk.LEFT, padx=(15, 0))
+            # Add trace callbacks to auto-apply filters when date inputs change
+            def auto_apply_daily(*args):
+                """Auto-apply daily filter when date changes"""
+                if self.current_filter['type'] == 'daily':
+                    refresh_statistics()
+            
+            def auto_apply_monthly(*args):
+                """Auto-apply monthly filter when month changes"""
+                if self.current_filter['type'] == 'monthly':
+                    refresh_statistics()
+            
+            def auto_apply_yearly(*args):
+                """Auto-apply yearly filter when year changes"""
+                if self.current_filter['type'] == 'yearly':
+                    refresh_statistics()
+            
+            def auto_apply_daterange(*args):
+                """Auto-apply date range filter when dates change"""
+                if self.current_filter['type'] == 'daterange':
+                    refresh_statistics()
+            
+            # Set up trace callbacks for auto-apply
+            self.filter_date_var.trace('w', auto_apply_daily)
+            self.filter_month_var.trace('w', auto_apply_monthly)
+            self.filter_year_var.trace('w', auto_apply_yearly)
+            self.filter_from_date_var.trace('w', auto_apply_daterange)
+            self.filter_to_date_var.trace('w', auto_apply_daterange)
             
             # Statistics frame
             stats_frame = tk.Frame(self.content_frame, bg='#f5f7fa')
