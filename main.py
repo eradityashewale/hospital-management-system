@@ -385,8 +385,46 @@ class HospitalManagementSystem:
             # Ensure UI is ready
             self.root.update_idletasks()
             
+            # Create scrollable frame for dashboard
+            # Create a canvas and scrollbar for scrolling
+            canvas = tk.Canvas(self.content_frame, bg='#f5f7fa', highlightthickness=0)
+            scrollbar = tk.Scrollbar(self.content_frame, orient="vertical", command=canvas.yview)
+            scrollable_frame = tk.Frame(canvas, bg='#f5f7fa')
+            
+            # Configure scrollable frame
+            scrollable_frame.bind(
+                "<Configure>",
+                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+            )
+            
+            # Create window in canvas for scrollable frame
+            canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+            
+            # Configure canvas scrolling
+            canvas.configure(yscrollcommand=scrollbar.set)
+            
+            # Pack canvas and scrollbar
+            canvas.pack(side="left", fill="both", expand=True)
+            scrollbar.pack(side="right", fill="y")
+            
+            # Update scroll region when canvas is resized
+            def on_canvas_configure(event):
+                canvas_width = event.width
+                canvas.itemconfig(canvas_window, width=canvas_width)
+                # Update scroll region
+                canvas.update_idletasks()
+                canvas.configure(scrollregion=canvas.bbox("all"))
+            
+            canvas.bind('<Configure>', on_canvas_configure)
+            
+            # Bind mousewheel to canvas
+            def on_mousewheel(event):
+                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            
+            canvas.bind_all("<MouseWheel>", on_mousewheel)
+            
             # Filter frame
-            filter_frame = tk.Frame(self.content_frame, bg='#f5f7fa')
+            filter_frame = tk.Frame(scrollable_frame, bg='#f5f7fa')
             filter_frame.pack(fill=tk.X, padx=25, pady=(10, 20))
             
             # Filter label
@@ -1442,7 +1480,7 @@ class HospitalManagementSystem:
             apply_btn.pack(side=tk.LEFT, padx=(15, 0))
             
             # Statistics frame
-            stats_frame = tk.Frame(self.content_frame, bg='#f5f7fa')
+            stats_frame = tk.Frame(scrollable_frame, bg='#f5f7fa')
             stats_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
             
             try:
@@ -1616,7 +1654,7 @@ class HospitalManagementSystem:
                 feature_label.pack(anchor='e', pady=2)
             
             # Main content area with three columns
-            main_content = tk.Frame(self.content_frame, bg='#f5f7fa')
+            main_content = tk.Frame(scrollable_frame, bg='#f5f7fa')
             main_content.pack(fill=tk.BOTH, expand=True, padx=25, pady=(0, 25))
             
             # Left column (charts)
@@ -2164,6 +2202,10 @@ class HospitalManagementSystem:
             except Exception as e:
                 tk.Label(appointments_list, text="No appointments today", font=('Segoe UI', 10), 
                         bg='white', fg='#9ca3af').pack(pady=10)
+            
+            # Update scroll region after all content is loaded
+            self.root.update_idletasks()
+            canvas.configure(scrollregion=canvas.bbox("all"))
             
             log_info("Dashboard loaded successfully")
         except Exception as e:
