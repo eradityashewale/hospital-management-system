@@ -799,6 +799,88 @@ class Database:
         """)
         return [dict(row) for row in self.cursor.fetchall()]
     
+    def get_bills_by_patient_name(self, patient_name: str) -> List[Dict]:
+        """Get bills by patient name (searches first name and last name)"""
+        self.cursor.execute("""
+            SELECT b.*, p.first_name || ' ' || p.last_name as patient_name
+            FROM billing b
+            LEFT JOIN patients p ON b.patient_id = p.patient_id
+            WHERE p.first_name LIKE ? OR p.last_name LIKE ? 
+            OR (p.first_name || ' ' || p.last_name) LIKE ?
+            ORDER BY b.bill_date DESC
+        """, (f'%{patient_name}%', f'%{patient_name}%', f'%{patient_name}%'))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_bills_by_date(self, date: str) -> List[Dict]:
+        """Get bills by date"""
+        self.cursor.execute("""
+            SELECT b.*, p.first_name || ' ' || p.last_name as patient_name
+            FROM billing b
+            LEFT JOIN patients p ON b.patient_id = p.patient_id
+            WHERE b.bill_date = ?
+            ORDER BY b.bill_date DESC
+        """, (date,))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_bills_by_status(self, status: str) -> List[Dict]:
+        """Get bills by payment status"""
+        self.cursor.execute("""
+            SELECT b.*, p.first_name || ' ' || p.last_name as patient_name
+            FROM billing b
+            LEFT JOIN patients p ON b.patient_id = p.patient_id
+            WHERE b.payment_status = ?
+            ORDER BY b.bill_date DESC
+        """, (status,))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_bills_by_patient_name_and_date(self, patient_name: str, date: str) -> List[Dict]:
+        """Get bills by patient name and date"""
+        self.cursor.execute("""
+            SELECT b.*, p.first_name || ' ' || p.last_name as patient_name
+            FROM billing b
+            LEFT JOIN patients p ON b.patient_id = p.patient_id
+            WHERE (p.first_name LIKE ? OR p.last_name LIKE ? 
+            OR (p.first_name || ' ' || p.last_name) LIKE ?) AND b.bill_date = ?
+            ORDER BY b.bill_date DESC
+        """, (f'%{patient_name}%', f'%{patient_name}%', f'%{patient_name}%', date))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_bills_by_patient_name_and_status(self, patient_name: str, status: str) -> List[Dict]:
+        """Get bills by patient name and status"""
+        self.cursor.execute("""
+            SELECT b.*, p.first_name || ' ' || p.last_name as patient_name
+            FROM billing b
+            LEFT JOIN patients p ON b.patient_id = p.patient_id
+            WHERE (p.first_name LIKE ? OR p.last_name LIKE ? 
+            OR (p.first_name || ' ' || p.last_name) LIKE ?) AND b.payment_status = ?
+            ORDER BY b.bill_date DESC
+        """, (f'%{patient_name}%', f'%{patient_name}%', f'%{patient_name}%', status))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_bills_by_date_and_status(self, date: str, status: str) -> List[Dict]:
+        """Get bills by date and status"""
+        self.cursor.execute("""
+            SELECT b.*, p.first_name || ' ' || p.last_name as patient_name
+            FROM billing b
+            LEFT JOIN patients p ON b.patient_id = p.patient_id
+            WHERE b.bill_date = ? AND b.payment_status = ?
+            ORDER BY b.bill_date DESC
+        """, (date, status))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_bills_by_patient_name_date_and_status(self, patient_name: str, date: str, status: str) -> List[Dict]:
+        """Get bills by patient name, date and status"""
+        self.cursor.execute("""
+            SELECT b.*, p.first_name || ' ' || p.last_name as patient_name
+            FROM billing b
+            LEFT JOIN patients p ON b.patient_id = p.patient_id
+            WHERE (p.first_name LIKE ? OR p.last_name LIKE ? 
+            OR (p.first_name || ' ' || p.last_name) LIKE ?) 
+            AND b.bill_date = ? AND b.payment_status = ?
+            ORDER BY b.bill_date DESC
+        """, (f'%{patient_name}%', f'%{patient_name}%', f'%{patient_name}%', date, status))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
     def get_bill_by_id(self, bill_id: str) -> Optional[Dict]:
         """Get bill by ID"""
         self.cursor.execute("""
