@@ -4,14 +4,48 @@ Provides detailed logging for debugging and monitoring
 """
 import logging
 import os
+import sys
 from datetime import datetime
 
-# Create logs directory if it doesn't exist
-if not os.path.exists('logs'):
-    os.makedirs('logs')
+# Determine the base directory for logs
+# If running from Program Files (installed), use AppData
+# Otherwise, use the current directory (development mode)
+def get_app_data_dir():
+    """Get the application data directory for logs and database"""
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable (PyInstaller)
+        # Check if we're in Program Files
+        exe_dir = os.path.dirname(sys.executable)
+        if 'Program Files' in exe_dir or 'Program Files (x86)' in exe_dir:
+            # Use AppData for installed applications
+            appdata = os.getenv('APPDATA', os.path.expanduser('~'))
+            app_dir = os.path.join(appdata, 'Hospital Management System')
+            if not os.path.exists(app_dir):
+                os.makedirs(app_dir)
+            return app_dir
+        else:
+            # Use executable directory if not in Program Files
+            return exe_dir
+    else:
+        # Running from source (development mode)
+        return os.path.dirname(os.path.abspath(__file__))
+
+# Get application data directory
+app_data_dir = get_app_data_dir()
+
+# Create logs directory in the appropriate location
+logs_dir = os.path.join(app_data_dir, 'logs')
+if not os.path.exists(logs_dir):
+    try:
+        os.makedirs(logs_dir)
+    except OSError:
+        # Fallback to current directory if AppData fails
+        logs_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+        if not os.path.exists(logs_dir):
+            os.makedirs(logs_dir)
 
 # Configure logging
-log_filename = f"logs/hospital_system_{datetime.now().strftime('%Y%m%d')}.log"
+log_filename = os.path.join(logs_dir, f"hospital_system_{datetime.now().strftime('%Y%m%d')}.log")
 
 logging.basicConfig(
     level=logging.DEBUG,

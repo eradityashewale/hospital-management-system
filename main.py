@@ -8,6 +8,7 @@ from database import Database
 from logger import log_button_click, log_navigation, log_error, log_info, log_debug, log_warning
 from datetime import datetime, timedelta
 import sys
+import os
 
 # Import modules
 from modules.patient_module import PatientModule
@@ -29,6 +30,9 @@ class HospitalManagementSystem:
         self.root.geometry("1400x800")
         # Modern gradient-like background
         self.root.configure(bg='#f5f7fa')
+        
+        # Set window icon for branding
+        self.set_window_icon()
         
         log_info("=" * 60)
         log_info("Hospital Management System Starting")
@@ -79,6 +83,101 @@ class HospitalManagementSystem:
         self.root.update()
         
         log_info("Application startup complete - buttons ready immediately")
+    
+    def get_logo_path(self):
+        """Get the path to the logo file (PNG or ICO)"""
+        try:
+            # Determine base path
+            if getattr(sys, 'frozen', False):
+                base_path = sys._MEIPASS if hasattr(sys, '_MEIPASS') else os.path.dirname(sys.executable)
+            else:
+                base_path = os.path.dirname(os.path.abspath(__file__))
+            
+            # Try different logo file names in order of preference
+            possible_logos = [
+                'logo.png',
+                'hospital_logo.png',
+                'icon.png',
+                'icon.ico',
+                'logo.ico'
+            ]
+            
+            for logo_name in possible_logos:
+                logo_path = os.path.join(base_path, logo_name)
+                if os.path.exists(logo_path):
+                    return logo_path
+                # Also try in project root (for development)
+                project_root = os.path.dirname(os.path.abspath(__file__))
+                logo_path = os.path.join(project_root, logo_name)
+                if os.path.exists(logo_path):
+                    return logo_path
+            
+            return None
+        except Exception as e:
+            log_debug(f"Error getting logo path: {e}")
+            return None
+    
+    def load_logo_image(self, size=(60, 60)):
+        """Load logo image for display in UI - returns PhotoImage or None"""
+        try:
+            logo_path = self.get_logo_path()
+            if not logo_path:
+                return None
+            
+            from PIL import Image, ImageTk
+            img = Image.open(logo_path)
+            
+            # Convert RGBA to RGB if needed
+            if img.mode == 'RGBA':
+                bg = Image.new('RGB', img.size, (255, 255, 255))
+                bg.paste(img, mask=img.split()[3])
+                img = bg
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+            
+            # Resize to requested size
+            img = img.resize(size, Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS)
+            logo_image = ImageTk.PhotoImage(img)
+            log_debug(f"Loaded logo image: {logo_path} at size {size}")
+            return logo_image
+        except ImportError:
+            log_debug("PIL/Pillow not available - using text logo")
+            return None
+        except Exception as e:
+            log_debug(f"Could not load logo image: {e}")
+            return None
+    
+    def set_window_icon(self):
+        """Set the window icon for branding - supports PNG and ICO"""
+        try:
+            icon_path = self.get_logo_path()
+            
+            if icon_path and os.path.exists(icon_path):
+                # If it's a PNG, convert to ICO for window icon
+                if icon_path.lower().endswith('.png'):
+                    try:
+                        from PIL import Image
+                        img = Image.open(icon_path)
+                        temp_ico = os.path.join(os.path.dirname(icon_path), 'temp_icon.ico')
+                        # Create ICO with multiple sizes
+                        sizes = [(256, 256), (128, 128), (64, 64), (32, 32), (16, 16)]
+                        images = [img.resize(size, Image.Resampling.LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS) for size in sizes]
+                        images[0].save(temp_ico, format='ICO', sizes=[(s[0], s[1]) for s in sizes])
+                        self.root.iconbitmap(temp_ico)
+                        log_info(f"Window icon set from PNG: {icon_path}")
+                        # Clean up temp file after a delay
+                        self.root.after(1000, lambda: os.remove(temp_ico) if os.path.exists(temp_ico) else None)
+                    except Exception as e:
+                        log_debug(f"Could not convert PNG to ICO for window icon: {e}")
+                else:
+                    # It's already an ICO file
+                    self.root.iconbitmap(icon_path)
+                    log_info(f"Window icon set: {icon_path}")
+            else:
+                log_debug("Icon file not found - using default icon")
+        except Exception as e:
+            log_error("Failed to set window icon", e)
+            # Don't fail the application if icon can't be set
     
     def _load_dashboard_after_startup(self):
         """Load dashboard after UI is fully initialized"""
@@ -169,16 +268,27 @@ class HospitalManagementSystem:
         logo_title_frame = tk.Frame(logo_title_container, bg='#1a237e')
         logo_title_frame.pack(side=tk.TOP, anchor='w')
         
-        # Logo icon (medical cross)
-        logo_icon_label = tk.Label(
-            logo_title_frame,
-            text="╔═╗\n║╬║\n╚═╝",
-            font=('Courier', 8, 'bold'),
-            bg='#1a237e',
-            fg='#60a5fa',
-            justify=tk.LEFT
-        )
-        logo_icon_label.pack(side=tk.LEFT, padx=(0, 8))
+        # Logo icon - try to load actual logo image, fallback to text
+        logo_image = self.load_logo_image(size=(40, 40))
+        if logo_image:
+            logo_icon_label = tk.Label(
+                logo_title_frame,
+                image=logo_image,
+                bg='#1a237e'
+            )
+            logo_icon_label.image = logo_image  # Keep a reference
+            logo_icon_label.pack(side=tk.LEFT, padx=(0, 8))
+        else:
+            # Fallback to text logo
+            logo_icon_label = tk.Label(
+                logo_title_frame,
+                text="╔═╗\n║╬║\n╚═╝",
+                font=('Courier', 8, 'bold'),
+                bg='#1a237e',
+                fg='#60a5fa',
+                justify=tk.LEFT
+            )
+            logo_icon_label.pack(side=tk.LEFT, padx=(0, 8))
         
         # Product name
         title_label = tk.Label(
@@ -1576,20 +1686,36 @@ class HospitalManagementSystem:
             logo_info_frame = tk.Frame(branding_inner, bg='#ffffff')
             logo_info_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
             
-            # Logo representation
-            logo_frame = tk.Frame(logo_info_frame, bg='#1e3a8a', relief=tk.FLAT)
-            logo_frame.pack(side=tk.LEFT, padx=(0, 20))
+            # Logo representation - try to load actual logo image, fallback to text
+            # Create a frame with blue background to match original design
+            logo_bg_frame = tk.Frame(logo_info_frame, bg='#1e3a8a', relief=tk.FLAT)
+            logo_bg_frame.pack(side=tk.LEFT, padx=(0, 20))
             
-            logo_icon = tk.Label(
-                logo_frame,
-                text="╔═══╗\n║ ╬ ║\n╚═══╝",
-                font=('Courier', 12, 'bold'),
-                bg='#1e3a8a',
-                fg='#60a5fa',
-                padx=15,
-                pady=10
-            )
-            logo_icon.pack()
+            # Try to load actual logo image
+            dashboard_logo_image = self.load_logo_image(size=(80, 80))
+            if dashboard_logo_image:
+                # Display actual logo image on blue background
+                logo_icon = tk.Label(
+                    logo_bg_frame,
+                    image=dashboard_logo_image,
+                    bg='#1e3a8a'
+                )
+                logo_icon.image = dashboard_logo_image  # Keep a reference
+                logo_icon.pack(padx=15, pady=15)
+                log_debug("Dashboard logo displayed from image file")
+            else:
+                # Fallback to styled text logo on blue background
+                logo_icon = tk.Label(
+                    logo_bg_frame,
+                    text="╔═══╗\n║ ╬ ║\n╚═══╝",
+                    font=('Courier', 12, 'bold'),
+                    bg='#1e3a8a',
+                    fg='#60a5fa',
+                    padx=15,
+                    pady=10
+                )
+                logo_icon.pack()
+                log_debug("Dashboard logo displayed as text (image not found)")
             
             # Product and Company Info
             product_info = tk.Frame(logo_info_frame, bg='#ffffff')

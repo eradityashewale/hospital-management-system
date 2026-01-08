@@ -3,9 +3,38 @@ Database module for Hospital Management System
 Handles all database operations using SQLite
 """
 import sqlite3
+import os
+import sys
 from datetime import datetime
 from typing import List, Dict, Optional
 from logger import log_info, log_error, log_debug, log_database_operation, log_warning
+
+
+def get_app_data_dir():
+    """Get the application data directory for logs and database"""
+    if getattr(sys, 'frozen', False):
+        # Running as compiled executable (PyInstaller)
+        # Check if we're in Program Files
+        exe_dir = os.path.dirname(sys.executable)
+        if 'Program Files' in exe_dir or 'Program Files (x86)' in exe_dir:
+            # Use AppData for installed applications
+            appdata = os.getenv('APPDATA', os.path.expanduser('~'))
+            app_dir = os.path.join(appdata, 'Hospital Management System')
+            if not os.path.exists(app_dir):
+                try:
+                    os.makedirs(app_dir)
+                except OSError:
+                    # If AppData fails, try user's home directory
+                    app_dir = os.path.join(os.path.expanduser('~'), 'Hospital Management System')
+                    if not os.path.exists(app_dir):
+                        os.makedirs(app_dir)
+            return app_dir
+        else:
+            # Use executable directory if not in Program Files
+            return exe_dir
+    else:
+        # Running from source (development mode)
+        return os.path.dirname(os.path.abspath(__file__))
 
 
 class Database:
@@ -13,9 +42,13 @@ class Database:
     
     def __init__(self, db_name: str = "hospital.db"):
         """Initialize database connection"""
-        self.db_name = db_name
+        # Get the appropriate directory for the database
+        app_data_dir = get_app_data_dir()
+        # Use full path for database file
+        self.db_name = os.path.join(app_data_dir, db_name)
         self.conn: Optional[sqlite3.Connection] = None
         self.cursor: Optional[sqlite3.Cursor] = None
+        log_info(f"Database location: {self.db_name}")
         self.init_database()
     
     def connect(self) -> None:
