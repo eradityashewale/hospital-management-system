@@ -25,7 +25,7 @@ class HospitalManagementSystem:
         self.root = root
         self.authenticated_user = authenticated_user
         self.logout_callback = logout_callback
-        self.root.title("Hospital Management System")
+        self.root.title("MediFlow - Hospital Management System")
         self.root.geometry("1400x800")
         # Modern gradient-like background
         self.root.configure(bg='#f5f7fa')
@@ -161,15 +161,44 @@ class HospitalManagementSystem:
         menu_frame.pack(fill=tk.X, padx=0, pady=0)
         menu_frame.pack_propagate(False)
         
-        # Title with modern font - reduced size to make room for all buttons
+        # Logo and product name container
+        logo_title_container = tk.Frame(menu_frame, bg='#1a237e')
+        logo_title_container.pack(side=tk.LEFT, padx=15, pady=10)
+        
+        # Top row - Logo and Product name
+        logo_title_frame = tk.Frame(logo_title_container, bg='#1a237e')
+        logo_title_frame.pack(side=tk.TOP, anchor='w')
+        
+        # Logo icon (medical cross)
+        logo_icon_label = tk.Label(
+            logo_title_frame,
+            text="╔═╗\n║╬║\n╚═╝",
+            font=('Courier', 8, 'bold'),
+            bg='#1a237e',
+            fg='#60a5fa',
+            justify=tk.LEFT
+        )
+        logo_icon_label.pack(side=tk.LEFT, padx=(0, 8))
+        
+        # Product name
         title_label = tk.Label(
-            menu_frame,
-            text="🏥 Hospital Management System",
+            logo_title_frame,
+            text="MediFlow",
             font=('Segoe UI', 18, 'bold'),
             bg='#1a237e',
             fg='white'
         )
-        title_label.pack(side=tk.LEFT, padx=15, pady=20)
+        title_label.pack(side=tk.LEFT)
+        
+        # Bottom row - Company name
+        company_label = tk.Label(
+            logo_title_container,
+            text="by Nexvora Solutions",
+            font=('Segoe UI', 8, 'italic'),
+            bg='#1a237e',
+            fg='#93c5fd'
+        )
+        company_label.pack(side=tk.TOP, anchor='w', padx=(30, 0))
         
         # Navigation buttons - place in the middle area with proper spacing
         nav_frame = tk.Frame(menu_frame, bg='#1a237e')
@@ -1497,6 +1526,94 @@ class HospitalManagementSystem:
                 )
                 value_label.pack(pady=(0, 20))
                 self.stat_value_labels.append(value_label)  # Store reference
+            
+            # Company Branding Section
+            branding_frame = tk.Frame(stats_frame, bg='#ffffff', relief=tk.FLAT, bd=1, highlightbackground='#e5e7eb', highlightthickness=1)
+            branding_frame.pack(fill=tk.X, pady=(0, 20))
+            
+            branding_inner = tk.Frame(branding_frame, bg='#ffffff')
+            branding_inner.pack(fill=tk.X, padx=25, pady=20)
+            
+            # Left side - Logo and Product Info
+            logo_info_frame = tk.Frame(branding_inner, bg='#ffffff')
+            logo_info_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            
+            # Logo representation
+            logo_frame = tk.Frame(logo_info_frame, bg='#1e3a8a', relief=tk.FLAT)
+            logo_frame.pack(side=tk.LEFT, padx=(0, 20))
+            
+            logo_icon = tk.Label(
+                logo_frame,
+                text="╔═══╗\n║ ╬ ║\n╚═══╝",
+                font=('Courier', 12, 'bold'),
+                bg='#1e3a8a',
+                fg='#60a5fa',
+                padx=15,
+                pady=10
+            )
+            logo_icon.pack()
+            
+            # Product and Company Info
+            product_info = tk.Frame(logo_info_frame, bg='#ffffff')
+            product_info.pack(side=tk.LEFT, fill=tk.X, expand=True)
+            
+            product_name_label = tk.Label(
+                product_info,
+                text="MediFlow",
+                font=('Segoe UI', 22, 'bold'),
+                bg='#ffffff',
+                fg='#1e3a8a'
+            )
+            product_name_label.pack(anchor='w', pady=(0, 5))
+            
+            tagline_label = tk.Label(
+                product_info,
+                text="Streamlining Healthcare Management",
+                font=('Segoe UI', 12),
+                bg='#ffffff',
+                fg='#6b7280'
+            )
+            tagline_label.pack(anchor='w', pady=(0, 8))
+            
+            company_label = tk.Label(
+                product_info,
+                text="Powered by Nexvora Solutions",
+                font=('Segoe UI', 10, 'italic'),
+                bg='#ffffff',
+                fg='#6366f1'
+            )
+            company_label.pack(anchor='w')
+            
+            # Right side - Marketing Features
+            features_frame = tk.Frame(branding_inner, bg='#ffffff')
+            features_frame.pack(side=tk.RIGHT, padx=(20, 0))
+            
+            features_title = tk.Label(
+                features_frame,
+                text="Key Features",
+                font=('Segoe UI', 12, 'bold'),
+                bg='#ffffff',
+                fg='#1e3a8a'
+            )
+            features_title.pack(anchor='e', pady=(0, 8))
+            
+            features_list = [
+                "✓ Comprehensive Patient Management",
+                "✓ Efficient Appointment Scheduling",
+                "✓ Digital Prescription System",
+                "✓ Automated Billing & Reports"
+            ]
+            
+            for feature in features_list:
+                feature_label = tk.Label(
+                    features_frame,
+                    text=feature,
+                    font=('Segoe UI', 9),
+                    bg='#ffffff',
+                    fg='#374151',
+                    anchor='e'
+                )
+                feature_label.pack(anchor='e', pady=2)
             
             # Main content area with three columns
             main_content = tk.Frame(self.content_frame, bg='#f5f7fa')

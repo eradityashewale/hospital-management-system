@@ -25,11 +25,11 @@ class LoginWindow:
         self.authenticated_user = None
         
         # Configure window
-        self.root.title("Hospital Management System - Login")
-        self.root.geometry("450x600")
+        self.root.title("MediFlow - Login")
+        self.root.geometry("450x650")
         self.root.configure(bg='#f5f7fa')
         self.root.resizable(False, False)
-        self.root.minsize(450, 600)
+        self.root.minsize(450, 650)
         
         # Create UI first
         self.create_login_ui()
@@ -81,27 +81,55 @@ class LoginWindow:
         
         # Header
         header_frame = tk.Frame(main_frame, bg='#f5f7fa')
-        header_frame.pack(fill=tk.X, pady=(0, 30))
+        header_frame.pack(fill=tk.X, pady=(0, 20))
         
-        # Hospital icon/emoji
-        icon_label = tk.Label(
-            header_frame,
-            text="🏥",
-            font=('Segoe UI', 48),
-            bg='#f5f7fa',
-            fg='#1a237e'
-        )
-        icon_label.pack(pady=(0, 10))
+        # Company logo area with gradient effect simulation
+        logo_frame = tk.Frame(header_frame, bg='#1e3a8a', relief=tk.FLAT, bd=0)
+        logo_frame.pack(fill=tk.X, pady=(0, 15), padx=0)
         
-        # Title
-        title_label = tk.Label(
-            header_frame,
-            text="Hospital Management System",
-            font=('Segoe UI', 20, 'bold'),
-            bg='#f5f7fa',
-            fg='#1a237e'
+        # Logo icon with medical cross and flow design
+        logo_container = tk.Frame(logo_frame, bg='#1e3a8a')
+        logo_container.pack(pady=15)
+        
+        # Medical cross icon with flow lines (using Unicode)
+        logo_icon = tk.Label(
+            logo_container,
+            text="╔═══╗\n║ ╬ ║\n╚═══╝",
+            font=('Courier', 16, 'bold'),
+            bg='#1e3a8a',
+            fg='#60a5fa'
         )
-        title_label.pack()
+        logo_icon.pack()
+        
+        # Product name with gradient effect simulation
+        product_label = tk.Label(
+            logo_container,
+            text="MediFlow",
+            font=('Segoe UI', 28, 'bold'),
+            bg='#1e3a8a',
+            fg='white'
+        )
+        product_label.pack(pady=(5, 0))
+        
+        # Tagline
+        tagline_label = tk.Label(
+            logo_container,
+            text="HOSPITAL MANAGEMENT SYSTEM",
+            font=('Segoe UI', 8, 'bold'),
+            bg='#1e3a8a',
+            fg='#93c5fd'
+        )
+        tagline_label.pack(pady=(2, 0))
+        
+        # Company name
+        company_label = tk.Label(
+            header_frame,
+            text="Powered by Nexvora Solutions",
+            font=('Segoe UI', 10, 'italic'),
+            bg='#f5f7fa',
+            fg='#6366f1'
+        )
+        company_label.pack(pady=(10, 5))
         
         # Subtitle
         subtitle_label = tk.Label(
@@ -111,7 +139,7 @@ class LoginWindow:
             bg='#f5f7fa',
             fg='#6b7280'
         )
-        subtitle_label.pack(pady=(5, 0))
+        subtitle_label.pack(pady=(0, 10))
         
         # Login form container - ensure it's visible
         form_frame = tk.Frame(main_frame, bg='white', relief=tk.FLAT, bd=1, highlightbackground='#e5e7eb', highlightthickness=1)
