@@ -640,7 +640,7 @@ class AppointmentModule:
         """Appointment form dialog"""
         dialog = tk.Toplevel(self.parent)
         dialog.title("Schedule Appointment" if not appointment else "Edit Appointment")
-        dialog.geometry("550x550")  # Increased height to ensure buttons are visible
+        dialog.geometry("550x600")  # Increased height to accommodate status field
         dialog.configure(bg='#f5f7fa')
         dialog.transient(self.parent)
         
@@ -1273,6 +1273,47 @@ class AppointmentModule:
             notes_text.insert('1.0', appointment.get('notes', ''))
         notes_text.pack(fill=tk.X, pady=5)
         
+        # Status dropdown (only shown when editing)
+        status_var = tk.StringVar()
+        status_combo = None  # Initialize variable
+        if appointment:
+            tk.Label(fields_frame, text="Status *:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
+            # Set current status
+            current_status = appointment.get('status', 'Scheduled')
+            status_var.set(current_status)
+            
+            # Create a frame for the status selector
+            status_selector_frame = tk.Frame(fields_frame, bg='#f5f7fa')
+            status_selector_frame.pack(fill=tk.X, pady=5)
+            
+            # Use Menubutton for more reliable dropdown behavior
+            status_menu_btn = tk.Menubutton(
+                status_selector_frame,
+                textvariable=status_var,
+                font=('Arial', 10),
+                width=35,
+                relief=tk.SOLID,
+                borderwidth=1,
+                bg='white',
+                activebackground='#e5e7eb',
+                anchor='w'
+            )
+            status_menu_btn.pack(fill=tk.X, expand=True)
+            
+            # Create the menu
+            status_menu = tk.Menu(status_menu_btn, tearoff=0)
+            status_menu_btn.config(menu=status_menu)
+            
+            # Add menu items
+            for status_option in ["Scheduled", "Completed", "Cancelled"]:
+                status_menu.add_command(
+                    label=status_option,
+                    command=lambda s=status_option: status_var.set(s)
+                )
+        else:
+            # For new appointments, status is always 'Scheduled'
+            status_var.set('Scheduled')
+        
         # Populate patient and doctor fields if editing
         if appointment:
             # Set patient
@@ -1340,13 +1381,13 @@ class AppointmentModule:
             
             if is_edit:
                 # Update existing appointment
-                # Preserve the status if it exists
-                data['status'] = appointment.get('status', 'Scheduled')
+                # Use status from dropdown
+                data['status'] = status_var.get()
                 success = self.db.update_appointment(appointment_id, data)
                 success_message = "Appointment updated successfully!"
             else:
                 # Add new appointment
-                data['status'] = 'Scheduled'
+                data['status'] = status_var.get()  # Always 'Scheduled' for new appointments
                 success = self.db.add_appointment(data)
                 success_message = "Appointment scheduled successfully!"
             
