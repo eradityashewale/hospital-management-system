@@ -18,7 +18,7 @@ class PrescriptionModule:
         
         self.create_ui()
         # Defer refresh to make UI appear faster
-        self.parent.after(10, self.refresh_list)
+        self.parent.after(10, self.apply_filters)
     
     def create_ui(self):
         """Create user interface"""
@@ -36,15 +36,296 @@ class PrescriptionModule:
         top_frame = tk.Frame(self.parent, bg='#f5f7fa')
         top_frame.pack(fill=tk.X, padx=25, pady=15)
         
-        # Search by patient
-        search_frame = tk.Frame(top_frame, bg='#f5f7fa')
-        search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        # Filter frame
+        filter_frame = tk.Frame(top_frame, bg='#f5f7fa')
+        filter_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        tk.Label(search_frame, text="Search by Patient ID:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=5)
+        # Search by patient name
+        tk.Label(filter_frame, text="Search by Patient Name:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=5)
         self.search_var = tk.StringVar()
-        self.search_var.trace('w', lambda *args: self.search_prescriptions())
-        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 10), width=20, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
+        self.search_var.trace('w', lambda *args: self.apply_filters())
+        search_entry = tk.Entry(filter_frame, textvariable=self.search_var, font=('Segoe UI', 10), width=20, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
         search_entry.pack(side=tk.LEFT, padx=5)
+        
+        # Date filter with calendar button
+        tk.Label(filter_frame, text="Filter by Date:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=(15, 5))
+        date_filter_frame = tk.Frame(filter_frame, bg='#f5f7fa')
+        date_filter_frame.pack(side=tk.LEFT, padx=5)
+        self.date_var = tk.StringVar(value="")
+        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_var, font=('Segoe UI', 10), width=15, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
+        date_entry.pack(side=tk.LEFT)
+        # Auto-filter when date changes
+        self.date_var.trace('w', lambda *args: self.apply_filters())
+        
+        def open_calendar_for_filter():
+            """Open calendar for date filter"""
+            calendar_window = tk.Toplevel(self.parent)
+            calendar_window.title("Select Date")
+            calendar_window.geometry("300x280")
+            calendar_window.configure(bg='#ffffff')
+            calendar_window.transient(self.parent)
+            calendar_window.grab_set()
+            
+            # Position calendar below the date filter button
+            calendar_window.update_idletasks()
+            # Get the position of the date filter frame
+            date_filter_frame.update_idletasks()
+            root_x = self.parent.winfo_rootx()
+            root_y = self.parent.winfo_rooty()
+            frame_x = date_filter_frame.winfo_x()
+            frame_y = date_filter_frame.winfo_y()
+            frame_width = date_filter_frame.winfo_width()
+            frame_height = date_filter_frame.winfo_height()
+            
+            # Position below the date filter frame
+            x = root_x + frame_x
+            y = root_y + frame_y + frame_height + 5  # 5 pixels below
+            
+            # Make sure calendar doesn't go off screen
+            screen_width = calendar_window.winfo_screenwidth()
+            screen_height = calendar_window.winfo_screenheight()
+            if x + 300 > screen_width:
+                x = screen_width - 300 - 10
+            if y + 280 > screen_height:
+                y = root_y + frame_y - 280 - 5  # Show above if no space below
+            
+            calendar_window.geometry(f"300x280+{x}+{y}")
+            
+            # Header
+            header_frame = tk.Frame(calendar_window, bg='#1e40af', height=40)
+            header_frame.pack(fill=tk.X)
+            header_frame.pack_propagate(False)
+            
+            tk.Label(
+                header_frame,
+                text="Select Date",
+                font=('Segoe UI', 12, 'bold'),
+                bg='#1e40af',
+                fg='white'
+            ).pack(pady=10)
+            
+            # Calendar frame
+            cal_frame = tk.Frame(calendar_window, bg='#ffffff')
+            cal_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+            
+            # Get current date from entry or use today
+            current_date_str = self.date_var.get()
+            try:
+                current_date = datetime.strptime(current_date_str, '%Y-%m-%d')
+            except:
+                current_date = datetime.now()
+            
+            # Variables for month and year
+            month_var = tk.IntVar(value=current_date.month)
+            year_var = tk.IntVar(value=current_date.year)
+            
+            # Month and year navigation
+            nav_frame = tk.Frame(cal_frame, bg='#ffffff')
+            nav_frame.pack(fill=tk.X, pady=(0, 10))
+            
+            def update_calendar():
+                """Update calendar display"""
+                # Clear existing calendar
+                for widget in cal_days_frame.winfo_children():
+                    widget.destroy()
+                
+                month = month_var.get()
+                year = year_var.get()
+                
+                # Update month/year label
+                month_names = ['January', 'February', 'March', 'April', 'May', 'June',
+                             'July', 'August', 'September', 'October', 'November', 'December']
+                month_label.config(text=f"{month_names[month-1]} {year}")
+                
+                # Get first day of month and number of days
+                first_day = datetime(year, month, 1)
+                first_weekday = first_day.weekday()  # 0 = Monday, 6 = Sunday
+                
+                # Adjust to Sunday = 0
+                first_weekday = (first_weekday + 1) % 7
+                
+                # Get number of days in month
+                if month == 12:
+                    next_month = datetime(year + 1, 1, 1)
+                else:
+                    next_month = datetime(year, month + 1, 1)
+                days_in_month = (next_month - first_day).days
+                
+                # Day labels
+                day_labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+                for i, day in enumerate(day_labels):
+                    label = tk.Label(
+                        cal_days_frame,
+                        text=day,
+                        font=('Segoe UI', 9, 'bold'),
+                        bg='#f3f4f6',
+                        fg='#374151',
+                        width=4
+                    )
+                    label.grid(row=0, column=i, padx=1, pady=1)
+                
+                # Fill empty cells before first day
+                for i in range(first_weekday):
+                    empty = tk.Label(cal_days_frame, text="", bg='#ffffff', width=4)
+                    empty.grid(row=1, column=i, padx=1, pady=1)
+                
+                # Fill days
+                row = 1
+                col = first_weekday
+                for day in range(1, days_in_month + 1):
+                    day_str = str(day)
+                    day_btn = tk.Button(
+                        cal_days_frame,
+                        text=day_str,
+                        font=('Segoe UI', 9),
+                        bg='#ffffff',
+                        fg='#374151',
+                        width=4,
+                        relief=tk.FLAT,
+                        cursor='hand2',
+                        command=lambda d=day: select_date(d)
+                    )
+                    
+                    # Highlight today
+                    today = datetime.now()
+                    if day == today.day and month == today.month and year == today.year:
+                        day_btn.config(bg='#3b82f6', fg='white')
+                    
+                    # Highlight current selected date
+                    try:
+                        current_selected = datetime.strptime(self.date_var.get(), '%Y-%m-%d')
+                        if day == current_selected.day and month == current_selected.month and year == current_selected.year:
+                            day_btn.config(bg='#10b981', fg='white')
+                    except:
+                        pass
+                    
+                    day_btn.grid(row=row, column=col, padx=1, pady=1)
+                    
+                    col += 1
+                    if col > 6:
+                        col = 0
+                        row += 1
+            
+            def select_date(day):
+                """Select a date"""
+                month = month_var.get()
+                year = year_var.get()
+                selected = datetime(year, month, day)
+                date_str = selected.strftime('%Y-%m-%d')
+                self.date_var.set(date_str)
+                calendar_window.destroy()
+            
+            def prev_month():
+                """Go to previous month"""
+                month = month_var.get()
+                year = year_var.get()
+                if month == 1:
+                    month_var.set(12)
+                    year_var.set(year - 1)
+                else:
+                    month_var.set(month - 1)
+                update_calendar()
+            
+            def next_month():
+                """Go to next month"""
+                month = month_var.get()
+                year = year_var.get()
+                if month == 12:
+                    month_var.set(1)
+                    year_var.set(year + 1)
+                else:
+                    month_var.set(month + 1)
+                update_calendar()
+            
+            # Navigation buttons
+            prev_btn = tk.Button(
+                nav_frame,
+                text="◀",
+                command=prev_month,
+                font=('Segoe UI', 10, 'bold'),
+                bg='#e5e7eb',
+                fg='#374151',
+                width=3,
+                relief=tk.FLAT,
+                cursor='hand2'
+            )
+            prev_btn.pack(side=tk.LEFT, padx=5)
+            
+            month_label = tk.Label(
+                nav_frame,
+                text="",
+                font=('Segoe UI', 11, 'bold'),
+                bg='#ffffff',
+                fg='#1a237e'
+            )
+            month_label.pack(side=tk.LEFT, expand=True)
+            
+            next_btn = tk.Button(
+                nav_frame,
+                text="▶",
+                command=next_month,
+                font=('Segoe UI', 10, 'bold'),
+                bg='#e5e7eb',
+                fg='#374151',
+                width=3,
+                relief=tk.FLAT,
+                cursor='hand2'
+            )
+            next_btn.pack(side=tk.LEFT, padx=5)
+            
+            # Calendar days frame
+            cal_days_frame = tk.Frame(cal_frame, bg='#ffffff')
+            cal_days_frame.pack(fill=tk.BOTH, expand=True)
+            
+            # Button frame
+            btn_frame = tk.Frame(calendar_window, bg='#ffffff')
+            btn_frame.pack(fill=tk.X, padx=10, pady=10)
+            
+            today_btn = tk.Button(
+                btn_frame,
+                text="Today",
+                command=lambda: select_date(datetime.now().day),
+                font=('Segoe UI', 9),
+                bg='#3b82f6',
+                fg='white',
+                padx=15,
+                pady=5,
+                relief=tk.FLAT,
+                cursor='hand2'
+            )
+            today_btn.pack(side=tk.LEFT, padx=5)
+            
+            cancel_btn = tk.Button(
+                btn_frame,
+                text="Cancel",
+                command=calendar_window.destroy,
+                font=('Segoe UI', 9),
+                bg='#6b7280',
+                fg='white',
+                padx=15,
+                pady=5,
+                relief=tk.FLAT,
+                cursor='hand2'
+            )
+            cancel_btn.pack(side=tk.RIGHT, padx=5)
+            
+            # Initialize calendar
+            update_calendar()
+        
+        # Calendar button for date filter
+        date_cal_btn = tk.Button(
+            date_filter_frame,
+            text="📅",
+            command=open_calendar_for_filter,
+            font=('Segoe UI', 12),
+            bg='#3b82f6',
+            fg='white',
+            width=3,
+            relief=tk.FLAT,
+            cursor='hand2',
+            padx=5
+        )
+        date_cal_btn.pack(side=tk.LEFT, padx=(5, 0))
         
         # Add prescription button with modern styling
         add_btn = tk.Button(
@@ -69,7 +350,7 @@ class PrescriptionModule:
         list_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
         # Treeview
-        columns = ('ID', 'Patient ID', 'Doctor', 'Date', 'Diagnosis')
+        columns = ('ID', 'Patient ID', 'Patient Name', 'Doctor', 'Date', 'Diagnosis')
         
         # Configure style FIRST before creating treeview - use 'clam' theme for better custom styling
         style = ttk.Style()
@@ -125,7 +406,8 @@ class PrescriptionModule:
         # Configure column widths based on content
         column_widths = {
             'ID': 150,
-            'Patient ID': 150,
+            'Patient ID': 120,
+            'Patient Name': 180,
             'Doctor': 200,
             'Date': 150,
             'Diagnosis': 250
@@ -133,7 +415,8 @@ class PrescriptionModule:
         
         min_widths = {
             'ID': 120,
-            'Patient ID': 120,
+            'Patient ID': 100,
+            'Patient Name': 150,
             'Doctor': 150,
             'Date': 120,
             'Diagnosis': 180
@@ -180,18 +463,46 @@ class PrescriptionModule:
         ).pack(side=tk.LEFT, padx=6)
     
     def refresh_list(self):
-        """Refresh prescription list"""
+        """Refresh prescription list (shows all prescriptions)"""
+        # Reset filters
+        self.search_var.set("")
+        self.date_var.set("")
+        
+        # apply_filters will be called automatically via trace
+        self.apply_filters()
+    
+    def apply_filters(self, *args):
+        """Apply patient name search and date filters automatically"""
         # Clear existing items
         self.tree.delete(*self.tree.get_children())
         
-        # Get all prescriptions from database
+        patient_name = self.search_var.get().strip()
+        date = self.date_var.get().strip()
+        
         try:
-            prescriptions = self.db.get_all_prescriptions()
+            # Determine which filter to apply
+            if patient_name and date:
+                # Filter by both patient name and date
+                prescriptions = self.db.get_prescriptions_by_patient_name(patient_name)
+                # Filter by date in memory (since we don't have a combined method)
+                prescriptions = [p for p in prescriptions if p.get('prescription_date') == date]
+            elif patient_name:
+                # Filter by patient name only
+                prescriptions = self.db.get_prescriptions_by_patient_name(patient_name)
+            elif date:
+                # Filter by date only
+                prescriptions = self.db.get_prescriptions_by_date(date)
+            else:
+                # No filters - show all
+                prescriptions = self.db.get_all_prescriptions()
             
             # Add each prescription to the treeview
             for pres in prescriptions:
                 # Get doctor name (fallback to doctor_id if name not available)
                 doctor_display = pres.get('doctor_name', pres.get('doctor_id', 'Unknown'))
+                
+                # Get patient name (fallback to patient_id if name not available)
+                patient_display = pres.get('patient_name', pres.get('patient_id', 'Unknown'))
                 
                 # Truncate diagnosis if too long for display
                 diagnosis = pres.get('diagnosis', '')
@@ -201,32 +512,18 @@ class PrescriptionModule:
                 self.tree.insert('', tk.END, values=(
                     pres['prescription_id'],
                     pres['patient_id'],
+                    patient_display,
                     doctor_display,
                     pres['prescription_date'],
                     diagnosis
                 ))
         except Exception as e:
             # Log error but don't crash
-            print(f"Error refreshing prescription list: {e}")
+            print(f"Error applying filters: {e}")
     
     def search_prescriptions(self):
-        """Search prescriptions by patient"""
-        patient_id = self.search_var.get()
-        if not patient_id:
-            self.refresh_list()
-            return
-        
-        self.tree.delete(*self.tree.get_children())
-        
-        prescriptions = self.db.get_prescriptions_by_patient(patient_id)
-        for pres in prescriptions:
-            self.tree.insert('', tk.END, values=(
-                pres['prescription_id'],
-                pres['patient_id'],
-                pres.get('doctor_name', ''),
-                pres['prescription_date'],
-                pres.get('diagnosis', '')
-            ))
+        """Search prescriptions by patient (deprecated - use apply_filters instead)"""
+        self.apply_filters()
     
     def get_selected_prescription_id(self):
         """Get selected prescription ID"""

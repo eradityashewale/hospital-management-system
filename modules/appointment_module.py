@@ -37,10 +37,17 @@ class AppointmentModule:
         
         # Filter frame
         filter_frame = tk.Frame(top_frame, bg='#f5f7fa')
-        filter_frame.pack(side=tk.LEFT)
+        filter_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        # Search by patient name
+        tk.Label(filter_frame, text="Search by Patient Name:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=5)
+        self.patient_name_var = tk.StringVar()
+        self.patient_name_var.trace('w', lambda *args: self.apply_filters())
+        patient_name_entry = tk.Entry(filter_frame, textvariable=self.patient_name_var, font=('Segoe UI', 10), width=20, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
+        patient_name_entry.pack(side=tk.LEFT, padx=5)
         
         # Date filter with calendar button
-        tk.Label(filter_frame, text="Filter by Date:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=5)
+        tk.Label(filter_frame, text="Filter by Date:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=(15, 5))
         date_filter_frame = tk.Frame(filter_frame, bg='#f5f7fa')
         date_filter_frame.pack(side=tk.LEFT, padx=5)
         self.date_var = tk.StringVar(value="")
@@ -520,6 +527,7 @@ class AppointmentModule:
     def refresh_list(self):
         """Refresh appointment list (shows all appointments)"""
         # Reset filters to show all
+        self.patient_name_var.set("")
         self.date_var.set("")
         self.status_var.set("All")
         
@@ -531,25 +539,42 @@ class AppointmentModule:
         self.apply_filters()
     
     def apply_filters(self, *args):
-        """Apply date and status filters automatically"""
+        """Apply patient name, date and status filters automatically"""
         self.tree.delete(*self.tree.get_children())
         
+        patient_name = self.patient_name_var.get().strip()
         date = self.date_var.get().strip()
         status = self.status_var.get()
         
-        # Determine which filter to apply
-        if status == "All" and (not date or date == ""):
-            # No filters - show all
-            appointments = self.db.get_all_appointments()
-        elif status == "All" and date:
-            # Filter by date only
+        # Determine which filter combination to apply
+        has_patient = patient_name and patient_name != ""
+        has_date = date and date != ""
+        has_status = status != "All"
+        
+        if has_patient and has_date and has_status:
+            # All three filters
+            appointments = self.db.get_appointments_by_patient_name_date_and_status(patient_name, date, status)
+        elif has_patient and has_date:
+            # Patient name and date
+            appointments = self.db.get_appointments_by_patient_name_and_date(patient_name, date)
+        elif has_patient and has_status:
+            # Patient name and status
+            appointments = self.db.get_appointments_by_patient_name_and_status(patient_name, status)
+        elif has_patient:
+            # Patient name only
+            appointments = self.db.get_appointments_by_patient_name(patient_name)
+        elif has_date and has_status:
+            # Date and status
+            appointments = self.db.get_appointments_by_date_and_status(date, status)
+        elif has_date:
+            # Date only
             appointments = self.db.get_appointments_by_date(date)
-        elif status != "All" and (not date or date == ""):
-            # Filter by status only
+        elif has_status:
+            # Status only
             appointments = self.db.get_appointments_by_status(status)
         else:
-            # Filter by both date and status
-            appointments = self.db.get_appointments_by_date_and_status(date, status)
+            # No filters - show all
+            appointments = self.db.get_all_appointments()
         
         for apt in appointments:
             self.tree.insert('', tk.END, values=(

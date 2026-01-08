@@ -488,6 +488,63 @@ class Database:
         """, (date, status))
         return [dict(row) for row in self.cursor.fetchall()]
     
+    def get_appointments_by_patient_name(self, patient_name: str) -> List[Dict]:
+        """Get appointments by patient name (searches first name and last name)"""
+        self.cursor.execute("""
+            SELECT a.*, p.first_name || ' ' || p.last_name as patient_name,
+            d.first_name || ' ' || d.last_name as doctor_name
+            FROM appointments a
+            LEFT JOIN patients p ON a.patient_id = p.patient_id
+            LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE p.first_name LIKE ? OR p.last_name LIKE ? 
+            OR (p.first_name || ' ' || p.last_name) LIKE ?
+            ORDER BY a.appointment_date DESC, a.appointment_time DESC
+        """, (f'%{patient_name}%', f'%{patient_name}%', f'%{patient_name}%'))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_appointments_by_patient_name_and_date(self, patient_name: str, date: str) -> List[Dict]:
+        """Get appointments by patient name and date"""
+        self.cursor.execute("""
+            SELECT a.*, p.first_name || ' ' || p.last_name as patient_name,
+            d.first_name || ' ' || d.last_name as doctor_name
+            FROM appointments a
+            LEFT JOIN patients p ON a.patient_id = p.patient_id
+            LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE (p.first_name LIKE ? OR p.last_name LIKE ? 
+            OR (p.first_name || ' ' || p.last_name) LIKE ?) AND a.appointment_date = ?
+            ORDER BY a.appointment_time
+        """, (f'%{patient_name}%', f'%{patient_name}%', f'%{patient_name}%', date))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_appointments_by_patient_name_and_status(self, patient_name: str, status: str) -> List[Dict]:
+        """Get appointments by patient name and status"""
+        self.cursor.execute("""
+            SELECT a.*, p.first_name || ' ' || p.last_name as patient_name,
+            d.first_name || ' ' || d.last_name as doctor_name
+            FROM appointments a
+            LEFT JOIN patients p ON a.patient_id = p.patient_id
+            LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE (p.first_name LIKE ? OR p.last_name LIKE ? 
+            OR (p.first_name || ' ' || p.last_name) LIKE ?) AND a.status = ?
+            ORDER BY a.appointment_date DESC, a.appointment_time DESC
+        """, (f'%{patient_name}%', f'%{patient_name}%', f'%{patient_name}%', status))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_appointments_by_patient_name_date_and_status(self, patient_name: str, date: str, status: str) -> List[Dict]:
+        """Get appointments by patient name, date and status"""
+        self.cursor.execute("""
+            SELECT a.*, p.first_name || ' ' || p.last_name as patient_name,
+            d.first_name || ' ' || d.last_name as doctor_name
+            FROM appointments a
+            LEFT JOIN patients p ON a.patient_id = p.patient_id
+            LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE (p.first_name LIKE ? OR p.last_name LIKE ? 
+            OR (p.first_name || ' ' || p.last_name) LIKE ?) 
+            AND a.appointment_date = ? AND a.status = ?
+            ORDER BY a.appointment_time
+        """, (f'%{patient_name}%', f'%{patient_name}%', f'%{patient_name}%', date, status))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
     def get_appointment_by_id(self, appointment_id: str) -> Optional[Dict]:
         """Get appointment by ID"""
         self.cursor.execute("""
@@ -571,22 +628,53 @@ class Database:
     def get_all_prescriptions(self) -> List[Dict]:
         """Get all prescriptions"""
         self.cursor.execute("""
-            SELECT p.*, d.first_name || ' ' || d.last_name as doctor_name
+            SELECT p.*, d.first_name || ' ' || d.last_name as doctor_name,
+            pat.first_name || ' ' || pat.last_name as patient_name
             FROM prescriptions p
             LEFT JOIN doctors d ON p.doctor_id = d.doctor_id
+            LEFT JOIN patients pat ON p.patient_id = pat.patient_id
             ORDER BY p.prescription_date DESC
         """)
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_prescriptions_by_date(self, date: str) -> List[Dict]:
+        """Get prescriptions by date"""
+        self.cursor.execute("""
+            SELECT p.*, d.first_name || ' ' || d.last_name as doctor_name,
+            pat.first_name || ' ' || pat.last_name as patient_name
+            FROM prescriptions p
+            LEFT JOIN doctors d ON p.doctor_id = d.doctor_id
+            LEFT JOIN patients pat ON p.patient_id = pat.patient_id
+            WHERE p.prescription_date = ?
+            ORDER BY p.prescription_date DESC
+        """, (date,))
         return [dict(row) for row in self.cursor.fetchall()]
     
     def get_prescriptions_by_patient(self, patient_id: str) -> List[Dict]:
         """Get all prescriptions for a patient"""
         self.cursor.execute("""
-            SELECT p.*, d.first_name || ' ' || d.last_name as doctor_name
+            SELECT p.*, d.first_name || ' ' || d.last_name as doctor_name,
+            pat.first_name || ' ' || pat.last_name as patient_name
             FROM prescriptions p
             LEFT JOIN doctors d ON p.doctor_id = d.doctor_id
+            LEFT JOIN patients pat ON p.patient_id = pat.patient_id
             WHERE p.patient_id = ?
             ORDER BY p.prescription_date DESC
         """, (patient_id,))
+        return [dict(row) for row in self.cursor.fetchall()]
+    
+    def get_prescriptions_by_patient_name(self, patient_name: str) -> List[Dict]:
+        """Get prescriptions by patient name (searches first name and last name)"""
+        self.cursor.execute("""
+            SELECT p.*, d.first_name || ' ' || d.last_name as doctor_name,
+            pat.first_name || ' ' || pat.last_name as patient_name
+            FROM prescriptions p
+            LEFT JOIN doctors d ON p.doctor_id = d.doctor_id
+            LEFT JOIN patients pat ON p.patient_id = pat.patient_id
+            WHERE pat.first_name LIKE ? OR pat.last_name LIKE ? 
+            OR (pat.first_name || ' ' || pat.last_name) LIKE ?
+            ORDER BY p.prescription_date DESC
+        """, (f'%{patient_name}%', f'%{patient_name}%', f'%{patient_name}%'))
         return [dict(row) for row in self.cursor.fetchall()]
     
     def get_prescription_items(self, prescription_id: str) -> List[Dict]:
