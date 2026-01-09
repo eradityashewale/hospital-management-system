@@ -4,9 +4,17 @@ Generates 50+ records for patients, doctors, appointments, prescriptions, and bi
 """
 import random
 from datetime import datetime, timedelta
-from database import Database
-from utils import generate_id
 import sys
+import os
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Backend imports
+from backend.database import Database
+
+# Utils imports
+from utils.helpers import generate_id
 
 
 class FakeDataGenerator:

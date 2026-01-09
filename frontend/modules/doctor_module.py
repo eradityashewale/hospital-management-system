@@ -3,8 +3,12 @@ Doctor Management Module
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
-from database import Database
-from utils import generate_id
+
+# Backend imports
+from backend.database import Database
+
+# Utils imports
+from utils.helpers import generate_id
 
 
 class DoctorModule:

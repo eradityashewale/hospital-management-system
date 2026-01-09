@@ -3,10 +3,14 @@ Prescription Management Module
 """
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-from database import Database
-from utils import generate_id, get_current_date
 import os
 from datetime import datetime
+
+# Backend imports
+from backend.database import Database
+
+# Utils imports
+from utils.helpers import generate_id, get_current_date
 
 
 class PrescriptionModule:

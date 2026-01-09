@@ -7,7 +7,9 @@ import os
 import sys
 from datetime import datetime
 from typing import List, Dict, Optional
-from logger import log_info, log_error, log_debug, log_database_operation, log_warning
+
+# Utils imports
+from utils.logger import log_info, log_error, log_debug, log_database_operation, log_warning
 
 
 def get_app_data_dir():
@@ -1073,7 +1075,7 @@ class Database:
     
     def get_todays_appointments(self, date: str = None) -> List[Dict]:
         """Get today's appointments"""
-        from utils import get_current_date
+        from utils.helpers import get_current_date
         if not date:
             date = get_current_date()
         

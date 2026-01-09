@@ -3,7 +3,9 @@ Reports and Analytics Module
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
-from database import Database
+
+# Backend imports
+from backend.database import Database
 
 
 class ReportsModule:

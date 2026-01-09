@@ -4,19 +4,23 @@ Offline Desktop Application for Hospital Management
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
-from database import Database
-from logger import log_button_click, log_navigation, log_error, log_info, log_debug, log_warning
 from datetime import datetime, timedelta
 import sys
 import os
 
-# Import modules
-from modules.patient_module import PatientModule
-from modules.doctor_module import DoctorModule
-from modules.appointment_module import AppointmentModule
-from modules.prescription_module import PrescriptionModule
-from modules.billing_module import BillingModule
-from modules.reports_module import ReportsModule
+# Backend imports
+from backend.database import Database
+
+# Utils imports
+from utils.logger import log_button_click, log_navigation, log_error, log_info, log_debug, log_warning
+
+# Frontend module imports
+from frontend.modules.patient_module import PatientModule
+from frontend.modules.doctor_module import DoctorModule
+from frontend.modules.appointment_module import AppointmentModule
+from frontend.modules.prescription_module import PrescriptionModule
+from frontend.modules.billing_module import BillingModule
+from frontend.modules.reports_module import ReportsModule
 
 
 class HospitalManagementSystem:
@@ -91,7 +95,10 @@ class HospitalManagementSystem:
             if getattr(sys, 'frozen', False):
                 base_path = sys._MEIPASS if hasattr(sys, '_MEIPASS') else os.path.dirname(sys.executable)
             else:
-                base_path = os.path.dirname(os.path.abspath(__file__))
+                # In development, look in assets folder relative to project root
+                current_file = os.path.abspath(__file__)
+                project_root = os.path.dirname(os.path.dirname(current_file))
+                base_path = os.path.join(project_root, 'assets')
             
             # Try different logo file names in order of preference
             possible_logos = [
@@ -106,11 +113,14 @@ class HospitalManagementSystem:
                 logo_path = os.path.join(base_path, logo_name)
                 if os.path.exists(logo_path):
                     return logo_path
-                # Also try in project root (for development)
-                project_root = os.path.dirname(os.path.abspath(__file__))
-                logo_path = os.path.join(project_root, logo_name)
-                if os.path.exists(logo_path):
-                    return logo_path
+            
+            # Fallback: try in project root (for backward compatibility)
+            if not getattr(sys, 'frozen', False):
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                for logo_name in possible_logos:
+                    logo_path = os.path.join(project_root, logo_name)
+                    if os.path.exists(logo_path):
+                        return logo_path
             
             return None
         except Exception as e:
@@ -2552,7 +2562,7 @@ def main():
     try:
         while True:  # Loop to allow re-login after logout
             # Show login window first
-            from login_window import LoginWindow
+            from frontend.login_window import LoginWindow
             
             login_root = tk.Tk()
             authenticated_user = None

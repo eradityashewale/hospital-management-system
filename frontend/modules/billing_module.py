@@ -3,13 +3,17 @@ Billing Management Module
 """
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-from database import Database
-from utils import generate_id, get_current_date
 from datetime import datetime
 import tempfile
 import os
 import subprocess
 import platform
+
+# Backend imports
+from backend.database import Database
+
+# Utils imports
+from utils.helpers import generate_id, get_current_date
 
 
 class BillingModule:

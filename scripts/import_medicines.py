@@ -5,8 +5,15 @@ Usage: python import_medicines.py [csv_file_path]
 import sys
 import os
 import csv
-from database import Database
-from logger import log_info, log_error
+
+# Add parent directory to path for imports
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Backend imports
+from backend.database import Database
+
+# Utils imports
+from utils.logger import log_info, log_error
 
 def main():
     # Get CSV file path from command line or use default

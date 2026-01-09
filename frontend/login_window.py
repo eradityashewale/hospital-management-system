@@ -4,10 +4,14 @@ Handles user authentication before accessing the main application
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
-from database import Database
-from logger import log_info, log_error, log_warning
 import sys
 import os
+
+# Backend imports
+from backend.database import Database
+
+# Utils imports
+from utils.logger import log_info, log_error, log_warning, log_debug
 
 
 class LoginWindow:
@@ -69,7 +73,10 @@ class LoginWindow:
             if getattr(sys, 'frozen', False):
                 base_path = sys._MEIPASS if hasattr(sys, '_MEIPASS') else os.path.dirname(sys.executable)
             else:
-                base_path = os.path.dirname(os.path.abspath(__file__))
+                # In development, look in assets folder relative to project root
+                current_file = os.path.abspath(__file__)
+                project_root = os.path.dirname(os.path.dirname(current_file))
+                base_path = os.path.join(project_root, 'assets')
             
             # Try different logo file names in order of preference
             possible_icons = [
@@ -85,12 +92,14 @@ class LoginWindow:
                 icon_path = os.path.join(base_path, icon_name)
                 if os.path.exists(icon_path):
                     break
-                # Also try in project root
-                project_root = os.path.dirname(os.path.abspath(__file__))
-                icon_path = os.path.join(project_root, icon_name)
-                if os.path.exists(icon_path):
-                    break
-                icon_path = None
+            
+            # Fallback: try in project root (for backward compatibility)
+            if not icon_path and not getattr(sys, 'frozen', False):
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                for icon_name in possible_icons:
+                    icon_path = os.path.join(project_root, icon_name)
+                    if os.path.exists(icon_path):
+                        break
             
             if icon_path and os.path.exists(icon_path):
                 # If it's a PNG, convert to ICO for window icon, or use temp ICO
@@ -159,7 +168,10 @@ class LoginWindow:
             if getattr(sys, 'frozen', False):
                 base_path = sys._MEIPASS if hasattr(sys, '_MEIPASS') else os.path.dirname(sys.executable)
             else:
-                base_path = os.path.dirname(os.path.abspath(__file__))
+                # In development, look in assets folder relative to project root
+                current_file = os.path.abspath(__file__)
+                project_root = os.path.dirname(os.path.dirname(current_file))
+                base_path = os.path.join(project_root, 'assets')
             
             # Try different logo file names in order of preference
             possible_logos = [
@@ -170,16 +182,19 @@ class LoginWindow:
                 'logo.ico'
             ]
             
+            logo_path = None
             for logo_name in possible_logos:
                 logo_path = os.path.join(base_path, logo_name)
                 if os.path.exists(logo_path):
                     break
-                # Also try in project root
-                project_root = os.path.dirname(os.path.abspath(__file__))
-                logo_path = os.path.join(project_root, logo_name)
-                if os.path.exists(logo_path):
-                    break
-                logo_path = None
+            
+            # Fallback: try in project root (for backward compatibility)
+            if not logo_path and not getattr(sys, 'frozen', False):
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                for logo_name in possible_logos:
+                    logo_path = os.path.join(project_root, logo_name)
+                    if os.path.exists(logo_path):
+                        break
             
             if logo_path and os.path.exists(logo_path):
                 # Load and resize logo image for display

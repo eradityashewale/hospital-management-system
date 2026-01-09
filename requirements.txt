@@ -15,3 +15,4 @@
 # Build dependencies:
 pyinstaller>=5.0.0        # For creating .exe files
 reportlab>=4.0.0          # For PDF generation (reports/printouts)
+Pillow>=10.0.0            # For image handling (logo display)

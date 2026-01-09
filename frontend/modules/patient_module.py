@@ -3,9 +3,13 @@ Patient Management Module
 """
 import tkinter as tk
 from tkinter import ttk, messagebox
-from database import Database
-from utils import generate_id, get_current_date
-from logger import (log_button_click, log_dialog_open, log_dialog_close, 
+
+# Backend imports
+from backend.database import Database
+
+# Utils imports
+from utils.helpers import generate_id, get_current_date
+from utils.logger import (log_button_click, log_dialog_open, log_dialog_close, 
                    log_database_operation, log_error, log_info, log_warning, log_debug)
 
 
