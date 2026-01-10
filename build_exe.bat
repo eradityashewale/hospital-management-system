@@ -31,6 +31,22 @@ echo Step 2: Installing optional dependencies (reportlab for PDF generation)...
 python -m pip install reportlab
 
 echo.
+echo Step 2.5: Checking for logo files...
+if exist "logo.png" (
+    echo [OK] Found logo.png - will be included in build
+) else if exist "hospital_logo.png" (
+    echo [OK] Found hospital_logo.png - will be included in build
+) else if exist "icon.png" (
+    echo [OK] Found icon.png - will be included in build
+) else if exist "icon.ico" (
+    echo [OK] Found icon.ico - will be included in build
+) else (
+    echo [INFO] No logo file found
+    echo        Supported names: logo.png, hospital_logo.png, icon.png, icon.ico
+    echo        Place your logo in the project root to add branding
+)
+echo.
+
 echo Step 3: Building executable...
 echo This may take a few minutes...
 echo.

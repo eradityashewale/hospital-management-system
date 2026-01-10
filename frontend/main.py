@@ -31,7 +31,25 @@ class HospitalManagementSystem:
         self.authenticated_user = authenticated_user
         self.logout_callback = logout_callback
         self.root.title("MediFlow - Hospital Management System")
-        self.root.geometry("1400x800")
+        
+        # Get screen dimensions and set window to fullscreen
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        # Set window geometry to full screen
+        self.root.geometry(f"{screen_width}x{screen_height}+0+0")
+        
+        # Try to maximize window (works on Windows)
+        try:
+            self.root.state('zoomed')  # Windows maximized state
+        except:
+            try:
+                # Alternative for Linux
+                self.root.attributes('-zoomed', True)
+            except:
+                # Fallback: use full screen dimensions
+                self.root.geometry(f"{screen_width}x{screen_height}+0+0")
+        
         # Modern gradient-like background
         self.root.configure(bg='#f5f7fa')
         
@@ -490,6 +508,17 @@ class HospitalManagementSystem:
     
     def clear_content(self):
         """Clear content frame"""
+        # Unbind mousewheel events before destroying widgets
+        try:
+            self.root.unbind_all("<MouseWheel>")
+        except:
+            pass
+        
+        # Clear current canvas reference
+        if hasattr(self, 'current_canvas'):
+            self.current_canvas = None
+        
+        # Destroy all widgets in content frame
         for widget in self.content_frame.winfo_children():
             widget.destroy()
         # Force immediate UI update after clearing
@@ -537,11 +566,34 @@ class HospitalManagementSystem:
             
             canvas.bind('<Configure>', on_canvas_configure)
             
-            # Bind mousewheel to canvas
+            # Bind mousewheel to canvas with error handling
             def on_mousewheel(event):
-                canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+                try:
+                    # Check if canvas still exists and is valid
+                    if canvas.winfo_exists():
+                        canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+                    else:
+                        # Canvas destroyed, unbind the event
+                        try:
+                            self.root.unbind_all("<MouseWheel>")
+                        except:
+                            pass
+                except (tk.TclError, AttributeError) as e:
+                    # Canvas has been destroyed, unbind the event
+                    try:
+                        self.root.unbind_all("<MouseWheel>")
+                    except:
+                        pass
             
-            canvas.bind_all("<MouseWheel>", on_mousewheel)
+            # Store canvas reference for cleanup
+            self.current_canvas = canvas
+            # Unbind any existing mousewheel bindings first
+            try:
+                self.root.unbind_all("<MouseWheel>")
+            except:
+                pass
+            # Bind mousewheel to root window
+            self.root.bind_all("<MouseWheel>", on_mousewheel)
             
             # Filter frame
             filter_frame = tk.Frame(scrollable_frame, bg='#f5f7fa')

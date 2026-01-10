@@ -367,7 +367,68 @@ class BillingModule:
         )
         add_btn.pack(side=tk.RIGHT, padx=10)
         
-        # List frame
+        # Action buttons with modern styling (BEFORE list so they're visible)
+        action_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        action_frame.pack(fill=tk.X, padx=25, pady=15)
+        
+        # Label for quick actions
+        tk.Label(
+            action_frame,
+            text="Quick Actions:",
+            font=('Segoe UI', 11, 'bold'),
+            bg='#f5f7fa',
+            fg='#374151'
+        ).pack(side=tk.LEFT, padx=(0, 15))
+        
+        tk.Button(
+            action_frame,
+            text="View Details",
+            command=self.view_bill,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#3b82f6',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#2563eb',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
+        
+        tk.Button(
+            action_frame,
+            text="✏️ Edit Bill",
+            command=self.edit_bill,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#f59e0b',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#d97706',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
+        
+        tk.Button(
+            action_frame,
+            text="Delete",
+            command=self.delete_bill,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#ef4444',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#dc2626',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
+        
+        # List frame (AFTER action buttons)
         list_frame = tk.Frame(self.parent, bg='#f5f7fa')
         list_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
@@ -463,58 +524,6 @@ class BillingModule:
         v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
         self.tree.bind('<Double-1>', self.view_bill)
-        
-        # Action buttons with modern styling
-        action_frame = tk.Frame(self.parent, bg='#f5f7fa')
-        action_frame.pack(fill=tk.X, padx=25, pady=15)
-        
-        tk.Button(
-            action_frame,
-            text="View Details",
-            command=self.view_bill,
-            font=('Segoe UI', 10, 'bold'),
-            bg='#3b82f6',
-            fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2',
-            relief=tk.FLAT,
-            bd=0,
-            activebackground='#2563eb',
-            activeforeground='white'
-        ).pack(side=tk.LEFT, padx=6)
-        
-        tk.Button(
-            action_frame,
-            text="✏️ Edit",
-            command=self.edit_bill,
-            font=('Segoe UI', 10, 'bold'),
-            bg='#8b5cf6',
-            fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2',
-            relief=tk.FLAT,
-            bd=0,
-            activebackground='#7c3aed',
-            activeforeground='white'
-        ).pack(side=tk.LEFT, padx=6)
-        
-        tk.Button(
-            action_frame,
-            text="🗑️ Delete",
-            command=self.delete_bill,
-            font=('Segoe UI', 10, 'bold'),
-            bg='#ef4444',
-            fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2',
-            relief=tk.FLAT,
-            bd=0,
-            activebackground='#dc2626',
-            activeforeground='white'
-        ).pack(side=tk.LEFT, padx=6)
         
         tk.Button(
             action_frame,
@@ -623,7 +632,7 @@ class BillingModule:
         self.bill_dialog()
     
     def view_bill(self, event=None):
-        """View bill details"""
+        """View selected bill details in read-only mode"""
         bill_id = self.get_selected_bill_id()
         if not bill_id:
             return
@@ -633,52 +642,8 @@ class BillingModule:
             messagebox.showerror("Error", "Bill not found")
             return
         
-        # Get patient details
-        patient = self.db.get_patient_by_id(bill['patient_id'])
-        patient_name = bill.get('patient_name', '')
-        if not patient_name and patient:
-            patient_name = f"{patient['first_name']} {patient['last_name']}"
-        
-        # Show bill details in a dialog
-        details_text = f"""
-Bill ID: {bill['bill_id']}
-Date: {bill['bill_date']}
-
-Patient Information:
-  Name: {patient_name}
-  Patient ID: {bill['patient_id']}
-"""
-        if patient:
-            if patient.get('phone'):
-                details_text += f"  Phone: {patient['phone']}\n"
-            if patient.get('email'):
-                details_text += f"  Email: {patient['email']}\n"
-
-        details_text += f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-CHARGES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Consultation Fee:      ${bill.get('consultation_fee', 0):>15,.2f}
-Medicine Cost:         ${bill.get('medicine_cost', 0):>15,.2f}
-Other Charges:         ${bill.get('other_charges', 0):>15,.2f}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-TOTAL AMOUNT:          ${bill['total_amount']:>15,.2f}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Payment Status: {bill.get('payment_status', 'Pending')}
-Payment Method: {bill.get('payment_method', 'N/A')}
-"""
-        
-        if bill.get('notes'):
-            details_text += f"""
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Notes:
-{bill['notes']}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-"""
-        
-        self._show_print_dialog(details_text, f"Bill Details - {bill_id}")
+        # Open bill dialog in view-only mode
+        self.bill_dialog(bill_id=bill_id, bill_data=bill, view_only=True)
     
     def print_bill(self):
         """Print bill - exactly like prescription printing"""
@@ -1048,39 +1013,244 @@ NOTES
         # Show print dialog
         self._show_print_dialog(print_text, f"Bill - {bill_id}")
     
+    def show_bill_selection_popup(self, title, action_callback):
+        """Show popup to select a bill"""
+        popup = tk.Toplevel(self.parent)
+        popup.title(title)
+        popup.geometry("1100x650")
+        popup.configure(bg='#f5f7fa')
+        popup.transient(self.parent)
+        popup.grab_set()
+        
+        # Center the window
+        popup.update_idletasks()
+        x = (popup.winfo_screenwidth() // 2) - (1100 // 2)
+        y = (popup.winfo_screenheight() // 2) - (650 // 2)
+        popup.geometry(f"1100x650+{x}+{y}")
+        
+        # Header
+        header_frame = tk.Frame(popup, bg='#1e40af', height=60)
+        header_frame.pack(fill=tk.X)
+        header_frame.pack_propagate(False)
+        
+        tk.Label(
+            header_frame,
+            text=title,
+            font=('Segoe UI', 14, 'bold'),
+            bg='#1e40af',
+            fg='white'
+        ).pack(pady=18)
+        
+        # Search frame
+        search_frame = tk.Frame(popup, bg='#f5f7fa', padx=20, pady=15)
+        search_frame.pack(fill=tk.X)
+        
+        tk.Label(
+            search_frame,
+            text="Search by Bill ID, Patient Name, or Date:",
+            font=('Segoe UI', 10, 'bold'),
+            bg='#f5f7fa',
+            fg='#374151'
+        ).pack(side=tk.LEFT, padx=5)
+        
+        search_var = tk.StringVar()
+        search_entry = tk.Entry(
+            search_frame,
+            textvariable=search_var,
+            font=('Segoe UI', 10),
+            width=30,
+            relief=tk.FLAT,
+            bd=2,
+            highlightthickness=1,
+            highlightbackground='#d1d5db',
+            highlightcolor='#6366f1'
+        )
+        search_entry.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True, ipady=5)
+        search_entry.focus_set()
+        
+        # Bill list
+        list_frame = tk.Frame(popup, bg='#f5f7fa', padx=20, pady=10)
+        list_frame.pack(fill=tk.BOTH, expand=True)
+        
+        columns = ('Bill ID', 'Patient ID', 'Patient Name', 'Date', 'Total Amount', 'Status', 'Payment Method')
+        tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
+        
+        for col in columns:
+            tree.heading(col, text=col)
+            if col == 'Bill ID':
+                tree.column(col, width=150)
+            elif col in ['Patient ID', 'Patient Name']:
+                tree.column(col, width=150)
+            elif col == 'Date':
+                tree.column(col, width=120)
+            elif col == 'Total Amount':
+                tree.column(col, width=120)
+            elif col == 'Status':
+                tree.column(col, width=100)
+            else:
+                tree.column(col, width=150)
+        
+        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        def load_bills():
+            """Load bills based on search"""
+            tree.delete(*tree.get_children())
+            search_text = search_var.get().strip().lower()
+            
+            try:
+                all_bills = self.db.get_all_bills()
+                for bill in all_bills:
+                    bill_id = bill.get('bill_id', '')
+                    patient_id = bill.get('patient_id', '')
+                    patient_name = bill.get('patient_name', patient_id)
+                    date = bill.get('bill_date', '')
+                    total = bill.get('total_amount', 0)
+                    status = bill.get('payment_status', 'Pending')
+                    payment_method = bill.get('payment_method', 'Cash')
+                    
+                    if (not search_text or 
+                        search_text in bill_id.lower() or
+                        search_text in patient_id.lower() or
+                        search_text in patient_name.lower() or
+                        search_text in date.lower() or
+                        search_text in status.lower()):
+                        tree.insert('', tk.END, values=(
+                            bill_id,
+                            patient_id,
+                            patient_name,
+                            date,
+                            f"₹{total:.2f}" if total else "₹0.00",
+                            status,
+                            payment_method
+                        ))
+            except Exception as e:
+                print(f"Error loading bills: {e}")
+        
+        search_var.trace('w', lambda *args: load_bills())
+        load_bills()  # Initial load
+        
+        # Button frame
+        button_frame = tk.Frame(popup, bg='#f5f7fa', padx=20, pady=15)
+        button_frame.pack(fill=tk.X)
+        
+        def on_select():
+            selection = tree.selection()
+            if not selection:
+                messagebox.showwarning("Warning", "Please select a bill")
+                return
+            
+            item = tree.item(selection[0])
+            bill_id = item['values'][0]
+            popup.destroy()
+            action_callback(bill_id)
+        
+        # Bind double-click to select
+        tree.bind('<Double-1>', lambda e: on_select())
+        
+        select_btn = tk.Button(
+            button_frame,
+            text="Select",
+            command=on_select,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#10b981',
+            fg='white',
+            padx=30,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            activebackground='#059669'
+        )
+        select_btn.pack(side=tk.LEFT, padx=5)
+        
+        cancel_btn = tk.Button(
+            button_frame,
+            text="Cancel",
+            command=popup.destroy,
+            font=('Segoe UI', 10),
+            bg='#6b7280',
+            fg='white',
+            padx=30,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            activebackground='#4b5563'
+        )
+        cancel_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Bind Enter key to select
+        search_entry.bind('<Return>', lambda e: on_select())
+        popup.bind('<Return>', lambda e: on_select())
+    
     def edit_bill(self):
-        """Edit existing bill"""
+        """Edit selected bill - opens in EDIT mode"""
         bill_id = self.get_selected_bill_id()
         if not bill_id:
+            # If no selection, show selection popup
+            self.show_bill_selection_popup(
+                "Select Bill to Edit",
+                lambda bid: self.edit_bill_by_id(bid)
+            )
             return
         
+        # Directly edit the selected bill
+        self.edit_bill_by_id(bill_id)
+    
+    def edit_bill_by_id(self, bill_id):
+        """Edit bill by ID - explicitly opens in EDIT mode"""
         bill = self.db.get_bill_by_id(bill_id)
         if not bill:
             messagebox.showerror("Error", "Bill not found")
             return
         
-        # Open edit dialog with existing data
-        self.bill_dialog(bill_id=bill_id, bill_data=bill)
+        # Explicitly pass view_only=False to ensure fields are editable
+        self.bill_dialog(bill_id=bill_id, bill_data=bill, view_only=False)
     
     def delete_bill(self):
-        """Delete a bill"""
+        """Delete selected bill"""
         bill_id = self.get_selected_bill_id()
         if not bill_id:
+            # If no selection, show selection popup
+            self.show_bill_selection_popup(
+                "Select Bill to Delete",
+                lambda bid: self.delete_bill_by_id(bid)
+            )
             return
         
-        # Confirm deletion
-        result = messagebox.askyesno(
-            "Confirm Delete",
-            f"Are you sure you want to delete bill {bill_id}?\n\nThis action cannot be undone.",
-            icon='warning'
-        )
+        # Directly delete the selected bill
+        self.delete_bill_by_id(bill_id)
+    
+    def delete_bill_by_id(self, bill_id):
+        """Delete bill by ID"""
+        bill = self.db.get_bill_by_id(bill_id)
+        if not bill:
+            messagebox.showerror("Error", "Bill not found")
+            return
         
-        if result:
-            if self.db.delete_bill(bill_id):
-                messagebox.showinfo("Success", f"Bill {bill_id} deleted successfully")
-                self.refresh_list()
-            else:
-                messagebox.showerror("Error", "Failed to delete bill")
+        # Show confirmation with bill details
+        patient_name = bill.get('patient_name', bill.get('patient_id', 'Unknown'))
+        total = bill.get('total_amount', 0)
+        date = bill.get('bill_date', '')
+        
+        confirm_msg = f"Are you sure you want to DELETE this bill?\n\n"
+        confirm_msg += f"Bill ID: {bill_id}\n"
+        confirm_msg += f"Patient: {patient_name}\n"
+        confirm_msg += f"Date: {date}\n"
+        confirm_msg += f"Total Amount: ₹{total:.2f}\n\n"
+        confirm_msg += "This action cannot be undone!"
+        
+        if messagebox.askyesno("Confirm Delete", confirm_msg, icon='warning'):
+            try:
+                if self.db.delete_bill(bill_id):
+                    messagebox.showinfo("Success", f"Bill {bill_id} deleted successfully")
+                    self.refresh_list()
+                else:
+                    messagebox.showerror("Error", "Failed to delete bill")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to delete bill: {str(e)}")
     
     def mark_paid(self):
         """Mark bill as paid"""
@@ -1104,11 +1274,17 @@ NOTES
         else:
             messagebox.showerror("Error", "Failed to update bill")
     
-    def bill_dialog(self, bill_id=None, bill_data=None):
+    def bill_dialog(self, bill_id=None, bill_data=None, view_only=False):
         """Bill form dialog - for adding new or editing existing bill"""
         is_edit = bill_id is not None
         dialog = tk.Toplevel(self.parent)
-        dialog.title("Edit Bill" if is_edit else "New Bill")
+        # Set title based on mode
+        if view_only:
+            dialog.title("View Bill Details")
+        elif is_edit:
+            dialog.title("Edit Bill - Editable")
+        else:
+            dialog.title("New Bill")
         dialog.geometry("500x600")  # Increased height to ensure buttons are visible
         dialog.configure(bg='#f5f7fa')
         dialog.transient(self.parent)
@@ -1125,12 +1301,18 @@ NOTES
         except:
             dialog.grab_set()  # Fallback for older tkinter versions
         
-        # Button frame - pack first to ensure it's at the bottom
-        button_frame = tk.Frame(dialog, bg='#f5f7fa', relief=tk.FLAT, bd=0)
-        button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
-        
         main_frame = tk.Frame(dialog, bg='#f5f7fa')
         main_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+        
+        # Add mode indicator
+        if view_only:
+            mode_label = tk.Label(main_frame, text="📖 VIEW MODE (Read Only)", 
+                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#ef4444')
+            mode_label.pack(pady=5)
+        elif is_edit:
+            mode_label = tk.Label(main_frame, text="✏️ EDIT MODE (Editable)", 
+                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#10b981')
+            mode_label.pack(pady=5)
         
         if not is_edit:
             bill_id = generate_id('BILL')
@@ -1163,13 +1345,16 @@ NOTES
                     patient_var.set(display_text)
                     break
         
+        # Set state based on view_only
+        combo_state = 'readonly' if view_only else 'normal'
+        entry_state = 'readonly' if view_only else 'normal'
         patient_combo = ttk.Combobox(
             form_frame, 
             textvariable=patient_var,
             values=patient_options,
             font=('Arial', 10),
             width=37,
-            state='normal'  # 'normal' allows typing to search
+            state=combo_state
         )
         patient_combo.pack(fill=tk.X, pady=5)
         
@@ -1193,7 +1378,7 @@ NOTES
         patient_var.trace('w', filter_patient)
         
         tk.Label(form_frame, text="Date:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        date_entry = tk.Entry(form_frame, font=('Arial', 10), width=40)
+        date_entry = tk.Entry(form_frame, font=('Arial', 10), width=40, state=entry_state)
         if is_edit and bill_data:
             date_entry.insert(0, bill_data.get('bill_date', get_current_date()))
         else:
@@ -1201,7 +1386,7 @@ NOTES
         date_entry.pack(fill=tk.X, pady=5)
         
         tk.Label(form_frame, text="Consultation Fee:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        consultation_entry = tk.Entry(form_frame, font=('Arial', 10), width=40)
+        consultation_entry = tk.Entry(form_frame, font=('Arial', 10), width=40, state=entry_state)
         if is_edit and bill_data:
             consultation_entry.insert(0, str(bill_data.get('consultation_fee', 0)))
         else:
@@ -1209,7 +1394,7 @@ NOTES
         consultation_entry.pack(fill=tk.X, pady=5)
         
         tk.Label(form_frame, text="Medicine Cost:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        medicine_entry = tk.Entry(form_frame, font=('Arial', 10), width=40)
+        medicine_entry = tk.Entry(form_frame, font=('Arial', 10), width=40, state=entry_state)
         if is_edit and bill_data:
             medicine_entry.insert(0, str(bill_data.get('medicine_cost', 0)))
         else:
@@ -1217,7 +1402,7 @@ NOTES
         medicine_entry.pack(fill=tk.X, pady=5)
         
         tk.Label(form_frame, text="Other Charges:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        other_entry = tk.Entry(form_frame, font=('Arial', 10), width=40)
+        other_entry = tk.Entry(form_frame, font=('Arial', 10), width=40, state=entry_state)
         if is_edit and bill_data:
             other_entry.insert(0, str(bill_data.get('other_charges', 0)))
         else:
@@ -1248,24 +1433,40 @@ NOTES
         
         tk.Label(form_frame, text="Payment Status:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
         status_var = tk.StringVar()
-        status_combo = ttk.Combobox(form_frame, textvariable=status_var, values=['Pending', 'Paid', 'Partial'], width=37)
-        if is_edit and bill_data:
-            status_var.set(bill_data.get('payment_status', 'Pending'))
+        if view_only:
+            # For view mode, use a label instead of combobox
+            current_status = bill_data.get('payment_status', 'Pending') if is_edit and bill_data else 'Pending'
+            status_label = tk.Label(form_frame, text=current_status, font=('Arial', 10), bg='#f9fafb', fg='#374151', relief=tk.SOLID, bd=1, anchor='w', padx=5, pady=5)
+            status_label.pack(fill=tk.X, pady=5)
+            status_combo = None
         else:
-            status_var.set('Pending')
-        status_combo.pack(fill=tk.X, pady=5)
+            status_combo = ttk.Combobox(form_frame, textvariable=status_var, values=['Pending', 'Paid', 'Partial'], width=37, state=combo_state)
+            if is_edit and bill_data:
+                status_var.set(bill_data.get('payment_status', 'Pending'))
+            else:
+                status_var.set('Pending')
+            status_combo.pack(fill=tk.X, pady=5)
         
         tk.Label(form_frame, text="Payment Method:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
         payment_var = tk.StringVar()
-        payment_combo = ttk.Combobox(form_frame, textvariable=payment_var, values=['Cash', 'Card', 'Online', 'Insurance'], width=37)
-        if is_edit and bill_data:
-            payment_var.set(bill_data.get('payment_method', ''))
-        payment_combo.pack(fill=tk.X, pady=5)
+        if view_only:
+            # For view mode, use a label instead of combobox
+            current_payment = bill_data.get('payment_method', '') if is_edit and bill_data else ''
+            payment_label = tk.Label(form_frame, text=current_payment or 'Not specified', font=('Arial', 10), bg='#f9fafb', fg='#374151', relief=tk.SOLID, bd=1, anchor='w', padx=5, pady=5)
+            payment_label.pack(fill=tk.X, pady=5)
+            payment_combo = None
+        else:
+            payment_combo = ttk.Combobox(form_frame, textvariable=payment_var, values=['Cash', 'Card', 'Online', 'Insurance'], width=37, state=combo_state)
+            if is_edit and bill_data:
+                payment_var.set(bill_data.get('payment_method', ''))
+            payment_combo.pack(fill=tk.X, pady=5)
         
         tk.Label(form_frame, text="Notes:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        notes_text = tk.Text(form_frame, font=('Arial', 10), width=37, height=3)
+        notes_text = tk.Text(form_frame, font=('Arial', 10), width=37, height=3, state='normal' if not view_only else 'disabled')
         if is_edit and bill_data:
             notes_text.insert('1.0', bill_data.get('notes', ''))
+            if view_only:
+                notes_text.config(state='disabled')
         notes_text.pack(fill=tk.X, pady=5)
         
         def save_bill():
@@ -1376,26 +1577,6 @@ NOTES
                 else:
                     messagebox.showerror("Error", "Failed to create bill")
         
-        # Inner frame for button spacing
-        inner_button_frame = tk.Frame(button_frame, bg='#f5f7fa')
-        inner_button_frame.pack(fill=tk.X, padx=25, pady=20)
-        
-        tk.Button(
-            inner_button_frame,
-            text="Save",
-            command=save_bill,
-            font=('Segoe UI', 11, 'bold'),
-            bg='#10b981',
-            fg='white',
-            padx=35,
-            pady=10,
-            cursor='hand2',
-            relief=tk.FLAT,
-            bd=0,
-            activebackground='#059669',
-            activeforeground='white'
-        ).pack(side=tk.LEFT, padx=10)
-        
         def close_dialog():
             # Release grab BEFORE destroying
             try:
@@ -1419,21 +1600,65 @@ NOTES
             # Ensure all events are processed and UI is ready
             root.update_idletasks()
         
-        tk.Button(
-            inner_button_frame,
-            text="Close",
-            command=close_dialog,
-            font=('Segoe UI', 11, 'bold'),
-            bg='#6b7280',
-            fg='white',
-            padx=35,
-            pady=10,
-            cursor='hand2',
-            relief=tk.FLAT,
-            bd=0,
-            activebackground='#4b5563',
-            activeforeground='white'
-        ).pack(side=tk.LEFT, padx=10)
+        # Only show save button if not in view_only mode
+        if not view_only:
+            # Button frame - pack first to ensure it's at the bottom
+            button_frame = tk.Frame(dialog, bg='#f5f7fa', relief=tk.FLAT, bd=0)
+            button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
+            
+            # Inner frame for button spacing
+            inner_button_frame = tk.Frame(button_frame, bg='#f5f7fa')
+            inner_button_frame.pack(fill=tk.X, padx=25, pady=20)
+            
+            tk.Button(
+                inner_button_frame,
+                text="Save",
+                command=save_bill,
+                font=('Segoe UI', 11, 'bold'),
+                bg='#10b981',
+                fg='white',
+                padx=35,
+                pady=10,
+                cursor='hand2',
+                relief=tk.FLAT,
+                bd=0,
+                activebackground='#059669',
+                activeforeground='white'
+            ).pack(side=tk.LEFT, padx=10)
+            
+            tk.Button(
+                inner_button_frame,
+                text="Close",
+                command=close_dialog,
+                font=('Segoe UI', 11, 'bold'),
+                bg='#6b7280',
+                fg='white',
+                padx=35,
+                pady=10,
+                cursor='hand2',
+                relief=tk.FLAT,
+                bd=0,
+                activebackground='#4b5563',
+                activeforeground='white'
+            ).pack(side=tk.LEFT, padx=10)
+        else:
+            # For view_only mode, just show close button
+            close_btn = tk.Button(
+                main_frame,
+                text="Close",
+                command=close_dialog,
+                font=('Segoe UI', 11, 'bold'),
+                bg='#6b7280',
+                fg='white',
+                padx=35,
+                pady=10,
+                cursor='hand2',
+                relief=tk.FLAT,
+                bd=0,
+                activebackground='#4b5563',
+                activeforeground='white'
+            )
+            close_btn.pack(pady=20)
         
         # Ensure everything is properly laid out
         dialog.update_idletasks()

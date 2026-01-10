@@ -363,7 +363,100 @@ class AppointmentModule:
         )
         add_btn.pack(side=tk.RIGHT, padx=10)
         
-        # List frame
+        # Action buttons with modern styling - Doctor-friendly (BEFORE list so they're visible)
+        action_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        action_frame.pack(fill=tk.X, padx=25, pady=15)
+        
+        # Label for quick actions
+        tk.Label(
+            action_frame,
+            text="Quick Actions:",
+            font=('Segoe UI', 11, 'bold'),
+            bg='#f5f7fa',
+            fg='#374151'
+        ).pack(side=tk.LEFT, padx=(0, 15))
+        
+        tk.Button(
+            action_frame,
+            text="View Details",
+            command=self.view_appointment,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#3b82f6',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#2563eb',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
+        
+        tk.Button(
+            action_frame,
+            text="✏️ Edit Appointment",
+            command=self.edit_appointment,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#f59e0b',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#d97706',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
+        
+        tk.Button(
+            action_frame,
+            text="Delete",
+            command=self.delete_appointment,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#ef4444',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#dc2626',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
+        
+        tk.Button(
+            action_frame,
+            text="✅ Mark Complete",
+            command=self.mark_complete,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#10b981',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#059669',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
+        
+        tk.Button(
+            action_frame,
+            text="❌ Cancel Appointment",
+            command=self.cancel_appointment,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#f97316',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#ea580c',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
+        
+        # List frame (AFTER action buttons)
         list_frame = tk.Frame(self.parent, bg='#f5f7fa')
         list_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
@@ -457,76 +550,6 @@ class AppointmentModule:
         # Pack treeview and vertical scrollbar side by side
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        self.tree.bind('<Double-1>', self.view_appointment)
-        
-        # Action buttons with modern styling
-        action_frame = tk.Frame(self.parent, bg='#f5f7fa')
-        action_frame.pack(fill=tk.X, padx=25, pady=15)
-        
-        tk.Button(
-            action_frame,
-            text="View Details",
-            command=self.view_appointment,
-            font=('Segoe UI', 10, 'bold'),
-            bg='#3b82f6',
-            fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2',
-            relief=tk.FLAT,
-            bd=0,
-            activebackground='#2563eb',
-            activeforeground='white'
-        ).pack(side=tk.LEFT, padx=6)
-        
-        tk.Button(
-            action_frame,
-            text="Edit",
-            command=self.edit_appointment,
-            font=('Segoe UI', 10, 'bold'),
-            bg='#f59e0b',
-            fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2',
-            relief=tk.FLAT,
-            bd=0,
-            activebackground='#d97706',
-            activeforeground='white'
-        ).pack(side=tk.LEFT, padx=6)
-        
-        tk.Button(
-            action_frame,
-            text="Mark Complete",
-            command=self.mark_complete,
-            font=('Segoe UI', 10, 'bold'),
-            bg='#10b981',
-            fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2',
-            relief=tk.FLAT,
-            bd=0,
-            activebackground='#059669',
-            activeforeground='white'
-        ).pack(side=tk.LEFT, padx=6)
-        
-        tk.Button(
-            action_frame,
-            text="Cancel",
-            command=self.cancel_appointment,
-            font=('Segoe UI', 10, 'bold'),
-            bg='#ef4444',
-            fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2',
-            relief=tk.FLAT,
-            bd=0,
-            activebackground='#dc2626',
-            activeforeground='white'
-        ).pack(side=tk.LEFT, padx=6)
     
     def refresh_list(self):
         """Refresh appointment list (shows all appointments)"""
@@ -610,8 +633,203 @@ class AppointmentModule:
             return
         messagebox.showinfo("Appointment", f"View details for {appointment_id}")
     
+    def show_appointment_selection_popup(self, title, action_callback):
+        """Show popup to select an appointment"""
+        popup = tk.Toplevel(self.parent)
+        popup.title(title)
+        popup.geometry("1000x650")
+        popup.configure(bg='#f5f7fa')
+        popup.transient(self.parent)
+        popup.grab_set()
+        
+        # Center the window
+        popup.update_idletasks()
+        x = (popup.winfo_screenwidth() // 2) - (1000 // 2)
+        y = (popup.winfo_screenheight() // 2) - (650 // 2)
+        popup.geometry(f"1000x650+{x}+{y}")
+        
+        # Header
+        header_frame = tk.Frame(popup, bg='#1e40af', height=60)
+        header_frame.pack(fill=tk.X)
+        header_frame.pack_propagate(False)
+        
+        tk.Label(
+            header_frame,
+            text=title,
+            font=('Segoe UI', 14, 'bold'),
+            bg='#1e40af',
+            fg='white'
+        ).pack(pady=18)
+        
+        # Search frame
+        search_frame = tk.Frame(popup, bg='#f5f7fa', padx=20, pady=15)
+        search_frame.pack(fill=tk.X)
+        
+        tk.Label(
+            search_frame,
+            text="Search by Patient Name, Doctor, or Date:",
+            font=('Segoe UI', 10, 'bold'),
+            bg='#f5f7fa',
+            fg='#374151'
+        ).pack(side=tk.LEFT, padx=5)
+        
+        search_var = tk.StringVar()
+        search_entry = tk.Entry(
+            search_frame,
+            textvariable=search_var,
+            font=('Segoe UI', 10),
+            width=30,
+            relief=tk.FLAT,
+            bd=2,
+            highlightthickness=1,
+            highlightbackground='#d1d5db',
+            highlightcolor='#6366f1'
+        )
+        search_entry.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True, ipady=5)
+        search_entry.focus_set()
+        
+        # Appointment list
+        list_frame = tk.Frame(popup, bg='#f5f7fa', padx=20, pady=10)
+        list_frame.pack(fill=tk.BOTH, expand=True)
+        
+        columns = ('ID', 'Patient', 'Doctor', 'Date', 'Time', 'Status', 'Reason')
+        tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
+        
+        for col in columns:
+            tree.heading(col, text=col)
+            if col == 'ID':
+                tree.column(col, width=150)
+            elif col in ['Patient', 'Doctor']:
+                tree.column(col, width=180)
+            elif col == 'Date':
+                tree.column(col, width=120)
+            elif col == 'Time':
+                tree.column(col, width=100)
+            elif col == 'Status':
+                tree.column(col, width=120)
+            else:
+                tree.column(col, width=200)
+        
+        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        def load_appointments():
+            """Load appointments based on search"""
+            tree.delete(*tree.get_children())
+            search_text = search_var.get().strip().lower()
+            
+            try:
+                all_appointments = self.db.get_all_appointments()
+                for apt in all_appointments:
+                    patient_name = apt.get('patient_name', apt.get('patient_id', 'Unknown'))
+                    doctor_name = apt.get('doctor_name', apt.get('doctor_id', 'Unknown'))
+                    date = apt.get('appointment_date', '')
+                    time = apt.get('appointment_time', '')
+                    status = apt.get('status', 'Scheduled')
+                    reason = apt.get('reason', '')
+                    
+                    if (not search_text or 
+                        search_text in apt.get('appointment_id', '').lower() or
+                        search_text in patient_name.lower() or
+                        search_text in doctor_name.lower() or
+                        search_text in date.lower() or
+                        search_text in status.lower()):
+                        tree.insert('', tk.END, values=(
+                            apt['appointment_id'],
+                            patient_name,
+                            doctor_name,
+                            date,
+                            time,
+                            status,
+                            reason[:50] + '...' if len(reason) > 50 else reason
+                        ))
+            except Exception as e:
+                print(f"Error loading appointments: {e}")
+        
+        search_var.trace('w', lambda *args: load_appointments())
+        load_appointments()  # Initial load
+        
+        # Button frame
+        button_frame = tk.Frame(popup, bg='#f5f7fa', padx=20, pady=15)
+        button_frame.pack(fill=tk.X)
+        
+        def on_select():
+            selection = tree.selection()
+            if not selection:
+                messagebox.showwarning("Warning", "Please select an appointment")
+                return
+            
+            item = tree.item(selection[0])
+            appointment_id = item['values'][0]
+            popup.destroy()
+            action_callback(appointment_id)
+        
+        # Bind double-click to select
+        tree.bind('<Double-1>', lambda e: on_select())
+        
+        select_btn = tk.Button(
+            button_frame,
+            text="Select",
+            command=on_select,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#10b981',
+            fg='white',
+            padx=30,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            activebackground='#059669'
+        )
+        select_btn.pack(side=tk.LEFT, padx=5)
+        
+        cancel_btn = tk.Button(
+            button_frame,
+            text="Cancel",
+            command=popup.destroy,
+            font=('Segoe UI', 10),
+            bg='#6b7280',
+            fg='white',
+            padx=30,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            activebackground='#4b5563'
+        )
+        cancel_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Bind Enter key to select
+        search_entry.bind('<Return>', lambda e: on_select())
+        popup.bind('<Return>', lambda e: on_select())
+    
     def edit_appointment(self):
-        """Edit selected appointment"""
+        """Edit selected appointment - opens in EDIT mode"""
+        appointment_id = self.get_selected_appointment_id()
+        if not appointment_id:
+            # If no selection, show selection popup
+            self.show_appointment_selection_popup(
+                "Select Appointment to Edit",
+                lambda aid: self.edit_appointment_by_id(aid)
+            )
+            return
+        
+        # Directly edit the selected appointment
+        self.edit_appointment_by_id(appointment_id)
+    
+    def edit_appointment_by_id(self, appointment_id):
+        """Edit appointment by ID - explicitly opens in EDIT mode"""
+        appointment = self.db.get_appointment_by_id(appointment_id)
+        if not appointment:
+            messagebox.showerror("Error", "Appointment not found")
+            return
+        
+        # Explicitly pass view_only=False to ensure fields are editable
+        self.appointment_dialog(appointment, view_only=False)
+    
+    def mark_complete(self):
+        """Mark selected appointment as complete"""
         appointment_id = self.get_selected_appointment_id()
         if not appointment_id:
             return
@@ -621,29 +839,109 @@ class AppointmentModule:
             messagebox.showerror("Error", "Appointment not found")
             return
         
-        self.appointment_dialog(appointment)
+        # Get appointment details for confirmation
+        patient_name = appointment.get('patient_name', appointment.get('patient_id', 'Unknown'))
+        date = appointment.get('appointment_date', '')
+        time = appointment.get('appointment_time', '')
+        
+        # Confirm before marking as complete
+        confirm_msg = f"Mark this appointment as COMPLETED?\n\n"
+        confirm_msg += f"Patient: {patient_name}\n"
+        confirm_msg += f"Date: {date}\n"
+        confirm_msg += f"Time: {time}\n"
+        
+        if messagebox.askyesno("Confirm", confirm_msg):
+            try:
+                if self.db.update_appointment(appointment_id, {'status': 'Completed'}):
+                    messagebox.showinfo("Success", "Appointment marked as completed successfully")
+                    self.refresh_list()
+                else:
+                    messagebox.showerror("Error", "Failed to update appointment status")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to mark appointment as complete: {str(e)}")
     
-    def mark_complete(self):
-        """Mark appointment as complete"""
+    def delete_appointment(self):
+        """Delete selected appointment"""
         appointment_id = self.get_selected_appointment_id()
         if not appointment_id:
+            # If no selection, show selection popup
+            self.show_appointment_selection_popup(
+                "Select Appointment to Delete",
+                lambda aid: self.delete_appointment_by_id(aid)
+            )
             return
-        messagebox.showinfo("Info", "Mark complete functionality would update status")
-        self.refresh_list()
+        
+        # Directly delete the selected appointment
+        self.delete_appointment_by_id(appointment_id)
+    
+    def delete_appointment_by_id(self, appointment_id):
+        """Delete appointment by ID"""
+        appointment = self.db.get_appointment_by_id(appointment_id)
+        if not appointment:
+            messagebox.showerror("Error", "Appointment not found")
+            return
+        
+        # Show confirmation with appointment details
+        patient_name = appointment.get('patient_name', appointment.get('patient_id', 'Unknown'))
+        date = appointment.get('appointment_date', '')
+        time = appointment.get('appointment_time', '')
+        
+        confirm_msg = f"Are you sure you want to DELETE this appointment?\n\n"
+        confirm_msg += f"Patient: {patient_name}\n"
+        confirm_msg += f"Date: {date}\n"
+        confirm_msg += f"Time: {time}\n\n"
+        confirm_msg += "This action cannot be undone!"
+        
+        if messagebox.askyesno("Confirm Delete", confirm_msg, icon='warning'):
+            try:
+                # Try to delete from database
+                if hasattr(self.db, 'delete_appointment'):
+                    if self.db.delete_appointment(appointment_id):
+                        messagebox.showinfo("Success", "Appointment deleted successfully")
+                        self.refresh_list()
+                    else:
+                        messagebox.showerror("Error", "Failed to delete appointment")
+                else:
+                    # If delete method doesn't exist, update status to cancelled
+                    if self.db.update_appointment(appointment_id, {'status': 'Cancelled'}):
+                        messagebox.showinfo("Success", "Appointment cancelled successfully")
+                        self.refresh_list()
+                    else:
+                        messagebox.showerror("Error", "Failed to cancel appointment")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to delete appointment: {str(e)}")
     
     def cancel_appointment(self):
-        """Cancel appointment"""
+        """Cancel appointment (change status to Cancelled)"""
         appointment_id = self.get_selected_appointment_id()
         if not appointment_id:
             return
-        if messagebox.askyesno("Confirm", "Cancel this appointment?"):
-            messagebox.showinfo("Info", "Cancel functionality would update status")
-            self.refresh_list()
+        
+        appointment = self.db.get_appointment_by_id(appointment_id)
+        if not appointment:
+            messagebox.showerror("Error", "Appointment not found")
+            return
+        
+        if messagebox.askyesno("Confirm", "Cancel this appointment? Status will be changed to 'Cancelled'."):
+            try:
+                if self.db.update_appointment(appointment_id, {'status': 'Cancelled'}):
+                    messagebox.showinfo("Success", "Appointment cancelled successfully")
+                    self.refresh_list()
+                else:
+                    messagebox.showerror("Error", "Failed to cancel appointment")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to cancel appointment: {str(e)}")
     
-    def appointment_dialog(self, appointment=None):
+    def appointment_dialog(self, appointment=None, view_only=False):
         """Appointment form dialog"""
         dialog = tk.Toplevel(self.parent)
-        dialog.title("Schedule Appointment" if not appointment else "Edit Appointment")
+        # Set title based on mode
+        if view_only:
+            dialog.title("View Appointment Details")
+        elif appointment:
+            dialog.title("Edit Appointment - Editable")
+        else:
+            dialog.title("Schedule Appointment")
         dialog.geometry("550x600")  # Increased height to accommodate status field
         dialog.configure(bg='#f5f7fa')
         dialog.transient(self.parent)
@@ -660,20 +958,22 @@ class AppointmentModule:
         except:
             dialog.grab_set()  # Fallback for older tkinter versions
         
-        # Button frame - pack first at bottom to ensure visibility
-        button_frame = tk.Frame(dialog, bg='#f5f7fa', relief=tk.FLAT, bd=0)
-        button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
-        
-        # Inner frame for button spacing
-        inner_button_frame = tk.Frame(button_frame, bg='#f5f7fa')
-        inner_button_frame.pack(padx=25, pady=20)
-        
-        # Main content frame - pack after button frame
+        # Main content frame
         main_frame = tk.Frame(dialog, bg='#f5f7fa')
         main_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
         
         fields_frame = tk.Frame(main_frame, bg='#f5f7fa')
         fields_frame.pack(fill=tk.X, expand=False, pady=10)
+        
+        # Add mode indicator
+        if view_only:
+            mode_label = tk.Label(fields_frame, text="📖 VIEW MODE (Read Only)", 
+                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#ef4444')
+            mode_label.pack(pady=5)
+        elif appointment:
+            mode_label = tk.Label(fields_frame, text="✏️ EDIT MODE (Editable)", 
+                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#10b981')
+            mode_label.pack(pady=5)
         
         if appointment:
             appointment_id = appointment['appointment_id']
@@ -696,13 +996,15 @@ class AppointmentModule:
             patient_id_map[display_text] = p['patient_id']
         
         patient_var = tk.StringVar()
+        # Set state based on view_only
+        combo_state = 'readonly' if view_only else 'normal'
         patient_combo = ttk.Combobox(
             fields_frame, 
             textvariable=patient_var,
             values=patient_options,
             font=('Arial', 10),
             width=37,
-            state='normal'  # 'normal' allows typing to search
+            state=combo_state
         )
         patient_combo.pack(fill=tk.X, pady=5)
         
@@ -740,7 +1042,7 @@ class AppointmentModule:
             values=doctor_options,
             font=('Arial', 10),
             width=37,
-            state='normal'  # 'normal' allows typing to search
+            state=combo_state
         )
         doctor_combo.pack(fill=tk.X, pady=5)
         
@@ -762,7 +1064,9 @@ class AppointmentModule:
         tk.Label(fields_frame, text="Date (YYYY-MM-DD) *:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
         date_frame = tk.Frame(fields_frame, bg='#f5f7fa')
         date_frame.pack(fill=tk.X, pady=5)
-        date_entry = tk.Entry(date_frame, font=('Arial', 10), width=35)
+        # Set entry state based on view_only
+        entry_state = 'readonly' if view_only else 'normal'
+        date_entry = tk.Entry(date_frame, font=('Arial', 10), width=35, state=entry_state)
         if appointment:
             date_entry.insert(0, appointment.get('appointment_date', get_current_date()))
         else:
@@ -1028,14 +1332,15 @@ class AppointmentModule:
         date_cal_btn = tk.Button(
             date_frame,
             text="📅",
-            command=open_calendar_for_date,
+            command=open_calendar_for_date if not view_only else lambda: None,
             font=('Segoe UI', 12),
             bg='#3b82f6',
             fg='white',
             width=3,
             relief=tk.FLAT,
-            cursor='hand2',
-            padx=5
+            cursor='hand2' if not view_only else 'arrow',
+            padx=5,
+            state='normal' if not view_only else 'disabled'
         )
         date_cal_btn.pack(side=tk.LEFT, padx=(5, 0))
         
@@ -1043,7 +1348,7 @@ class AppointmentModule:
         tk.Label(fields_frame, text="Time (HH:MM) *:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
         time_frame = tk.Frame(fields_frame, bg='#f5f7fa')
         time_frame.pack(fill=tk.X, pady=5)
-        time_entry = tk.Entry(time_frame, font=('Arial', 10), width=35)
+        time_entry = tk.Entry(time_frame, font=('Arial', 10), width=35, state=entry_state)
         if appointment:
             time_entry.insert(0, appointment.get('appointment_time', ''))
         time_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
@@ -1259,22 +1564,25 @@ class AppointmentModule:
         time_clock_btn = tk.Button(
             time_frame,
             text="🕐",
-            command=open_time_picker,
+            command=open_time_picker if not view_only else lambda: None,
             font=('Segoe UI', 12),
             bg='#3b82f6',
             fg='white',
             width=3,
             relief=tk.FLAT,
-            cursor='hand2',
-            padx=5
+            cursor='hand2' if not view_only else 'arrow',
+            padx=5,
+            state='normal' if not view_only else 'disabled'
         )
         time_clock_btn.pack(side=tk.LEFT, padx=(5, 0))
         
         # Notes
         tk.Label(fields_frame, text="Notes:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        notes_text = tk.Text(fields_frame, font=('Arial', 10), width=40, height=4)
+        notes_text = tk.Text(fields_frame, font=('Arial', 10), width=40, height=4, state=entry_state)
         if appointment:
             notes_text.insert('1.0', appointment.get('notes', ''))
+            if view_only:
+                notes_text.config(state='disabled')
         notes_text.pack(fill=tk.X, pady=5)
         
         # Status dropdown (only shown when editing)
@@ -1290,30 +1598,46 @@ class AppointmentModule:
             status_selector_frame = tk.Frame(fields_frame, bg='#f5f7fa')
             status_selector_frame.pack(fill=tk.X, pady=5)
             
-            # Use Menubutton for more reliable dropdown behavior
-            status_menu_btn = tk.Menubutton(
-                status_selector_frame,
-                textvariable=status_var,
-                font=('Arial', 10),
-                width=35,
-                relief=tk.SOLID,
-                borderwidth=1,
-                bg='white',
-                activebackground='#e5e7eb',
-                anchor='w'
-            )
-            status_menu_btn.pack(fill=tk.X, expand=True)
-            
-            # Create the menu
-            status_menu = tk.Menu(status_menu_btn, tearoff=0)
-            status_menu_btn.config(menu=status_menu)
-            
-            # Add menu items
-            for status_option in ["Scheduled", "Completed", "Cancelled"]:
-                status_menu.add_command(
-                    label=status_option,
-                    command=lambda s=status_option: status_var.set(s)
+            if view_only:
+                # For view mode, use a label instead of menubutton
+                status_label = tk.Label(
+                    status_selector_frame,
+                    text=current_status,
+                    font=('Arial', 10),
+                    bg='#f9fafb',
+                    fg='#374151',
+                    relief=tk.SOLID,
+                    borderwidth=1,
+                    anchor='w',
+                    padx=10,
+                    pady=5
                 )
+                status_label.pack(fill=tk.X, expand=True)
+            else:
+                # Use Menubutton for more reliable dropdown behavior
+                status_menu_btn = tk.Menubutton(
+                    status_selector_frame,
+                    textvariable=status_var,
+                    font=('Arial', 10),
+                    width=35,
+                    relief=tk.SOLID,
+                    borderwidth=1,
+                    bg='white',
+                    activebackground='#e5e7eb',
+                    anchor='w'
+                )
+                status_menu_btn.pack(fill=tk.X, expand=True)
+                
+                # Create the menu
+                status_menu = tk.Menu(status_menu_btn, tearoff=0)
+                status_menu_btn.config(menu=status_menu)
+                
+                # Add menu items
+                for status_option in ["Scheduled", "Completed", "Cancelled"]:
+                    status_menu.add_command(
+                        label=status_option,
+                        command=lambda s=status_option: status_var.set(s)
+                    )
         else:
             # For new appointments, status is always 'Scheduled'
             status_var.set('Scheduled')
@@ -1333,6 +1657,15 @@ class AppointmentModule:
                 if did == doctor_id:
                     doctor_var.set(display_text)
                     break
+        
+        # Button frame - only show save button if not view_only
+        if not view_only:
+            button_frame = tk.Frame(dialog, bg='#f5f7fa', relief=tk.FLAT, bd=0)
+            button_frame.pack(side=tk.BOTTOM, fill=tk.X, padx=0, pady=0)
+            
+            # Inner frame for button spacing
+            inner_button_frame = tk.Frame(button_frame, bg='#f5f7fa')
+            inner_button_frame.pack(padx=25, pady=20)
         
         def save_appointment():
             # Get selected patient and doctor IDs from combobox
@@ -1429,25 +1762,6 @@ class AppointmentModule:
                 error_message = "Failed to update appointment" if is_edit else "Failed to schedule appointment"
                 messagebox.showerror("Error", error_message)
         
-        # Schedule/Update Appointment button - primary action
-        button_text = "Update Appointment" if appointment else "Schedule Appointment"
-        schedule_btn = tk.Button(
-            inner_button_frame,
-            text=button_text,
-            command=save_appointment,
-            font=('Segoe UI', 12, 'bold'),
-            bg='#10b981',
-            fg='white',
-            padx=40,
-            pady=12,
-            cursor='hand2',
-            relief=tk.FLAT,
-            bd=0,
-            activebackground='#059669',
-            activeforeground='white'
-        )
-        schedule_btn.pack(side=tk.LEFT, padx=10)
-        
         def close_dialog():
             # Release grab BEFORE destroying
             try:
@@ -1470,8 +1784,29 @@ class AppointmentModule:
             # Ensure all events are processed and UI is ready
             root.update_idletasks()
         
+        # Only show save button if not in view_only mode
+        if not view_only:
+            button_text = "Update Appointment" if appointment else "Schedule Appointment"
+            save_btn = tk.Button(
+                inner_button_frame,
+                text=button_text,
+                command=save_appointment,
+                font=('Segoe UI', 12, 'bold'),
+                bg='#10b981',
+                fg='white',
+                padx=40,
+                pady=12,
+                cursor='hand2',
+                relief=tk.FLAT,
+                bd=0,
+                activebackground='#059669',
+                activeforeground='white'
+            )
+            save_btn.pack(side=tk.LEFT, padx=10)
+        
+        # Close button - always show
         close_btn = tk.Button(
-            inner_button_frame,
+            inner_button_frame if not view_only else main_frame,
             text="Close",
             command=close_dialog,
             font=('Segoe UI', 11, 'bold'),
@@ -1485,7 +1820,10 @@ class AppointmentModule:
             activebackground='#4b5563',
             activeforeground='white'
         )
-        close_btn.pack(side=tk.LEFT, padx=10)
+        if view_only:
+            close_btn.pack(pady=20)
+        else:
+            close_btn.pack(side=tk.LEFT, padx=10)
         
         # Ensure dialog releases grab when closed via window close button
         def on_close():

@@ -349,7 +349,68 @@ class PrescriptionModule:
         )
         add_btn.pack(side=tk.RIGHT, padx=10)
         
-        # List frame
+        # Action buttons - Doctor-friendly popup-based actions (BEFORE list so they're visible)
+        action_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        action_frame.pack(fill=tk.X, padx=20, pady=15)
+        
+        # Button labels for doctors
+        tk.Label(
+            action_frame,
+            text="Quick Actions:",
+            font=('Segoe UI', 11, 'bold'),
+            bg='#f5f7fa',
+            fg='#374151'
+        ).pack(side=tk.LEFT, padx=(0, 15))
+        
+        tk.Button(
+            action_frame,
+            text="View Details",
+            command=self.view_prescription,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#3b82f6',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#2563eb',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
+        
+        tk.Button(
+            action_frame,
+            text="✏️ Edit Prescription",
+            command=self.edit_prescription,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#f59e0b',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#d97706',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
+        
+        tk.Button(
+            action_frame,
+            text="Delete",
+            command=self.delete_prescription,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#ef4444',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#dc2626',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
+        
+        # List frame (AFTER action buttons)
         list_frame = tk.Frame(self.parent, bg='#f5f7fa')
         list_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
@@ -444,27 +505,8 @@ class PrescriptionModule:
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        self.tree.bind('<Double-1>', self.edit_prescription)
-        
-        # Action buttons
-        action_frame = tk.Frame(self.parent, bg='#f0f0f0')
-        action_frame.pack(fill=tk.X, padx=20, pady=10)
-        
-        tk.Button(
-            action_frame,
-            text="View Details",
-            command=self.view_prescription,
-            font=('Segoe UI', 10, 'bold'),
-            bg='#3b82f6',
-            fg='white',
-            padx=20,
-            pady=8,
-            cursor='hand2',
-            relief=tk.FLAT,
-            bd=0,
-            activebackground='#2563eb',
-            activeforeground='white'
-        ).pack(side=tk.LEFT, padx=6)
+        # Remove double-click binding - will use popup instead
+        # self.tree.bind('<Double-1>', self.edit_prescription)
     
     def refresh_list(self):
         """Refresh prescription list (shows all prescriptions)"""
@@ -529,51 +571,470 @@ class PrescriptionModule:
         """Search prescriptions by patient (deprecated - use apply_filters instead)"""
         self.apply_filters()
     
-    def get_selected_prescription_id(self):
-        """Get selected prescription ID"""
-        selection = self.tree.selection()
-        if not selection:
-            messagebox.showwarning("Warning", "Please select a prescription")
-            return None
-        item = self.tree.item(selection[0])
-        return item['values'][0]
+    def show_prescription_selection_popup(self, title, action_callback):
+        """Show popup to select a prescription - doctor-friendly"""
+        popup = tk.Toplevel(self.parent)
+        popup.title(title)
+        popup.geometry("900x600")
+        popup.configure(bg='#f5f7fa')
+        popup.transient(self.parent)
+        popup.grab_set()
+        
+        # Center the window
+        popup.update_idletasks()
+        x = (popup.winfo_screenwidth() // 2) - (900 // 2)
+        y = (popup.winfo_screenheight() // 2) - (600 // 2)
+        popup.geometry(f"900x600+{x}+{y}")
+        
+        # Header
+        header_frame = tk.Frame(popup, bg='#1e40af', height=60)
+        header_frame.pack(fill=tk.X)
+        header_frame.pack_propagate(False)
+        
+        tk.Label(
+            header_frame,
+            text=title,
+            font=('Segoe UI', 14, 'bold'),
+            bg='#1e40af',
+            fg='white'
+        ).pack(pady=18)
+        
+        # Search frame
+        search_frame = tk.Frame(popup, bg='#f5f7fa', padx=20, pady=15)
+        search_frame.pack(fill=tk.X)
+        
+        tk.Label(
+            search_frame,
+            text="Search by Patient Name or Date:",
+            font=('Segoe UI', 10, 'bold'),
+            bg='#f5f7fa',
+            fg='#374151'
+        ).pack(side=tk.LEFT, padx=5)
+        
+        search_var = tk.StringVar()
+        search_entry = tk.Entry(
+            search_frame,
+            textvariable=search_var,
+            font=('Segoe UI', 10),
+            width=30,
+            relief=tk.FLAT,
+            bd=2,
+            highlightthickness=1,
+            highlightbackground='#d1d5db',
+            highlightcolor='#6366f1'
+        )
+        search_entry.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True, ipady=5)
+        search_entry.focus_set()
+        
+        # Prescription list
+        list_frame = tk.Frame(popup, bg='#f5f7fa', padx=20, pady=10)
+        list_frame.pack(fill=tk.BOTH, expand=True)
+        
+        columns = ('ID', 'Patient ID', 'Patient Name', 'Doctor', 'Date', 'Diagnosis')
+        tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
+        
+        for col in columns:
+            tree.heading(col, text=col)
+            if col == 'ID':
+                tree.column(col, width=150)
+            elif col == 'Patient ID':
+                tree.column(col, width=120)
+            elif col == 'Patient Name':
+                tree.column(col, width=180)
+            elif col == 'Doctor':
+                tree.column(col, width=200)
+            elif col == 'Date':
+                tree.column(col, width=120)
+            else:
+                tree.column(col, width=200)
+        
+        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=tree.yview)
+        tree.configure(yscrollcommand=scrollbar.set)
+        
+        tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        def load_prescriptions():
+            """Load prescriptions based on search"""
+            tree.delete(*tree.get_children())
+            search_text = search_var.get().strip()
+            
+            try:
+                if search_text:
+                    # Try to search by patient name first
+                    prescriptions = self.db.get_prescriptions_by_patient_name(search_text)
+                    # If no results, try by date
+                    if not prescriptions:
+                        prescriptions = self.db.get_prescriptions_by_date(search_text)
+                else:
+                    prescriptions = self.db.get_all_prescriptions()
+                
+                for pres in prescriptions:
+                    doctor_display = pres.get('doctor_name', pres.get('doctor_id', 'Unknown'))
+                    patient_display = pres.get('patient_name', pres.get('patient_id', 'Unknown'))
+                    diagnosis = pres.get('diagnosis', '')
+                    if len(diagnosis) > 50:
+                        diagnosis = diagnosis[:47] + '...'
+                    
+                    tree.insert('', tk.END, values=(
+                        pres['prescription_id'],
+                        pres['patient_id'],
+                        patient_display,
+                        doctor_display,
+                        pres['prescription_date'],
+                        diagnosis
+                    ))
+            except Exception as e:
+                print(f"Error loading prescriptions: {e}")
+        
+        search_var.trace('w', lambda *args: load_prescriptions())
+        load_prescriptions()  # Initial load
+        
+        # Button frame
+        button_frame = tk.Frame(popup, bg='#f5f7fa', padx=20, pady=15)
+        button_frame.pack(fill=tk.X)
+        
+        def on_select():
+            selection = tree.selection()
+            if not selection:
+                messagebox.showwarning("Warning", "Please select a prescription")
+                return
+            
+            item = tree.item(selection[0])
+            prescription_id = item['values'][0]
+            popup.destroy()
+            action_callback(prescription_id)
+        
+        # Bind double-click to select
+        tree.bind('<Double-1>', lambda e: on_select())
+        
+        select_btn = tk.Button(
+            button_frame,
+            text="Select",
+            command=on_select,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#10b981',
+            fg='white',
+            padx=30,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            activebackground='#059669'
+        )
+        select_btn.pack(side=tk.LEFT, padx=5)
+        
+        cancel_btn = tk.Button(
+            button_frame,
+            text="Cancel",
+            command=popup.destroy,
+            font=('Segoe UI', 10),
+            bg='#6b7280',
+            fg='white',
+            padx=30,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            activebackground='#4b5563'
+        )
+        cancel_btn.pack(side=tk.LEFT, padx=5)
+        
+        # Bind Enter key to select
+        search_entry.bind('<Return>', lambda e: on_select())
+        popup.bind('<Return>', lambda e: on_select())
     
     def add_prescription(self):
-        """Open add prescription form in full window"""
-        self.show_prescription_form()
+        """Open add prescription form in popup window"""
+        self.show_prescription_form_popup()
+    
+    def get_selected_prescription_id(self):
+        """Get selected prescription ID from main tree"""
+        selection = self.tree.selection()
+        if not selection:
+            return None
+        item = self.tree.item(selection[0])
+        # Prescription ID is in the first column (index 0)
+        return item['values'][0] if item['values'] else None
     
     def edit_prescription(self, event=None):
-        """Open prescription in edit mode"""
+        """Edit selected prescription - opens in EDIT mode"""
         prescription_id = self.get_selected_prescription_id()
         if not prescription_id:
+            # If no selection, show selection popup
+            self.show_prescription_selection_popup(
+                "Select Prescription to Edit",
+                lambda pid: self.show_prescription_form_popup(prescription_id=pid, view_only=False)
+            )
             return
-        self.show_prescription_form(prescription_id=prescription_id)
+        
+        # Directly edit the selected prescription
+        prescription = self.db.get_prescription_by_id(prescription_id)
+        if not prescription:
+            messagebox.showerror("Error", "Prescription not found")
+            return
+        
+        # Explicitly pass view_only=False to ensure fields are editable
+        self.show_prescription_form_popup(prescription_id=prescription_id, view_only=False)
     
     def view_prescription(self, event=None):
-        """View prescription details"""
+        """View selected prescription details"""
         prescription_id = self.get_selected_prescription_id()
         if not prescription_id:
+            # If no selection, show selection popup
+            self.show_prescription_selection_popup(
+                "Select Prescription to View",
+                self.view_prescription_details
+            )
             return
         
-        # Get prescription items
-        items = self.db.get_prescription_items(prescription_id)
-        if not items:
-            messagebox.showinfo("Prescription", "No items found")
-            return
-        
-        # Show prescription details
-        details = "Prescription Details:\n\n"
-        for item in items:
-            details += f"Medicine: {item['medicine_name']}\n"
-            details += f"Dosage: {item['dosage']}\n"
-            details += f"Frequency: {item['frequency']}\n"
-            details += f"Duration: {item['duration']}\n"
-            details += f"Instructions: {item.get('instructions', '')}\n\n"
-        
-        messagebox.showinfo("Prescription Details", details)
+        # Directly view the selected prescription
+        self.view_prescription_details(prescription_id)
     
-    def show_prescription_form(self, prescription_id=None):
-        """Show prescription form in full window"""
+    def delete_prescription(self, event=None):
+        """Delete selected prescription"""
+        prescription_id = self.get_selected_prescription_id()
+        if not prescription_id:
+            # If no selection, show selection popup
+            self.show_prescription_selection_popup(
+                "Select Prescription to Delete",
+                self.delete_prescription_by_id
+            )
+            return
+        
+        # Directly delete the selected prescription
+        self.delete_prescription_by_id(prescription_id)
+    
+    def delete_prescription_by_id(self, prescription_id):
+        """Delete prescription by ID"""
+        prescription_data = self.db.get_prescription_by_id(prescription_id)
+        if not prescription_data:
+            messagebox.showerror("Error", "Prescription not found")
+            return
+        
+        # Get patient and doctor details for confirmation
+        patient = self.db.get_patient_by_id(prescription_data.get('patient_id'))
+        doctor = self.db.get_doctor_by_id(prescription_data.get('doctor_id'))
+        
+        patient_name = f"{patient.get('first_name', '')} {patient.get('last_name', '')}" if patient else prescription_data.get('patient_id', 'Unknown')
+        doctor_name = f"Dr. {doctor.get('first_name', '')} {doctor.get('last_name', '')}" if doctor else prescription_data.get('doctor_id', 'Unknown')
+        date = prescription_data.get('prescription_date', '')
+        
+        confirm_msg = f"Are you sure you want to DELETE this prescription?\n\n"
+        confirm_msg += f"Prescription ID: {prescription_id}\n"
+        confirm_msg += f"Patient: {patient_name}\n"
+        confirm_msg += f"Doctor: {doctor_name}\n"
+        confirm_msg += f"Date: {date}\n\n"
+        confirm_msg += "This action cannot be undone!"
+        
+        if messagebox.askyesno("Confirm Delete", confirm_msg, icon='warning'):
+            try:
+                # Check if delete_prescription method exists
+                if hasattr(self.db, 'delete_prescription'):
+                    if self.db.delete_prescription(prescription_id):
+                        messagebox.showinfo("Success", "Prescription deleted successfully")
+                        self.apply_filters()  # Refresh the list
+                    else:
+                        messagebox.showerror("Error", "Failed to delete prescription")
+                else:
+                    messagebox.showerror("Error", "Delete functionality not available in database")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to delete prescription: {str(e)}")
+    
+    def view_prescription_details(self, prescription_id):
+        """View prescription details in a popup"""
+        prescription_data = self.db.get_prescription_by_id(prescription_id)
+        if not prescription_data:
+            messagebox.showerror("Error", "Prescription not found")
+            return
+        
+        items = self.db.get_prescription_items(prescription_id)
+        
+        # Create popup window
+        popup = tk.Toplevel(self.parent)
+        popup.title(f"Prescription Details - {prescription_id}")
+        popup.geometry("800x700")
+        popup.configure(bg='#f5f7fa')
+        popup.transient(self.parent)
+        popup.grab_set()
+        
+        # Center the window
+        popup.update_idletasks()
+        x = (popup.winfo_screenwidth() // 2) - (800 // 2)
+        y = (popup.winfo_screenheight() // 2) - (700 // 2)
+        popup.geometry(f"800x700+{x}+{y}")
+        
+        # Header
+        header_frame = tk.Frame(popup, bg='#1e40af', height=60)
+        header_frame.pack(fill=tk.X)
+        header_frame.pack_propagate(False)
+        
+        tk.Label(
+            header_frame,
+            text=f"Prescription Details - {prescription_id}",
+            font=('Segoe UI', 14, 'bold'),
+            bg='#1e40af',
+            fg='white'
+        ).pack(pady=18)
+        
+        # Scrollable content
+        canvas = tk.Canvas(popup, bg='#f5f7fa', highlightthickness=0)
+        scrollbar = ttk.Scrollbar(popup, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg='#f5f7fa')
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True, padx=20, pady=15)
+        scrollbar.pack(side="right", fill="y", pady=15)
+        
+        # Content frame
+        content_frame = tk.Frame(scrollable_frame, bg='#ffffff', relief=tk.RAISED, bd=2)
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Patient and Doctor info
+        info_frame = tk.LabelFrame(
+            content_frame,
+            text="Patient & Doctor Information",
+            font=('Segoe UI', 11, 'bold'),
+            bg='#ffffff',
+            fg='#1a237e',
+            padx=15,
+            pady=10
+        )
+        info_frame.pack(fill=tk.X, padx=15, pady=10)
+        
+        # Get patient and doctor details
+        patient = self.db.get_patient_by_id(prescription_data.get('patient_id'))
+        doctor = self.db.get_doctor_by_id(prescription_data.get('doctor_id'))
+        
+        info_text = f"Patient: {patient.get('first_name', '')} {patient.get('last_name', '')} ({prescription_data.get('patient_id')})\n"
+        info_text += f"Doctor: Dr. {doctor.get('first_name', '')} {doctor.get('last_name', '')} ({prescription_data.get('doctor_id')})\n"
+        info_text += f"Date: {prescription_data.get('prescription_date', '')}\n"
+        if prescription_data.get('appointment_id'):
+            info_text += f"Appointment ID: {prescription_data.get('appointment_id')}\n"
+        
+        tk.Label(
+            info_frame,
+            text=info_text,
+            font=('Segoe UI', 10),
+            bg='#ffffff',
+            fg='#374151',
+            justify=tk.LEFT,
+            anchor='w'
+        ).pack(fill=tk.X, padx=5, pady=5)
+        
+        # Diagnosis
+        if prescription_data.get('diagnosis'):
+            diagnosis_frame = tk.LabelFrame(
+                content_frame,
+                text="Diagnosis",
+                font=('Segoe UI', 11, 'bold'),
+                bg='#ffffff',
+                fg='#1a237e',
+                padx=15,
+                pady=10
+            )
+            diagnosis_frame.pack(fill=tk.X, padx=15, pady=10)
+            
+            diagnosis_label = tk.Label(
+                diagnosis_frame,
+                text=prescription_data.get('diagnosis', ''),
+                font=('Segoe UI', 10),
+                bg='#ffffff',
+                fg='#374151',
+                wraplength=700,
+                justify=tk.LEFT,
+                anchor='w'
+            )
+            diagnosis_label.pack(fill=tk.X, padx=5, pady=5)
+        
+        # Medicines
+        if items:
+            medicines_frame = tk.LabelFrame(
+                content_frame,
+                text="Prescribed Medicines",
+                font=('Segoe UI', 11, 'bold'),
+                bg='#ffffff',
+                fg='#1a237e',
+                padx=15,
+                pady=10
+            )
+            medicines_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
+            
+            # Treeview for medicines
+            med_columns = ('Medicine', 'Type', 'Dosage', 'Frequency', 'Duration', 'Instructions')
+            med_tree = ttk.Treeview(medicines_frame, columns=med_columns, show='headings', height=min(len(items), 10))
+            
+            for col in med_columns:
+                med_tree.heading(col, text=col)
+                if col == 'Medicine':
+                    med_tree.column(col, width=200)
+                elif col == 'Type':
+                    med_tree.column(col, width=90, anchor='center')
+                elif col == 'Instructions':
+                    med_tree.column(col, width=200)
+                else:
+                    med_tree.column(col, width=120)
+            
+            for item in items:
+                med_tree.insert('', tk.END, values=(
+                    item.get('medicine_name', ''),
+                    item.get('medicine_type', ''),
+                    item.get('dosage', ''),
+                    item.get('frequency', ''),
+                    item.get('duration', ''),
+                    item.get('instructions', '')
+                ))
+            
+            med_tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        
+        # Notes
+        if prescription_data.get('notes'):
+            notes_frame = tk.LabelFrame(
+                content_frame,
+                text="Doctor's Notes",
+                font=('Segoe UI', 11, 'bold'),
+                bg='#ffffff',
+                fg='#1a237e',
+                padx=15,
+                pady=10
+            )
+            notes_frame.pack(fill=tk.X, padx=15, pady=10)
+            
+            notes_label = tk.Label(
+                notes_frame,
+                text=prescription_data.get('notes', ''),
+                font=('Segoe UI', 10),
+                bg='#ffffff',
+                fg='#374151',
+                wraplength=700,
+                justify=tk.LEFT,
+                anchor='w'
+            )
+            notes_label.pack(fill=tk.X, padx=5, pady=5)
+        
+        # Close button
+        close_btn = tk.Button(
+            popup,
+            text="Close",
+            command=popup.destroy,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#6b7280',
+            fg='white',
+            padx=40,
+            pady=10,
+            cursor='hand2',
+            relief=tk.FLAT,
+            activebackground='#4b5563'
+        )
+        close_btn.pack(pady=15)
+    
+    def show_prescription_form_popup(self, prescription_id=None, view_only=False):
+        """Show prescription form in popup window - doctor-friendly"""
         # If prescription_id is provided, we're editing
         is_editing = prescription_id is not None
         prescription_data = None
@@ -585,13 +1046,45 @@ class PrescriptionModule:
                 messagebox.showerror("Error", "Prescription not found")
                 return
             existing_items = self.db.get_prescription_items(prescription_id)
-        # Clear existing content
-        for widget in self.parent.winfo_children():
-            widget.destroy()
+        
+        # Create popup window
+        popup = tk.Toplevel(self.parent)
+        # Set title based on mode
+        if view_only:
+            popup.title("View Prescription Details")
+        elif is_editing:
+            popup.title("Edit Prescription - Editable")
+        else:
+            popup.title("New Prescription")
+        
+        # Get screen dimensions and set window to fullscreen
+        screen_width = popup.winfo_screenwidth()
+        screen_height = popup.winfo_screenheight()
+        
+        # Set window geometry to full screen
+        popup.geometry(f"{screen_width}x{screen_height}+0+0")
+        
+        # Try to maximize window (works on Windows)
+        try:
+            popup.state('zoomed')  # Windows maximized state
+        except:
+            try:
+                # Alternative for Linux
+                popup.attributes('-zoomed', True)
+            except:
+                # Fallback: use full screen dimensions
+                popup.geometry(f"{screen_width}x{screen_height}+0+0")
+        
+        popup.configure(bg='#f5f7fa')
+        popup.transient(self.parent)
+        popup.grab_set()
+        
+        # Use popup as parent for all widgets
+        form_parent = popup
         
         # Create scrollable container with better background
-        canvas = tk.Canvas(self.parent, bg='#f5f7fa', highlightthickness=0)
-        scrollbar = ttk.Scrollbar(self.parent, orient="vertical", command=canvas.yview)
+        canvas = tk.Canvas(form_parent, bg='#f5f7fa', highlightthickness=0)
+        scrollbar = ttk.Scrollbar(form_parent, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(canvas, bg='#f5f7fa')
         
         scrollable_frame.bind(
@@ -616,35 +1109,58 @@ class PrescriptionModule:
         
         if not is_editing:
             prescription_id = generate_id('PRES')
-        title_text = f"{'✏️ Edit' if is_editing else '➕ New'} Prescription - ID: {prescription_id}"
+        
+        # Mode indicator and title
+        title_frame = tk.Frame(header_frame, bg='#1e40af')
+        title_frame.pack(side=tk.LEFT, padx=25, pady=18)
+        
+        # Add mode indicator
+        if view_only:
+            mode_text = "📖 VIEW MODE (Read Only)"
+            mode_color = '#ef4444'
+        elif is_editing:
+            mode_text = "✏️ EDIT MODE (Editable)"
+            mode_color = '#10b981'
+        else:
+            mode_text = "➕ NEW PRESCRIPTION"
+            mode_color = '#3b82f6'
+        
+        mode_label = tk.Label(
+            title_frame,
+            text=mode_text,
+            font=('Segoe UI', 11, 'bold'),
+            bg='#1e40af',
+            fg=mode_color
+        )
+        mode_label.pack()
+        
+        title_text = f"Prescription ID: {prescription_id}"
         title_label = tk.Label(
-            header_frame,
+            title_frame,
             text=title_text,
-            font=('Segoe UI', 14, 'bold'),
+            font=('Segoe UI', 12, 'bold'),
             bg='#1e40af',
             fg='white'
         )
-        title_label.pack(side=tk.LEFT, padx=25, pady=18)
+        title_label.pack()
         
         def back_to_list():
-            """Return to prescription list"""
-            for widget in self.parent.winfo_children():
-                widget.destroy()
-            self.create_ui()
-            self.parent.after(10, self.refresh_list)
+            """Close popup and return to prescription list"""
+            popup.destroy()
+            self.apply_filters()  # Refresh the list
         
         back_btn = tk.Button(
             header_frame,
-            text="← Back to List",
+            text="✕ Close",
             command=back_to_list,
             font=('Segoe UI', 10, 'bold'),
-            bg='#3b82f6',
+            bg='#6b7280',
             fg='white',
             padx=18,
             pady=8,
             cursor='hand2',
             relief=tk.FLAT,
-            activebackground='#2563eb',
+            activebackground='#4b5563',
             activeforeground='white'
         )
         back_btn.pack(side=tk.RIGHT, padx=25, pady=12)
@@ -674,79 +1190,439 @@ class PrescriptionModule:
         )
         form_frame.pack(fill=tk.X, pady=(0, 10))
         
-        # Patient selection with searchable dropdown
+        # Status indicator frame (shows completion status)
+        status_frame = tk.Frame(form_frame, bg='#ffffff', pady=5)
+        status_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        status_label = tk.Label(
+            status_frame,
+            text="⚪ Required fields not completed",
+            font=('Segoe UI', 9, 'bold'),
+            bg='#ffffff',
+            fg='#ef4444'
+        )
+        status_label.pack(side=tk.LEFT)
+        
+        def update_status():
+            """Update status indicator"""
+            patient_status = "✓" if selected_patient_id['value'] else "✗"
+            doctor_status = "✓" if selected_doctor_id['value'] else "✗"
+            med_status = "✓" if medicines else "✗"
+            
+            if selected_patient_id['value'] and selected_doctor_id['value'] and medicines:
+                status_label.config(text="✅ All required fields completed", fg='#10b981')
+            else:
+                status_text = f"⚪ Patient: {patient_status} | Doctor: {doctor_status} | Medicines: {med_status}"
+                status_label.config(text=status_text, fg='#f59e0b')
+        
+        # Patient selection with popup button
         patient_label_frame = tk.Frame(form_frame, bg='#ffffff')
         patient_label_frame.pack(fill=tk.X, pady=(0, 8))
-        tk.Label(patient_label_frame, text="Patient *", font=('Segoe UI', 10, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
         
-        # Get all patients for dropdown
-        all_patients = self.db.get_all_patients()
-        patient_options = []
-        patient_id_map = {}
+        patient_title_frame = tk.Frame(patient_label_frame, bg='#ffffff')
+        patient_title_frame.pack(fill=tk.X)
         
-        for p in all_patients:
-            display_text = f"{p['patient_id']} - {p['first_name']} {p['last_name']}"
-            patient_options.append(display_text)
-            patient_id_map[display_text] = p['patient_id']
+        tk.Label(patient_title_frame, text="Patient *", font=('Segoe UI', 10, 'bold'), bg='#ffffff', fg='#374151').pack(side=tk.LEFT, anchor='w')
         
-        patient_var = tk.StringVar()
-        patient_combo = ttk.Combobox(
-            form_frame, 
+        # Show recent patients if editing same patient
+        recent_patients_frame = tk.Frame(patient_label_frame, bg='#ffffff')
+        recent_patients_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        patient_frame = tk.Frame(form_frame, bg='#ffffff')
+        patient_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        # Set entry state based on view_only
+        entry_state = 'readonly' if view_only else 'readonly'  # Always readonly for display
+        patient_var = tk.StringVar(value="Click to select patient..." if not view_only else "No patient selected")
+        patient_display = tk.Entry(
+            patient_frame,
             textvariable=patient_var,
-            values=patient_options,
             font=('Segoe UI', 10),
-            state='normal',
-            height=8
+            state='readonly',
+            relief=tk.SOLID,
+            bd=1,
+            readonlybackground='#f9fafb',
+            fg='#6b7280'
         )
-        patient_combo.pack(fill=tk.X, pady=(0, 15), ipady=5)
+        patient_display.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=5, padx=(0, 5))
         
-        # Make combobox searchable
-        def filter_patient(*args):
-            value = patient_var.get().lower()
-            if value == '':
-                patient_combo['values'] = patient_options
-            else:
-                filtered = [opt for opt in patient_options if value in opt.lower()]
-                patient_combo['values'] = filtered
+        selected_patient_id = {'value': None}  # Use dict to allow modification in nested function
         
-        patient_var.trace('w', filter_patient)
+        def open_patient_selector():
+            """Open patient selection popup"""
+            patient_popup = tk.Toplevel(form_parent)
+            patient_popup.title("Select Patient")
+            patient_popup.geometry("800x600")
+            patient_popup.configure(bg='#f5f7fa')
+            patient_popup.transient(form_parent)
+            patient_popup.grab_set()
+            
+            # Center the window
+            patient_popup.update_idletasks()
+            x = (patient_popup.winfo_screenwidth() // 2) - (800 // 2)
+            y = (patient_popup.winfo_screenheight() // 2) - (600 // 2)
+            patient_popup.geometry(f"800x600+{x}+{y}")
+            
+            # Header
+            header_frame = tk.Frame(patient_popup, bg='#1e40af', height=60)
+            header_frame.pack(fill=tk.X)
+            header_frame.pack_propagate(False)
+            
+            tk.Label(
+                header_frame,
+                text="Select Patient",
+                font=('Segoe UI', 14, 'bold'),
+                bg='#1e40af',
+                fg='white'
+            ).pack(pady=18)
+            
+            # Search frame
+            search_frame = tk.Frame(patient_popup, bg='#f5f7fa', padx=20, pady=15)
+            search_frame.pack(fill=tk.X)
+            
+            tk.Label(
+                search_frame,
+                text="Search:",
+                font=('Segoe UI', 10, 'bold'),
+                bg='#f5f7fa',
+                fg='#374151'
+            ).pack(side=tk.LEFT, padx=5)
+            
+            search_var = tk.StringVar()
+            search_entry = tk.Entry(
+                search_frame,
+                textvariable=search_var,
+                font=('Segoe UI', 10),
+                width=30,
+                relief=tk.FLAT,
+                bd=2,
+                highlightthickness=1,
+                highlightbackground='#d1d5db',
+                highlightcolor='#6366f1'
+            )
+            search_entry.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True, ipady=5)
+            search_entry.focus_set()
+            
+            # Patient list
+            list_frame = tk.Frame(patient_popup, bg='#f5f7fa', padx=20, pady=10)
+            list_frame.pack(fill=tk.BOTH, expand=True)
+            
+            columns = ('Patient ID', 'First Name', 'Last Name', 'Age', 'Gender', 'Phone')
+            tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
+            
+            for col in columns:
+                tree.heading(col, text=col)
+                if col == 'Patient ID':
+                    tree.column(col, width=150)
+                elif col in ['First Name', 'Last Name']:
+                    tree.column(col, width=150)
+                else:
+                    tree.column(col, width=100)
+            
+            scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=tree.yview)
+            tree.configure(yscrollcommand=scrollbar.set)
+            
+            tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            
+            def load_patients():
+                """Load patients based on search"""
+                tree.delete(*tree.get_children())
+                search_text = search_var.get().strip().lower()
+                
+                try:
+                    all_patients = self.db.get_all_patients()
+                    for patient in all_patients:
+                        if (not search_text or 
+                            search_text in patient.get('patient_id', '').lower() or
+                            search_text in patient.get('first_name', '').lower() or
+                            search_text in patient.get('last_name', '').lower()):
+                            tree.insert('', tk.END, values=(
+                                patient.get('patient_id', ''),
+                                patient.get('first_name', ''),
+                                patient.get('last_name', ''),
+                                patient.get('age', ''),
+                                patient.get('gender', ''),
+                                patient.get('phone', '')
+                            ))
+                except Exception as e:
+                    print(f"Error loading patients: {e}")
+            
+            search_var.trace('w', lambda *args: load_patients())
+            load_patients()  # Initial load
+            
+            # Button frame
+            button_frame = tk.Frame(patient_popup, bg='#f5f7fa', padx=20, pady=15)
+            button_frame.pack(fill=tk.X)
+            
+            def on_select():
+                selection = tree.selection()
+                if not selection:
+                    messagebox.showwarning("Warning", "Please select a patient")
+                    return
+                
+                item = tree.item(selection[0])
+                patient_id = item['values'][0]
+                patient_name = f"{item['values'][1]} {item['values'][2]}"
+                display_text = f"{patient_id} - {patient_name}"
+                
+                selected_patient_id['value'] = patient_id
+                patient_var.set(display_text)
+                patient_display.config(fg='#1f2937')  # Change color to indicate selection
+                patient_popup.destroy()
+            
+            tree.bind('<Double-1>', lambda e: on_select())
+            
+            select_btn = tk.Button(
+                button_frame,
+                text="Select",
+                command=on_select,
+                font=('Segoe UI', 10, 'bold'),
+                bg='#10b981',
+                fg='white',
+                padx=30,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#059669'
+            )
+            select_btn.pack(side=tk.LEFT, padx=5)
+            
+            cancel_btn = tk.Button(
+                button_frame,
+                text="Cancel",
+                command=patient_popup.destroy,
+                font=('Segoe UI', 10),
+                bg='#6b7280',
+                fg='white',
+                padx=30,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#4b5563'
+            )
+            cancel_btn.pack(side=tk.LEFT, padx=5)
+            
+            search_entry.bind('<Return>', lambda e: on_select())
+            patient_popup.bind('<Return>', lambda e: on_select())
         
-        # Doctor selection with searchable dropdown
+        patient_btn = tk.Button(
+            patient_frame,
+            text="🔍 Select Patient",
+            command=open_patient_selector if not view_only else lambda: None,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#3b82f6',
+            fg='white',
+            padx=15,
+            pady=8,
+            cursor='hand2' if not view_only else 'arrow',
+            relief=tk.FLAT,
+            activebackground='#2563eb',
+            state='normal' if not view_only else 'disabled'
+        )
+        patient_btn.pack(side=tk.LEFT)
+        
+        # Doctor selection with popup button
         doctor_label_frame = tk.Frame(form_frame, bg='#ffffff')
         doctor_label_frame.pack(fill=tk.X, pady=(0, 8))
         tk.Label(doctor_label_frame, text="Doctor *", font=('Segoe UI', 10, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
         
-        # Get all doctors for dropdown
-        all_doctors = self.db.get_all_doctors()
-        doctor_options = []
-        doctor_id_map = {}
+        doctor_frame = tk.Frame(form_frame, bg='#ffffff')
+        doctor_frame.pack(fill=tk.X, pady=(0, 15))
         
-        for d in all_doctors:
-            display_text = f"{d['doctor_id']} - Dr. {d['first_name']} {d['last_name']} ({d['specialization']})"
-            doctor_options.append(display_text)
-            doctor_id_map[display_text] = d['doctor_id']
-        
-        doctor_var = tk.StringVar()
-        doctor_combo = ttk.Combobox(
-            form_frame,
+        doctor_var = tk.StringVar(value="Click to select doctor..." if not view_only else "No doctor selected")
+        doctor_display = tk.Entry(
+            doctor_frame,
             textvariable=doctor_var,
-            values=doctor_options,
             font=('Segoe UI', 10),
-            state='normal',
-            height=8
+            state='readonly',
+            relief=tk.SOLID,
+            bd=1,
+            readonlybackground='#f9fafb',
+            fg='#6b7280'
         )
-        doctor_combo.pack(fill=tk.X, pady=(0, 15), ipady=5)
+        doctor_display.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=5, padx=(0, 5))
         
-        # Make combobox searchable
-        def filter_doctor(*args):
-            value = doctor_var.get().lower()
-            if value == '':
-                doctor_combo['values'] = doctor_options
-            else:
-                filtered = [opt for opt in doctor_options if value in opt.lower()]
-                doctor_combo['values'] = filtered
+        selected_doctor_id = {'value': None}  # Use dict to allow modification in nested function
         
-        doctor_var.trace('w', filter_doctor)
+        def open_doctor_selector():
+            """Open doctor selection popup"""
+            doctor_popup = tk.Toplevel(form_parent)
+            doctor_popup.title("Select Doctor")
+            doctor_popup.geometry("900x600")
+            doctor_popup.configure(bg='#f5f7fa')
+            doctor_popup.transient(form_parent)
+            doctor_popup.grab_set()
+            
+            # Center the window
+            doctor_popup.update_idletasks()
+            x = (doctor_popup.winfo_screenwidth() // 2) - (900 // 2)
+            y = (doctor_popup.winfo_screenheight() // 2) - (600 // 2)
+            doctor_popup.geometry(f"900x600+{x}+{y}")
+            
+            # Header
+            header_frame = tk.Frame(doctor_popup, bg='#1e40af', height=60)
+            header_frame.pack(fill=tk.X)
+            header_frame.pack_propagate(False)
+            
+            tk.Label(
+                header_frame,
+                text="Select Doctor",
+                font=('Segoe UI', 14, 'bold'),
+                bg='#1e40af',
+                fg='white'
+            ).pack(pady=18)
+            
+            # Search frame
+            search_frame = tk.Frame(doctor_popup, bg='#f5f7fa', padx=20, pady=15)
+            search_frame.pack(fill=tk.X)
+            
+            tk.Label(
+                search_frame,
+                text="Search:",
+                font=('Segoe UI', 10, 'bold'),
+                bg='#f5f7fa',
+                fg='#374151'
+            ).pack(side=tk.LEFT, padx=5)
+            
+            search_var = tk.StringVar()
+            search_entry = tk.Entry(
+                search_frame,
+                textvariable=search_var,
+                font=('Segoe UI', 10),
+                width=30,
+                relief=tk.FLAT,
+                bd=2,
+                highlightthickness=1,
+                highlightbackground='#d1d5db',
+                highlightcolor='#6366f1'
+            )
+            search_entry.pack(side=tk.LEFT, padx=10, fill=tk.X, expand=True, ipady=5)
+            search_entry.focus_set()
+            
+            # Doctor list
+            list_frame = tk.Frame(doctor_popup, bg='#f5f7fa', padx=20, pady=10)
+            list_frame.pack(fill=tk.BOTH, expand=True)
+            
+            columns = ('Doctor ID', 'First Name', 'Last Name', 'Specialization', 'Phone', 'Email')
+            tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
+            
+            for col in columns:
+                tree.heading(col, text=col)
+                if col == 'Doctor ID':
+                    tree.column(col, width=150)
+                elif col in ['First Name', 'Last Name']:
+                    tree.column(col, width=150)
+                elif col == 'Specialization':
+                    tree.column(col, width=180)
+                else:
+                    tree.column(col, width=150)
+            
+            scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=tree.yview)
+            tree.configure(yscrollcommand=scrollbar.set)
+            
+            tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+            
+            def load_doctors():
+                """Load doctors based on search"""
+                tree.delete(*tree.get_children())
+                search_text = search_var.get().strip().lower()
+                
+                try:
+                    all_doctors = self.db.get_all_doctors()
+                    for doctor in all_doctors:
+                        if (not search_text or 
+                            search_text in doctor.get('doctor_id', '').lower() or
+                            search_text in doctor.get('first_name', '').lower() or
+                            search_text in doctor.get('last_name', '').lower() or
+                            search_text in doctor.get('specialization', '').lower()):
+                            tree.insert('', tk.END, values=(
+                                doctor.get('doctor_id', ''),
+                                doctor.get('first_name', ''),
+                                doctor.get('last_name', ''),
+                                doctor.get('specialization', ''),
+                                doctor.get('phone', ''),
+                                doctor.get('email', '')
+                            ))
+                except Exception as e:
+                    print(f"Error loading doctors: {e}")
+            
+            search_var.trace('w', lambda *args: load_doctors())
+            load_doctors()  # Initial load
+            
+            # Button frame
+            button_frame = tk.Frame(doctor_popup, bg='#f5f7fa', padx=20, pady=15)
+            button_frame.pack(fill=tk.X)
+            
+            def on_select():
+                selection = tree.selection()
+                if not selection:
+                    messagebox.showwarning("Warning", "Please select a doctor")
+                    return
+                
+                item = tree.item(selection[0])
+                doctor_id = item['values'][0]
+                doctor_name = f"Dr. {item['values'][1]} {item['values'][2]}"
+                specialization = item['values'][3]
+                display_text = f"{doctor_id} - {doctor_name} ({specialization})"
+                
+                selected_doctor_id['value'] = doctor_id
+                doctor_var.set(display_text)
+                doctor_display.config(fg='#1f2937')  # Change color to indicate selection
+                doctor_popup.destroy()
+                update_status()  # Update status indicator
+            
+            tree.bind('<Double-1>', lambda e: on_select())
+            
+            select_btn = tk.Button(
+                button_frame,
+                text="Select",
+                command=on_select,
+                font=('Segoe UI', 10, 'bold'),
+                bg='#10b981',
+                fg='white',
+                padx=30,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#059669'
+            )
+            select_btn.pack(side=tk.LEFT, padx=5)
+            
+            cancel_btn = tk.Button(
+                button_frame,
+                text="Cancel",
+                command=doctor_popup.destroy,
+                font=('Segoe UI', 10),
+                bg='#6b7280',
+                fg='white',
+                padx=30,
+                pady=8,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#4b5563'
+            )
+            cancel_btn.pack(side=tk.LEFT, padx=5)
+            
+            search_entry.bind('<Return>', lambda e: on_select())
+            doctor_popup.bind('<Return>', lambda e: on_select())
+        
+        doctor_btn = tk.Button(
+            doctor_frame,
+            text="🔍 Select Doctor",
+            command=open_doctor_selector if not view_only else lambda: None,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#3b82f6',
+            fg='white',
+            padx=15,
+            pady=8,
+            cursor='hand2' if not view_only else 'arrow',
+            relief=tk.FLAT,
+            activebackground='#2563eb',
+            state='normal' if not view_only else 'disabled'
+        )
+        doctor_btn.pack(side=tk.LEFT)
         
         # Appointment ID (optional)
         appointment_label_frame = tk.Frame(form_frame, bg='#ffffff')
@@ -764,17 +1640,19 @@ class PrescriptionModule:
         date_input_frame = tk.Frame(form_frame, bg='#ffffff')
         date_input_frame.pack(fill=tk.X, pady=(0, 15))
         
-        date_entry = tk.Entry(date_input_frame, font=('Segoe UI', 10), relief=tk.SOLID, bd=1)
+        # Set entry state based on view_only
+        entry_state = 'readonly' if view_only else 'normal'
+        date_entry = tk.Entry(date_input_frame, font=('Segoe UI', 10), relief=tk.SOLID, bd=1, state=entry_state)
         date_entry.insert(0, get_current_date())
         date_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=5, padx=(0, 5))
         
         def open_calendar():
             """Open calendar date picker"""
-            calendar_window = tk.Toplevel(self.parent)
+            calendar_window = tk.Toplevel(form_parent)
             calendar_window.title("Select Date")
             calendar_window.geometry("300x280")
             calendar_window.configure(bg='#ffffff')
-            calendar_window.transient(self.parent)
+            calendar_window.transient(form_parent)
             calendar_window.grab_set()
             
             # Center the window
@@ -1010,22 +1888,78 @@ class PrescriptionModule:
         calendar_btn = tk.Button(
             date_input_frame,
             text="📅",
-            command=open_calendar,
+            command=open_calendar if not view_only else lambda: None,
             font=('Segoe UI', 12),
             bg='#3b82f6',
             fg='white',
             width=3,
             relief=tk.FLAT,
-            cursor='hand2',
-            activebackground='#2563eb'
+            cursor='hand2' if not view_only else 'arrow',
+            activebackground='#2563eb',
+            state='normal' if not view_only else 'disabled'
         )
         calendar_btn.pack(side=tk.LEFT)
         
-        # Diagnosis
+        # Diagnosis with templates
         diagnosis_label_frame = tk.Frame(form_frame, bg='#ffffff')
         diagnosis_label_frame.pack(fill=tk.X, pady=(0, 8))
-        tk.Label(diagnosis_label_frame, text="Diagnosis", font=('Segoe UI', 10, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
-        diagnosis_text = tk.Text(form_frame, font=('Segoe UI', 10), height=4, wrap=tk.WORD, relief=tk.SOLID, bd=1, padx=5, pady=5)
+        
+        diagnosis_title_frame = tk.Frame(diagnosis_label_frame, bg='#ffffff')
+        diagnosis_title_frame.pack(fill=tk.X)
+        
+        tk.Label(diagnosis_title_frame, text="Diagnosis", font=('Segoe UI', 10, 'bold'), bg='#ffffff', fg='#374151').pack(side=tk.LEFT, anchor='w')
+        
+        # Common diagnosis templates
+        common_diagnoses = [
+            "Acute Upper Respiratory Tract Infection",
+            "Hypertension",
+            "Type 2 Diabetes Mellitus",
+            "Acute Gastroenteritis",
+            "Urinary Tract Infection",
+            "Acute Bronchitis",
+            "Migraine",
+            "Dermatitis",
+            "Arthritis",
+            "Anxiety Disorder"
+        ]
+        
+        def insert_diagnosis_template(diag):
+            """Insert diagnosis template"""
+            current = diagnosis_text.get('1.0', tk.END).strip()
+            if current:
+                diagnosis_text.insert('1.0', f"{diag}\n")
+            else:
+                diagnosis_text.insert('1.0', diag)
+            diagnosis_text.focus_set()
+        
+        template_frame = tk.Frame(diagnosis_label_frame, bg='#f0f9ff', relief=tk.SUNKEN, bd=1)
+        template_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        tk.Label(
+            template_frame,
+            text="Quick templates:",
+            font=('Segoe UI', 8),
+            bg='#f0f9ff',
+            fg='#6b7280'
+        ).pack(side=tk.LEFT, padx=5, pady=3)
+        
+        for diag in common_diagnoses[:6]:  # Show first 6
+            btn = tk.Button(
+                template_frame,
+                text=diag[:25] + "..." if len(diag) > 25 else diag,
+                command=lambda d=diag: insert_diagnosis_template(d),
+                font=('Segoe UI', 7),
+                bg='#dbeafe',
+                fg='#1e40af',
+                padx=8,
+                pady=2,
+                relief=tk.FLAT,
+                cursor='hand2',
+                activebackground='#bfdbfe'
+            )
+            btn.pack(side=tk.LEFT, padx=2, pady=3)
+        
+        diagnosis_text = tk.Text(form_frame, font=('Segoe UI', 10), height=4, wrap=tk.WORD, relief=tk.SOLID, bd=1, padx=5, pady=5, state='normal' if not view_only else 'disabled')
         diagnosis_text.pack(fill=tk.X, pady=(0, 10))
         
         # Additional Notes section
@@ -1045,24 +1979,30 @@ class PrescriptionModule:
         notes_label_frame = tk.Frame(notes_frame, bg='#ffffff')
         notes_label_frame.pack(fill=tk.X, pady=(0, 8))
         tk.Label(notes_label_frame, text="Doctor's Notes", font=('Segoe UI', 10), bg='#ffffff', fg='#6b7280').pack(anchor='w')
-        notes_text = tk.Text(notes_frame, font=('Segoe UI', 10), height=12, wrap=tk.WORD, relief=tk.SOLID, bd=1, padx=5, pady=5)
+        notes_text = tk.Text(notes_frame, font=('Segoe UI', 10), height=12, wrap=tk.WORD, relief=tk.SOLID, bd=1, padx=5, pady=5, state='normal' if not view_only else 'disabled')
         notes_text.pack(fill=tk.BOTH, expand=True)
         
         # Populate form fields if editing
         if is_editing and prescription_data:
             # Set patient
             patient_id_to_find = prescription_data.get('patient_id')
-            for display_text, pid in patient_id_map.items():
-                if pid == patient_id_to_find:
+            if patient_id_to_find:
+                patient = self.db.get_patient_by_id(patient_id_to_find)
+                if patient:
+                    display_text = f"{patient_id_to_find} - {patient.get('first_name', '')} {patient.get('last_name', '')}"
                     patient_var.set(display_text)
-                    break
+                    selected_patient_id['value'] = patient_id_to_find
+                    patient_display.config(fg='#1f2937')
             
             # Set doctor
             doctor_id_to_find = prescription_data.get('doctor_id')
-            for display_text, did in doctor_id_map.items():
-                if did == doctor_id_to_find:
+            if doctor_id_to_find:
+                doctor = self.db.get_doctor_by_id(doctor_id_to_find)
+                if doctor:
+                    display_text = f"{doctor_id_to_find} - Dr. {doctor.get('first_name', '')} {doctor.get('last_name', '')} ({doctor.get('specialization', '')})"
                     doctor_var.set(display_text)
-                    break
+                    selected_doctor_id['value'] = doctor_id_to_find
+                    doctor_display.config(fg='#1f2937')
             
             # Set appointment
             if prescription_data.get('appointment_id'):
@@ -1256,6 +2196,8 @@ class PrescriptionModule:
                 medicines.remove(medicine_data_map[item])
                 del medicine_data_map[item]
             med_tree.delete(item)
+            # Update status indicator
+            update_status()
         
         # Bind double-click to remove
         med_tree.bind('<Double-1>', lambda e: remove_selected_medicine())
@@ -1310,17 +2252,18 @@ class PrescriptionModule:
             textvariable=med_name_var,
             font=('Segoe UI', 10),
             relief=tk.SOLID,
-            bd=1
+            bd=1,
+            state=entry_state
         )
         med_name_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8), ipady=4)
         
         def open_medicine_selector():
             """Open full window medicine selector"""
-            medicine_window = tk.Toplevel(self.parent)
+            medicine_window = tk.Toplevel(form_parent)
             medicine_window.title("Select Medicine")
             medicine_window.geometry("1200x700")
             medicine_window.configure(bg='#f0f0f0')
-            medicine_window.transient(self.parent)
+            medicine_window.transient(form_parent)
             medicine_window.grab_set()
             
             # Header
@@ -1619,16 +2562,17 @@ class PrescriptionModule:
         select_med_btn = tk.Button(
             med_name_input_frame,
             text="🔍 Browse",
-            command=open_medicine_selector,
+            command=open_medicine_selector if not view_only else lambda: None,
             font=('Segoe UI', 9, 'bold'),
             bg='#6366f1',
             fg='white',
             padx=12,
             pady=4,
-            cursor='hand2',
+            cursor='hand2' if not view_only else 'arrow',
             relief=tk.FLAT,
             activebackground='#4f46e5',
-            activeforeground='white'
+            activeforeground='white',
+            state='normal' if not view_only else 'disabled'
         )
         select_med_btn.pack(side=tk.LEFT)
         
@@ -1656,6 +2600,54 @@ class PrescriptionModule:
         dosage_label_frame.grid(row=0, column=0, sticky='w', padx=(0, 8), pady=5)
         tk.Label(dosage_label_frame, text="Dosage *", font=('Segoe UI', 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
         
+        # Common prescription presets
+        presets_frame = tk.Frame(add_med_frame, bg='#ffffff')
+        presets_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        tk.Label(
+            presets_frame,
+            text="💊 Quick Presets:",
+            font=('Segoe UI', 8, 'bold'),
+            bg='#ffffff',
+            fg='#6b7280'
+        ).pack(side=tk.LEFT, padx=(0, 5), pady=3)
+        
+        common_presets = [
+            ("Paracetamol", "500mg", "BD", "5 days", "After meals"),
+            ("Ibuprofen", "400mg", "TDS", "3 days", "With food"),
+            ("Amoxicillin", "500mg", "TDS", "7 days", "After meals"),
+            ("Azithromycin", "500mg", "OD", "3 days", "1 hour before food"),
+            ("Omeprazole", "20mg", "OD", "14 days", "Before breakfast"),
+            ("Cetirizine", "10mg", "OD", "5 days", "At bedtime")
+        ]
+        
+        def apply_preset(med, dose, freq, dur, inst):
+            """Apply preset values"""
+            med_name_var.set(med)
+            dosage_var.set(dose)
+            frequency_var.set(freq)
+            duration_var.set(dur)
+            instructions_var.set(inst)
+        
+        for med, dose, freq, dur, inst in common_presets:
+            btn = tk.Button(
+                presets_frame,
+                text=f"{med} ({dose})",
+                command=lambda m=med, d=dose, f=freq, dur=dur, i=inst: apply_preset(m, d, f, dur, i),
+                font=('Segoe UI', 7),
+                bg='#ecfdf5',
+                fg='#065f46',
+                padx=6,
+                pady=2,
+                relief=tk.FLAT,
+                cursor='hand2',
+                activebackground='#d1fae5'
+            )
+            btn.pack(side=tk.LEFT, padx=2, pady=3)
+        
+        # Set combo state based on view_only
+        combo_state = 'readonly' if view_only else 'normal'
+        
         dosage_var = tk.StringVar()
         dosage_combo = ttk.Combobox(
             details_frame, 
@@ -1663,7 +2655,7 @@ class PrescriptionModule:
             values=dosage_options, 
             font=('Segoe UI', 9), 
             width=20, 
-            state='normal'
+            state=combo_state
         )
         dosage_combo.grid(row=0, column=1, padx=(0, 15), pady=5, sticky='ew', ipady=3)
         
@@ -1751,13 +2743,15 @@ class PrescriptionModule:
         tk.Label(frequency_label_frame, text="Frequency *", font=('Segoe UI', 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
         
         frequency_var = tk.StringVar()
+        # Set combo state based on view_only
+        combo_state = 'readonly' if view_only else 'normal'
         frequency_combo = ttk.Combobox(
             details_frame, 
             textvariable=frequency_var, 
             values=frequency_options, 
             font=('Segoe UI', 9), 
             width=20, 
-            state='normal'
+            state=combo_state
         )
         frequency_combo.grid(row=0, column=3, padx=(0, 0), pady=5, sticky='ew', ipady=3)
         
@@ -1794,7 +2788,7 @@ class PrescriptionModule:
             values=duration_options, 
             font=('Segoe UI', 9), 
             width=20, 
-            state='normal'
+            state=combo_state
         )
         duration_combo.grid(row=1, column=1, padx=(0, 15), pady=5, sticky='ew', ipady=3)
         
@@ -1814,12 +2808,15 @@ class PrescriptionModule:
         instructions_label_frame.grid(row=1, column=2, sticky='w', padx=(0, 8), pady=5)
         tk.Label(instructions_label_frame, text="Instructions", font=('Segoe UI', 9), bg='#ffffff', fg='#6b7280').pack(anchor='w')
         
+        instructions_var = tk.StringVar()
         instructions_entry = tk.Entry(
-            details_frame, 
+            details_frame,
+            textvariable=instructions_var,
             font=('Segoe UI', 9), 
             width=20,
             relief=tk.SOLID,
-            bd=1
+            bd=1,
+            state=entry_state
         )
         instructions_entry.grid(row=1, column=3, padx=(0, 0), pady=5, sticky='ew', ipady=3)
         
@@ -1890,6 +2887,9 @@ class PrescriptionModule:
             medicines.append(medicine_data)
             medicine_data_map[item] = medicine_data
             
+            # Update status indicator
+            update_status()
+            
             # Clear fields
             med_name_var.set('')
             dosage_var.set('')
@@ -1910,16 +2910,17 @@ class PrescriptionModule:
         add_med_btn = tk.Button(
             add_med_btn_frame,
             text="➕ Add Medicine to List",
-            command=add_medicine,
+            command=add_medicine if not view_only else lambda: None,
             font=('Segoe UI', 10, 'bold'),
             bg='#3b82f6',
             fg='white',
             padx=25,
             pady=10,
-            cursor='hand2',
+            cursor='hand2' if not view_only else 'arrow',
             relief=tk.FLAT,
             activebackground='#2563eb',
-            activeforeground='white'
+            activeforeground='white',
+            state='normal' if not view_only else 'disabled'
         )
         add_med_btn.pack(side=tk.LEFT)
         
@@ -2016,6 +3017,45 @@ class PrescriptionModule:
                 medicines.append(medicine_data)
                 medicine_data_map[tree_item] = medicine_data
         
+        # Keyboard shortcuts help
+        shortcuts_frame = tk.Frame(main_frame, bg='#f0f9ff', relief=tk.SUNKEN, bd=1)
+        shortcuts_frame.pack(fill=tk.X, padx=20, pady=(10, 5))
+        
+        shortcuts_text = "⌨️ Keyboard Shortcuts: F1=Select Patient | F2=Select Doctor | F3=Add Medicine | Ctrl+S=Save | Ctrl+P=Print | Esc=Close"
+        shortcuts_label = tk.Label(
+            shortcuts_frame,
+            text=shortcuts_text,
+            font=('Segoe UI', 8),
+            bg='#f0f9ff',
+            fg='#1e40af',
+            anchor='w',
+            justify=tk.LEFT
+        )
+        shortcuts_label.pack(padx=10, pady=5)
+        
+        # Bind keyboard shortcuts
+        def on_f1(event=None):
+            open_patient_selector()
+        
+        def on_f2(event=None):
+            open_doctor_selector()
+        
+        def on_f3(event=None):
+            med_name_entry.focus_set()
+        
+        def on_ctrl_s(event=None):
+            save_prescription()
+        
+        def on_ctrl_p(event=None):
+            print_prescription()
+        
+        form_parent.bind('<F1>', on_f1)
+        form_parent.bind('<F2>', on_f2)
+        form_parent.bind('<F3>', on_f3)
+        form_parent.bind('<Control-s>', on_ctrl_s)
+        form_parent.bind('<Control-p>', on_ctrl_p)
+        form_parent.bind('<Escape>', lambda e: back_to_list())
+        
         # Save and Cancel buttons at bottom - improved styling
         button_frame = tk.Frame(main_frame, bg='#f8f9fa', relief=tk.RAISED, bd=1)
         button_frame.pack(fill=tk.X, padx=20, pady=(10, 20))
@@ -2025,33 +3065,17 @@ class PrescriptionModule:
         
         def save_prescription():
             # Get selected patient ID
-            patient_display = patient_var.get()
-            patient_id = None
-            if patient_display in patient_id_map:
-                patient_id = patient_id_map[patient_display]
-            else:
-                parts = patient_display.split(' - ')
-                if parts and parts[0].startswith('PAT-'):
-                    patient_id = parts[0]
-            
-            # Get selected doctor ID
-            doctor_display = doctor_var.get()
-            doctor_id = None
-            if doctor_display in doctor_id_map:
-                doctor_id = doctor_id_map[doctor_display]
-            else:
-                parts = doctor_display.split(' - ')
-                if parts and parts[0].startswith('DOC-'):
-                    doctor_id = parts[0]
-            
+            patient_id = selected_patient_id['value']
             if not patient_id:
-                messagebox.showerror("Validation Error", "Please select a patient from the dropdown list.\n\nYou can type to search for a patient.")
-                patient_combo.focus_set()
+                messagebox.showerror("Validation Error", "Please select a patient using the 'Select Patient' button.")
+                patient_btn.focus_set()
                 return
             
+            # Get selected doctor ID
+            doctor_id = selected_doctor_id['value']
             if not doctor_id:
-                messagebox.showerror("Validation Error", "Please select a doctor from the dropdown list.\n\nYou can type to search for a doctor.")
-                doctor_combo.focus_set()
+                messagebox.showerror("Validation Error", "Please select a doctor using the 'Select Doctor' button.")
+                doctor_btn.focus_set()
                 return
             
             if not medicines:
@@ -2075,7 +3099,6 @@ class PrescriptionModule:
                 if self.db.update_prescription(prescription_id, data, medicines):
                     messagebox.showinfo("Success", "Prescription updated successfully")
                     back_to_list()
-                    self.parent.after(100, self.refresh_list)
                 else:
                     messagebox.showerror("Error", "Failed to update prescription")
             else:
@@ -2084,36 +3107,19 @@ class PrescriptionModule:
                 if self.db.add_prescription(data, medicines):
                     messagebox.showinfo("Success", "Prescription created successfully")
                     back_to_list()
-                    self.parent.after(100, self.refresh_list)
                 else:
                     messagebox.showerror("Error", "Failed to create prescription")
         
         def print_prescription():
             """Generate and print professional prescription PDF"""
             # Get selected patient ID
-            patient_display = patient_var.get()
-            patient_id = None
-            if patient_display in patient_id_map:
-                patient_id = patient_id_map[patient_display]
-            else:
-                parts = patient_display.split(' - ')
-                if parts and parts[0].startswith('PAT-'):
-                    patient_id = parts[0]
-            
-            # Get selected doctor ID
-            doctor_display = doctor_var.get()
-            doctor_id = None
-            if doctor_display in doctor_id_map:
-                doctor_id = doctor_id_map[doctor_display]
-            else:
-                parts = doctor_display.split(' - ')
-                if parts and parts[0].startswith('DOC-'):
-                    doctor_id = parts[0]
-            
+            patient_id = selected_patient_id['value']
             if not patient_id:
                 messagebox.showwarning("Warning", "Please select a patient to print prescription")
                 return
             
+            # Get selected doctor ID
+            doctor_id = selected_doctor_id['value']
             if not doctor_id:
                 messagebox.showwarning("Warning", "Please select a doctor to print prescription")
                 return
@@ -2552,23 +3558,26 @@ Date: {prescription_date}
             )
             close_btn.pack(side=tk.LEFT, padx=5)
         
-        save_btn = tk.Button(
-            inner_button_frame,
-            text="💾 Save Prescription",
-            command=save_prescription,
-            font=('Segoe UI', 11, 'bold'),
-            bg='#10b981',
-            fg='white',
-            padx=35,
-            pady=12,
-            cursor='hand2',
-            relief=tk.FLAT,
-            bd=0,
-            activebackground='#059669',
-            activeforeground='white'
-        )
-        save_btn.pack(side=tk.LEFT, padx=(0, 10))
+        # Only show save button if not in view_only mode
+        if not view_only:
+            save_btn = tk.Button(
+                inner_button_frame,
+                text="💾 Save Prescription",
+                command=save_prescription,
+                font=('Segoe UI', 11, 'bold'),
+                bg='#10b981',
+                fg='white',
+                padx=35,
+                pady=12,
+                cursor='hand2',
+                relief=tk.FLAT,
+                bd=0,
+                activebackground='#059669',
+                activeforeground='white'
+            )
+            save_btn.pack(side=tk.LEFT, padx=(0, 10))
         
+        # Print button - always show (can print even in view mode)
         print_btn = tk.Button(
             inner_button_frame,
             text="🖨️ Print Prescription",
@@ -2604,7 +3613,7 @@ Date: {prescription_date}
         cancel_btn.pack(side=tk.LEFT, padx=10)
         
         # Set focus on patient combo when form opens
-        self.parent.after(100, lambda: patient_combo.focus_set())
+        form_parent.after(100, lambda: patient_btn.focus_set())
         
         # Add keyboard shortcut hints
         shortcut_frame = tk.Frame(main_frame, bg='#f5f7fa')
