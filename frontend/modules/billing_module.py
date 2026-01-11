@@ -1285,7 +1285,7 @@ NOTES
             dialog.title("Edit Bill - Editable")
         else:
             dialog.title("New Bill")
-        dialog.geometry("500x600")  # Increased height to ensure buttons are visible
+        dialog.geometry("800x650")  # Wider layout for horizontal two-column design
         dialog.configure(bg='#f5f7fa')
         dialog.transient(self.parent)
         
@@ -1302,7 +1302,7 @@ NOTES
             dialog.grab_set()  # Fallback for older tkinter versions
         
         main_frame = tk.Frame(dialog, bg='#f5f7fa')
-        main_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=20)
         
         # Add mode indicator
         if view_only:
@@ -1318,12 +1318,9 @@ NOTES
             bill_id = generate_id('BILL')
         tk.Label(main_frame, text=f"Bill ID: {bill_id}", font=('Segoe UI', 13, 'bold'), bg='#f5f7fa', fg='#1a237e').pack(pady=8)
         
-        # Form fields - don't expand to fill all space
-        form_frame = tk.Frame(main_frame, bg='#f0f0f0')
-        form_frame.pack(fill=tk.X, expand=False, pady=10)
-        
-        # Patient selection with searchable dropdown
-        tk.Label(form_frame, text="Patient ID *:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
+        # Form fields - two-column horizontal layout
+        form_frame = tk.Frame(main_frame, bg='#f5f7fa')
+        form_frame.pack(fill=tk.BOTH, expand=True, pady=10)
         
         # Get all patients for dropdown
         all_patients = self.db.get_all_patients()
@@ -1348,15 +1345,20 @@ NOTES
         # Set state based on view_only
         combo_state = 'readonly' if view_only else 'normal'
         entry_state = 'readonly' if view_only else 'normal'
+        
+        # Patient ID - Full width at top
+        patient_frame = tk.Frame(form_frame, bg='#f5f7fa')
+        patient_frame.pack(fill=tk.X, pady=5)
+        tk.Label(patient_frame, text="Patient ID *:", font=('Arial', 10, 'bold'), bg='#f5f7fa', fg='#374151').pack(anchor='w', pady=(0, 3))
         patient_combo = ttk.Combobox(
-            form_frame, 
+            patient_frame, 
             textvariable=patient_var,
             values=patient_options,
             font=('Arial', 10),
-            width=37,
+            width=50,
             state=combo_state
         )
-        patient_combo.pack(fill=tk.X, pady=5)
+        patient_combo.pack(fill=tk.X, pady=2)
         
         # Make patient combo auto-focus on mouse enter
         def on_patient_enter(event):
@@ -1377,45 +1379,99 @@ NOTES
         
         patient_var.trace('w', filter_patient)
         
-        tk.Label(form_frame, text="Date:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        date_entry = tk.Entry(form_frame, font=('Arial', 10), width=40, state=entry_state)
+        # Two-column layout
+        columns_frame = tk.Frame(form_frame, bg='#f5f7fa')
+        columns_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        # Left column
+        left_col = tk.Frame(columns_frame, bg='#f5f7fa')
+        left_col.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
+        
+        # Right column
+        right_col = tk.Frame(columns_frame, bg='#f5f7fa')
+        right_col.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(10, 0))
+        
+        # Helper function to add field to a column
+        def add_field(parent, label_text, widget_type='entry', width=25, **kwargs):
+            frame = tk.Frame(parent, bg='#f5f7fa')
+            frame.pack(fill=tk.X, pady=8)
+            tk.Label(frame, text=label_text + ":", font=('Arial', 10, 'bold'), bg='#f5f7fa', fg='#374151').pack(anchor='w', pady=(0, 3))
+            if widget_type == 'entry':
+                widget = tk.Entry(frame, font=('Arial', 10), width=width, state=entry_state, **kwargs)
+                widget.pack(fill=tk.X, pady=2)
+            elif widget_type == 'combobox':
+                widget = ttk.Combobox(frame, font=('Arial', 10), width=width-3, state=combo_state, **kwargs)
+                widget.pack(fill=tk.X, pady=2)
+            return widget
+        
+        # Left column fields
+        date_entry = add_field(left_col, "Date", 'entry', width=25)
         if is_edit and bill_data:
             date_entry.insert(0, bill_data.get('bill_date', get_current_date()))
         else:
             date_entry.insert(0, get_current_date())
-        date_entry.pack(fill=tk.X, pady=5)
         
-        tk.Label(form_frame, text="Consultation Fee:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        consultation_entry = tk.Entry(form_frame, font=('Arial', 10), width=40, state=entry_state)
+        consultation_entry = add_field(left_col, "Consultation Fee", 'entry', width=25)
         if is_edit and bill_data:
             consultation_entry.insert(0, str(bill_data.get('consultation_fee', 0)))
         else:
             consultation_entry.insert(0, "0")
-        consultation_entry.pack(fill=tk.X, pady=5)
         
-        tk.Label(form_frame, text="Medicine Cost:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        medicine_entry = tk.Entry(form_frame, font=('Arial', 10), width=40, state=entry_state)
+        medicine_entry = add_field(left_col, "Medicine Cost", 'entry', width=25)
         if is_edit and bill_data:
             medicine_entry.insert(0, str(bill_data.get('medicine_cost', 0)))
         else:
             medicine_entry.insert(0, "0")
-        medicine_entry.pack(fill=tk.X, pady=5)
         
-        tk.Label(form_frame, text="Other Charges:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        other_entry = tk.Entry(form_frame, font=('Arial', 10), width=40, state=entry_state)
+        other_entry = add_field(left_col, "Other Charges", 'entry', width=25)
         if is_edit and bill_data:
             other_entry.insert(0, str(bill_data.get('other_charges', 0)))
         else:
             other_entry.insert(0, "0")
-        other_entry.pack(fill=tk.X, pady=5)
         
-        # Total display
+        # Right column fields
+        status_var = tk.StringVar()
+        if view_only:
+            status_frame = tk.Frame(right_col, bg='#f5f7fa')
+            status_frame.pack(fill=tk.X, pady=8)
+            tk.Label(status_frame, text="Payment Status:", font=('Arial', 10, 'bold'), bg='#f5f7fa', fg='#374151').pack(anchor='w', pady=(0, 3))
+            current_status = bill_data.get('payment_status', 'Pending') if is_edit and bill_data else 'Pending'
+            status_label = tk.Label(status_frame, text=current_status, font=('Arial', 10), bg='#f9fafb', fg='#374151', relief=tk.SOLID, bd=1, anchor='w', padx=8, pady=5)
+            status_label.pack(fill=tk.X, pady=2)
+            status_combo = None
+        else:
+            status_combo = add_field(right_col, "Payment Status", 'combobox', width=25, 
+                                     textvariable=status_var, values=['Pending', 'Paid', 'Partial'])
+            if is_edit and bill_data:
+                status_var.set(bill_data.get('payment_status', 'Pending'))
+            else:
+                status_var.set('Pending')
+        
+        payment_var = tk.StringVar()
+        if view_only:
+            payment_frame = tk.Frame(right_col, bg='#f5f7fa')
+            payment_frame.pack(fill=tk.X, pady=8)
+            tk.Label(payment_frame, text="Payment Method:", font=('Arial', 10, 'bold'), bg='#f5f7fa', fg='#374151').pack(anchor='w', pady=(0, 3))
+            current_payment = bill_data.get('payment_method', '') if is_edit and bill_data else ''
+            payment_label = tk.Label(payment_frame, text=current_payment or 'Not specified', font=('Arial', 10), bg='#f9fafb', fg='#374151', relief=tk.SOLID, bd=1, anchor='w', padx=8, pady=5)
+            payment_label.pack(fill=tk.X, pady=2)
+            payment_combo = None
+        else:
+            payment_combo = add_field(right_col, "Payment Method", 'combobox', width=25,
+                                      textvariable=payment_var, values=['Cash', 'Card', 'Online', 'Insurance'])
+            if is_edit and bill_data:
+                payment_var.set(bill_data.get('payment_method', ''))
+        
+        # Total display in right column (prominent)
+        total_frame = tk.Frame(right_col, bg='#f5f7fa')
+        total_frame.pack(fill=tk.X, pady=8)
+        tk.Label(total_frame, text="Total Amount:", font=('Arial', 10, 'bold'), bg='#f5f7fa', fg='#374151').pack(anchor='w', pady=(0, 3))
         if is_edit and bill_data:
             initial_total = bill_data.get('total_amount', 0)
-            total_label = tk.Label(form_frame, text=f"Total: ${initial_total:.2f}", font=('Arial', 14, 'bold'), bg='#f0f0f0', fg='#27ae60')
+            total_label = tk.Label(total_frame, text=f"${initial_total:.2f}", font=('Arial', 18, 'bold'), bg='#e8f5e9', fg='#27ae60', relief=tk.SOLID, bd=1, padx=15, pady=10)
         else:
-            total_label = tk.Label(form_frame, text="Total: $0.00", font=('Arial', 14, 'bold'), bg='#f0f0f0', fg='#27ae60')
-        total_label.pack(pady=10)
+            total_label = tk.Label(total_frame, text="$0.00", font=('Arial', 18, 'bold'), bg='#e8f5e9', fg='#27ae60', relief=tk.SOLID, bd=1, padx=15, pady=10)
+        total_label.pack(fill=tk.X, pady=2)
         
         def calculate_total():
             try:
@@ -1423,51 +1479,24 @@ NOTES
                 medicine = float(medicine_entry.get() or 0)
                 other = float(other_entry.get() or 0)
                 total = consultation + medicine + other
-                total_label.config(text=f"Total: ${total:.2f}")
+                total_label.config(text=f"${total:.2f}")
             except:
-                total_label.config(text="Total: $0.00")
+                total_label.config(text="$0.00")
         
         consultation_entry.bind('<KeyRelease>', lambda e: calculate_total())
         medicine_entry.bind('<KeyRelease>', lambda e: calculate_total())
         other_entry.bind('<KeyRelease>', lambda e: calculate_total())
         
-        tk.Label(form_frame, text="Payment Status:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        status_var = tk.StringVar()
-        if view_only:
-            # For view mode, use a label instead of combobox
-            current_status = bill_data.get('payment_status', 'Pending') if is_edit and bill_data else 'Pending'
-            status_label = tk.Label(form_frame, text=current_status, font=('Arial', 10), bg='#f9fafb', fg='#374151', relief=tk.SOLID, bd=1, anchor='w', padx=5, pady=5)
-            status_label.pack(fill=tk.X, pady=5)
-            status_combo = None
-        else:
-            status_combo = ttk.Combobox(form_frame, textvariable=status_var, values=['Pending', 'Paid', 'Partial'], width=37, state=combo_state)
-            if is_edit and bill_data:
-                status_var.set(bill_data.get('payment_status', 'Pending'))
-            else:
-                status_var.set('Pending')
-            status_combo.pack(fill=tk.X, pady=5)
-        
-        tk.Label(form_frame, text="Payment Method:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        payment_var = tk.StringVar()
-        if view_only:
-            # For view mode, use a label instead of combobox
-            current_payment = bill_data.get('payment_method', '') if is_edit and bill_data else ''
-            payment_label = tk.Label(form_frame, text=current_payment or 'Not specified', font=('Arial', 10), bg='#f9fafb', fg='#374151', relief=tk.SOLID, bd=1, anchor='w', padx=5, pady=5)
-            payment_label.pack(fill=tk.X, pady=5)
-            payment_combo = None
-        else:
-            payment_combo = ttk.Combobox(form_frame, textvariable=payment_var, values=['Cash', 'Card', 'Online', 'Insurance'], width=37, state=combo_state)
-            if is_edit and bill_data:
-                payment_var.set(bill_data.get('payment_method', ''))
-            payment_combo.pack(fill=tk.X, pady=5)
-        
-        tk.Label(form_frame, text="Notes:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
-        notes_text = tk.Text(form_frame, font=('Arial', 10), width=37, height=3, state='normal' if not view_only else 'disabled')
+        # Notes - Full width at bottom
+        notes_frame = tk.Frame(form_frame, bg='#f5f7fa')
+        notes_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        tk.Label(notes_frame, text="Notes:", font=('Arial', 10, 'bold'), bg='#f5f7fa', fg='#374151').pack(anchor='w', pady=(0, 3))
+        notes_text = tk.Text(notes_frame, font=('Arial', 10), width=50, height=4, state='normal' if not view_only else 'disabled')
         if is_edit and bill_data:
             notes_text.insert('1.0', bill_data.get('notes', ''))
             if view_only:
                 notes_text.config(state='disabled')
-        notes_text.pack(fill=tk.X, pady=5)
+        notes_text.pack(fill=tk.BOTH, expand=True, pady=2)
         
         def save_bill():
             # Extract patient_id from combobox selection
@@ -1664,7 +1693,7 @@ NOTES
         dialog.update_idletasks()
         # Make sure dialog is not resizable below minimum size needed for buttons
         dialog.resizable(True, True)
-        dialog.minsize(500, 600)
+        dialog.minsize(800, 650)
         
         # Ensure dialog releases grab when closed via window close button
         def on_close():

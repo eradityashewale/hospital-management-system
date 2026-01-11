@@ -942,7 +942,7 @@ class AppointmentModule:
             dialog.title("Edit Appointment - Editable")
         else:
             dialog.title("Schedule Appointment")
-        dialog.geometry("550x600")  # Increased height to accommodate status field
+        dialog.geometry("550x750")  # Increased height to accommodate status field and ensure Update button is visible
         dialog.configure(bg='#f5f7fa')
         dialog.transient(self.parent)
         
