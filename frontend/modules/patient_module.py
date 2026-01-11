@@ -349,6 +349,10 @@ class PatientModule:
             messagebox.showerror("Error", "Patient not found")
             return
         
+        # Debug: Log patient data to verify gender is retrieved
+        log_debug(f"Viewing patient {patient_id}, gender value: '{patient.get('gender', 'NOT FOUND')}'")
+        log_debug(f"Patient data keys: {list(patient.keys()) if isinstance(patient, dict) else 'N/A'}")
+        
         self.patient_dialog(patient, view_only=True)
     
     def edit_patient(self):
@@ -418,13 +422,9 @@ class PatientModule:
         
         # Add mode indicator
         if view_only:
-            mode_label = tk.Label(fields_frame, text="📖 VIEW MODE (Read Only)", 
-                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#ef4444')
-            mode_label.pack(pady=5)
+            mode_label = tk.Label(fields_frame)          
         elif patient:
-            mode_label = tk.Label(fields_frame, text="✏️ EDIT MODE (Editable)", 
-                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#10b981')
-            mode_label.pack(pady=5)
+            mode_label = tk.Label(fields_frame)          
         
         if patient:
             patient_id = patient['patient_id']
@@ -457,15 +457,63 @@ class PatientModule:
                 # Get gender value from patient if available, otherwise empty string
                 gender_value = ''
                 if patient and field in patient:
-                    gender_value = str(patient[field]) if patient[field] else ''
-                var = tk.StringVar(value=gender_value)
-                # For Combobox, use 'readonly' to allow dropdown selection but prevent typing
-                # But make it 'normal' if not view_only to allow editing
-                combo_state = 'readonly' if view_only else 'readonly'  # Keep readonly for dropdown
-                combo = ttk.Combobox(frame, textvariable=var, values=['Male', 'Female', 'Other'], 
-                                   state=combo_state, width=30)
-                combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
-                entries[field] = var
+                    gender_val = patient[field]
+                    # Handle None, empty string, or whitespace-only values
+                    if gender_val is not None and str(gender_val).strip():
+                        gender_value = str(gender_val).strip()
+                        log_debug(f"Gender value retrieved: '{gender_value}'")
+                    else:
+                        log_debug(f"Gender value is None or empty: '{gender_val}'")
+                else:
+                    log_debug(f"Patient data missing or field '{field}' not found in patient dict")
+                    if patient:
+                        log_debug(f"Available patient keys: {list(patient.keys()) if isinstance(patient, dict) else 'N/A'}")
+                
+                if view_only:
+                    # For view-only mode, use a regular Entry field (more reliable than readonly Combobox)
+                    entry_state = 'readonly'
+                    entry = tk.Entry(frame, font=('Segoe UI', 10), width=35, 
+                                   state=entry_state, relief=tk.FLAT, bd=2, highlightthickness=1, 
+                                   highlightbackground='#d1d5db', highlightcolor='#6366f1')
+                    # Insert gender value
+                    if gender_value:
+                        entry.config(state='normal')
+                        entry.insert(0, gender_value)
+                        entry.config(state='readonly')
+                        log_debug(f"Set entry field value to: '{gender_value}'")
+                    entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
+                    entries[field] = entry
+                else:
+                    # For edit mode, use Combobox
+                    gender_values = ['Male', 'Female', 'Other']
+                    
+                    # Normalize and find matching gender value
+                    matching_value = ''
+                    matching_index = -1
+                    if gender_value:
+                        normalized_value = str(gender_value).strip()
+                        # Try to find matching value (case-insensitive)
+                        for idx, val in enumerate(gender_values):
+                            if val.lower() == normalized_value.lower():
+                                matching_value = val
+                                matching_index = idx
+                                break
+                        
+                        if not matching_value:
+                            matching_value = normalized_value
+                    
+                    var = tk.StringVar(value=matching_value)
+                    combo = ttk.Combobox(frame, textvariable=var, values=gender_values, 
+                                       state='readonly', width=30)
+                    if matching_value:
+                        combo.set(matching_value)
+                        if matching_index >= 0:
+                            try:
+                                combo.current(matching_index)
+                            except:
+                                pass
+                    combo.pack(side=tk.LEFT, fill=tk.X, expand=True)
+                    entries[field] = var
             else:
                 # Entry fields should be 'normal' (editable) when not in view_only mode
                 # Always create in 'normal' state first, then set to readonly if needed

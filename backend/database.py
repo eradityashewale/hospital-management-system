@@ -306,6 +306,7 @@ class Database:
         """Get patient by ID"""
         self.cursor.execute("SELECT * FROM patients WHERE patient_id = ?", (patient_id,))
         row = self.cursor.fetchone()
+        # Convert sqlite3.Row to dictionary - same as other methods
         return dict(row) if row else None
     
     def update_patient(self, patient_id: str, patient_data: Dict) -> bool:

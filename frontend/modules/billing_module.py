@@ -1306,12 +1306,10 @@ NOTES
         
         # Add mode indicator
         if view_only:
-            mode_label = tk.Label(main_frame, text="📖 VIEW MODE (Read Only)", 
-                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#ef4444')
+            mode_label = tk.Label(main_frame)
             mode_label.pack(pady=5)
         elif is_edit:
-            mode_label = tk.Label(main_frame, text="✏️ EDIT MODE (Editable)", 
-                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#10b981')
+            mode_label = tk.Label(main_frame), 
             mode_label.pack(pady=5)
         
         if not is_edit:
