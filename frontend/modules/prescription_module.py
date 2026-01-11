@@ -505,8 +505,10 @@ class PrescriptionModule:
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Remove double-click binding - will use popup instead
-        # self.tree.bind('<Double-1>', self.edit_prescription)
+        # Single-click to open prescription in editable mode
+        self.tree.bind('<Button-1>', lambda e: self.on_prescription_click(e))
+        # Double-click also opens in editable mode
+        self.tree.bind('<Double-1>', self.edit_prescription)
     
     def refresh_list(self):
         """Refresh prescription list (shows all prescriptions)"""
@@ -745,6 +747,19 @@ class PrescriptionModule:
     def add_prescription(self):
         """Open add prescription form in popup window"""
         self.show_prescription_form_popup()
+    
+    def on_prescription_click(self, event):
+        """Handle single-click on prescription to open in editable mode"""
+        # Identify the item that was clicked
+        item = self.tree.identify_row(event.y)
+        if item:
+            # Get prescription ID from the first column
+            values = self.tree.item(item, 'values')
+            if values and len(values) > 0:
+                prescription_id = values[0]
+                if prescription_id:
+                    # Open in editable mode
+                    self.show_prescription_form_popup(prescription_id=prescription_id, view_only=False)
     
     def get_selected_prescription_id(self):
         """Get selected prescription ID from main tree"""
@@ -1094,6 +1109,52 @@ class PrescriptionModule:
         
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Mouse wheel scrolling handler
+        def on_mousewheel(event):
+            # Windows uses delta, Linux uses num
+            # Scroll by 3 units for smoother scrolling
+            if event.num == 4 or event.delta > 0:
+                canvas.yview_scroll(-3, "units")
+            elif event.num == 5 or event.delta < 0:
+                canvas.yview_scroll(3, "units")
+        
+        # Bind mouse wheel events to canvas
+        canvas.bind("<MouseWheel>", on_mousewheel)
+        canvas.bind("<Button-4>", on_mousewheel)  # Linux
+        canvas.bind("<Button-5>", on_mousewheel)  # Linux
+        
+        # Also bind to scrollable_frame
+        scrollable_frame.bind("<MouseWheel>", on_mousewheel)
+        scrollable_frame.bind("<Button-4>", on_mousewheel)  # Linux
+        scrollable_frame.bind("<Button-5>", on_mousewheel)  # Linux
+        
+        # Bind to popup window so scrolling works anywhere in the form
+        # This ensures scrolling works even when mouse is over child widgets
+        def on_popup_mousewheel(event):
+            # Only scroll if the event originated from within the popup
+            on_mousewheel(event)
+        
+        popup.bind("<MouseWheel>", on_popup_mousewheel)
+        popup.bind("<Button-4>", on_popup_mousewheel)  # Linux
+        popup.bind("<Button-5>", on_popup_mousewheel)  # Linux
+        
+        # Use bind_all when popup has focus to catch all mousewheel events
+        def on_popup_focus_in(event):
+            popup.bind_all("<MouseWheel>", on_mousewheel)
+            popup.bind_all("<Button-4>", on_mousewheel)  # Linux
+            popup.bind_all("<Button-5>", on_mousewheel)  # Linux
+        
+        def on_popup_focus_out(event):
+            popup.unbind_all("<MouseWheel>")
+            popup.unbind_all("<Button-4>")
+            popup.unbind_all("<Button-5>")
+        
+        popup.bind("<FocusIn>", on_popup_focus_in)
+        popup.bind("<FocusOut>", on_popup_focus_out)
+        
+        # Set focus to popup initially
+        popup.focus_set()
         
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
