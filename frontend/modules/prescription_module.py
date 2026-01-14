@@ -13,6 +13,259 @@ from backend.database import Database
 from utils.helpers import generate_id, get_current_date
 
 
+class AnimationHelper:
+    """Helper class for smooth Framer-like animations in Tkinter"""
+    
+    @staticmethod
+    def fade_in_window(window, duration=300, steps=30):
+        """Fade in a window smoothly"""
+        try:
+            # Start with transparent (alpha = 0.0)
+            window.attributes('-alpha', 0.0)
+            window.update()
+            
+            step = 1.0 / steps
+            delay = duration // steps
+            current_alpha = 0.0
+            
+            def animate():
+                nonlocal current_alpha
+                current_alpha += step
+                if current_alpha >= 1.0:
+                    window.attributes('-alpha', 1.0)
+                else:
+                    window.attributes('-alpha', current_alpha)
+                    window.after(delay, animate)
+            
+            animate()
+        except:
+            # Fallback if alpha not supported
+            window.attributes('-alpha', 1.0)
+    
+    @staticmethod
+    def slide_in_widget(widget, direction='left', distance=50, duration=400, steps=40):
+        """Slide in a widget from a direction"""
+        original_x = widget.winfo_x()
+        original_y = widget.winfo_y()
+        
+        # Hide widget initially
+        widget.place_forget()
+        widget.update()
+        
+        # Calculate start position
+        if direction == 'left':
+            start_x = original_x - distance
+            start_y = original_y
+        elif direction == 'right':
+            start_x = original_x + distance
+            start_y = original_y
+        elif direction == 'top':
+            start_x = original_x
+            start_y = original_y - distance
+        elif direction == 'bottom':
+            start_x = original_x
+            start_y = original_y + distance
+        else:
+            start_x = original_x
+            start_y = original_y
+        
+        # Place at start position
+        widget.place(x=start_x, y=start_y)
+        widget.update()
+        
+        # Animate
+        step_x = (original_x - start_x) / steps
+        step_y = (original_y - start_y) / steps
+        delay = duration // steps
+        current_step = 0
+        
+        def animate():
+            nonlocal current_step
+            current_step += 1
+            new_x = start_x + (step_x * current_step)
+            new_y = start_y + (step_y * current_step)
+            
+            if current_step >= steps:
+                widget.place(x=original_x, y=original_y)
+            else:
+                widget.place(x=new_x, y=new_y)
+                widget.after(delay, animate)
+        
+        animate()
+    
+    @staticmethod
+    def fade_in_widget(widget, duration=300, steps=30):
+        """Fade in a widget by changing its background color"""
+        try:
+            original_bg = widget.cget('bg')
+            # Get RGB values
+            if original_bg.startswith('#'):
+                r = int(original_bg[1:3], 16)
+                g = int(original_bg[3:5], 16)
+                b = int(original_bg[5:7], 16)
+            else:
+                # Default to white if can't parse
+                r, g, b = 255, 255, 255
+            
+            # Start with lighter version
+            start_r, start_g, start_b = 255, 255, 255
+            step_r = (r - start_r) / steps
+            step_g = (g - start_g) / steps
+            step_b = (b - start_b) / steps
+            delay = duration // steps
+            current_step = 0
+            
+            def animate():
+                nonlocal current_step
+                current_step += 1
+                new_r = int(start_r + (step_r * current_step))
+                new_g = int(start_g + (step_g * current_step))
+                new_b = int(start_b + (step_b * current_step))
+                
+                # Clamp values
+                new_r = max(0, min(255, new_r))
+                new_g = max(0, min(255, new_g))
+                new_b = max(0, min(255, new_b))
+                
+                new_color = f"#{new_r:02x}{new_g:02x}{new_b:02x}"
+                widget.config(bg=new_color)
+                
+                if current_step < steps:
+                    widget.after(delay, animate)
+            
+            widget.config(bg=f"#{start_r:02x}{start_g:02x}{start_b:02x}")
+            animate()
+        except:
+            pass
+    
+    @staticmethod
+    def scale_button(button, scale_factor=1.05, duration=150):
+        """Scale a button on hover with smooth animation"""
+        original_font = button.cget('font')
+        original_padx = button.cget('padx') if hasattr(button, 'cget') else 0
+        original_pady = button.cget('pady') if hasattr(button, 'cget') else 0
+        
+        # Parse font
+        try:
+            font_parts = original_font.split()
+            font_size = int(font_parts[-1]) if font_parts[-1].isdigit() else 10
+            new_size = int(font_size * scale_factor)
+            new_font = ' '.join(font_parts[:-1] + [str(new_size)])
+        except:
+            new_font = original_font
+        
+        new_padx = int(original_padx * scale_factor) if isinstance(original_padx, (int, float)) else original_padx
+        new_pady = int(original_pady * scale_factor) if isinstance(original_pady, (int, float)) else original_pady
+        
+        steps = 10
+        delay = duration // steps
+        current_step = 0
+        
+        def animate():
+            nonlocal current_step
+            current_step += 1
+            progress = current_step / steps
+            
+            # Interpolate
+            current_size = font_size + (new_size - font_size) * progress
+            current_padx = original_padx + (new_padx - original_padx) * progress
+            current_pady = original_pady + (new_pady - original_pady) * progress
+            
+            try:
+                button.config(font=' '.join(font_parts[:-1] + [str(int(current_size))]))
+                if isinstance(current_padx, (int, float)):
+                    button.config(padx=int(current_padx))
+                if isinstance(current_pady, (int, float)):
+                    button.config(pady=int(current_pady))
+            except:
+                pass
+            
+            if current_step < steps:
+                button.after(delay, animate)
+        
+        animate()
+    
+    @staticmethod
+    def pulse_widget(widget, color1, color2, duration=1000, steps=20):
+        """Pulse a widget's color between two colors"""
+        def hex_to_rgb(hex_color):
+            hex_color = hex_color.lstrip('#')
+            return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        
+        def rgb_to_hex(rgb):
+            return f"#{int(rgb[0]):02x}{int(rgb[1]):02x}{int(rgb[2]):02x}"
+        
+        try:
+            rgb1 = hex_to_rgb(color1)
+            rgb2 = hex_to_rgb(color2)
+            
+            delay = duration // steps
+            current_step = 0
+            forward = True
+            
+            def animate():
+                nonlocal current_step, forward
+                if forward:
+                    current_step += 1
+                    if current_step >= steps:
+                        forward = False
+                else:
+                    current_step -= 1
+                    if current_step <= 0:
+                        forward = True
+                
+                # Interpolate
+                progress = current_step / steps
+                r = rgb1[0] + (rgb2[0] - rgb1[0]) * progress
+                g = rgb1[1] + (rgb2[1] - rgb1[1]) * progress
+                b = rgb1[2] + (rgb2[2] - rgb1[2]) * progress
+                
+                new_color = rgb_to_hex((r, g, b))
+                widget.config(bg=new_color)
+                
+                widget.after(delay, animate)
+            
+            animate()
+        except:
+            pass
+    
+    @staticmethod
+    def animate_color_transition(widget, start_color, end_color, duration=300, steps=30):
+        """Smoothly transition a widget's color"""
+        def hex_to_rgb(hex_color):
+            hex_color = hex_color.lstrip('#')
+            return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+        
+        def rgb_to_hex(rgb):
+            return f"#{int(rgb[0]):02x}{int(rgb[1]):02x}{int(rgb[2]):02x}"
+        
+        try:
+            rgb1 = hex_to_rgb(start_color)
+            rgb2 = hex_to_rgb(end_color)
+            
+            delay = duration // steps
+            current_step = 0
+            
+            def animate():
+                nonlocal current_step
+                current_step += 1
+                progress = current_step / steps
+                
+                r = rgb1[0] + (rgb2[0] - rgb1[0]) * progress
+                g = rgb1[1] + (rgb2[1] - rgb1[1]) * progress
+                b = rgb1[2] + (rgb2[2] - rgb1[2]) * progress
+                
+                new_color = rgb_to_hex((r, g, b))
+                widget.config(bg=new_color)
+                
+                if current_step < steps:
+                    widget.after(delay, animate)
+            
+            animate()
+        except:
+            widget.config(bg=end_color)
+
+
 class PrescriptionModule:
     """Prescription management interface"""
     
@@ -505,10 +758,8 @@ class PrescriptionModule:
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Single-click to open prescription in editable mode
-        self.tree.bind('<Button-1>', lambda e: self.on_prescription_click(e))
-        # Double-click also opens in editable mode
-        self.tree.bind('<Double-1>', self.edit_prescription)
+        # Remove double-click binding - will use popup instead
+        # self.tree.bind('<Double-1>', self.edit_prescription)
     
     def refresh_list(self):
         """Refresh prescription list (shows all prescriptions)"""
@@ -747,19 +998,6 @@ class PrescriptionModule:
     def add_prescription(self):
         """Open add prescription form in popup window"""
         self.show_prescription_form_popup()
-    
-    def on_prescription_click(self, event):
-        """Handle single-click on prescription to open in editable mode"""
-        # Identify the item that was clicked
-        item = self.tree.identify_row(event.y)
-        if item:
-            # Get prescription ID from the first column
-            values = self.tree.item(item, 'values')
-            if values and len(values) > 0:
-                prescription_id = values[0]
-                if prescription_id:
-                    # Open in editable mode
-                    self.show_prescription_form_popup(prescription_id=prescription_id, view_only=False)
     
     def get_selected_prescription_id(self):
         """Get selected prescription ID from main tree"""
@@ -1094,6 +1332,10 @@ class PrescriptionModule:
         popup.transient(self.parent)
         popup.grab_set()
         
+        # Apply fade-in animation to the popup window
+        popup.update_idletasks()
+        AnimationHelper.fade_in_window(popup, duration=250)
+        
         # Use popup as parent for all widgets
         form_parent = popup
         
@@ -1110,52 +1352,6 @@ class PrescriptionModule:
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         
-        # Mouse wheel scrolling handler
-        def on_mousewheel(event):
-            # Windows uses delta, Linux uses num
-            # Scroll by 3 units for smoother scrolling
-            if event.num == 4 or event.delta > 0:
-                canvas.yview_scroll(-3, "units")
-            elif event.num == 5 or event.delta < 0:
-                canvas.yview_scroll(3, "units")
-        
-        # Bind mouse wheel events to canvas
-        canvas.bind("<MouseWheel>", on_mousewheel)
-        canvas.bind("<Button-4>", on_mousewheel)  # Linux
-        canvas.bind("<Button-5>", on_mousewheel)  # Linux
-        
-        # Also bind to scrollable_frame
-        scrollable_frame.bind("<MouseWheel>", on_mousewheel)
-        scrollable_frame.bind("<Button-4>", on_mousewheel)  # Linux
-        scrollable_frame.bind("<Button-5>", on_mousewheel)  # Linux
-        
-        # Bind to popup window so scrolling works anywhere in the form
-        # This ensures scrolling works even when mouse is over child widgets
-        def on_popup_mousewheel(event):
-            # Only scroll if the event originated from within the popup
-            on_mousewheel(event)
-        
-        popup.bind("<MouseWheel>", on_popup_mousewheel)
-        popup.bind("<Button-4>", on_popup_mousewheel)  # Linux
-        popup.bind("<Button-5>", on_popup_mousewheel)  # Linux
-        
-        # Use bind_all when popup has focus to catch all mousewheel events
-        def on_popup_focus_in(event):
-            popup.bind_all("<MouseWheel>", on_mousewheel)
-            popup.bind_all("<Button-4>", on_mousewheel)  # Linux
-            popup.bind_all("<Button-5>", on_mousewheel)  # Linux
-        
-        def on_popup_focus_out(event):
-            popup.unbind_all("<MouseWheel>")
-            popup.unbind_all("<Button-4>")
-            popup.unbind_all("<Button-5>")
-        
-        popup.bind("<FocusIn>", on_popup_focus_in)
-        popup.bind("<FocusOut>", on_popup_focus_out)
-        
-        # Set focus to popup initially
-        popup.focus_set()
-        
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
@@ -1167,6 +1363,9 @@ class PrescriptionModule:
         header_frame = tk.Frame(main_frame, bg='#1e40af', height=65)
         header_frame.pack(fill=tk.X, padx=0, pady=0)
         header_frame.pack_propagate(False)
+        
+        # Animate header appearance
+        popup.after(50, lambda: AnimationHelper.fade_in_widget(header_frame, duration=300))
         
         if not is_editing:
             prescription_id = generate_id('PRES')
@@ -1226,9 +1425,20 @@ class PrescriptionModule:
         )
         back_btn.pack(side=tk.RIGHT, padx=25, pady=12)
         
+        # Add smooth hover effect to close button
+        def on_close_enter(e):
+            AnimationHelper.animate_color_transition(back_btn, '#6b7280', '#4b5563', duration=150)
+        def on_close_leave(e):
+            AnimationHelper.animate_color_transition(back_btn, '#4b5563', '#6b7280', duration=150)
+        back_btn.bind('<Enter>', on_close_enter)
+        back_btn.bind('<Leave>', on_close_leave)
+        
         # Form container with padding
         form_container = tk.Frame(main_frame, bg='#ffffff')
         form_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
+        
+        # Animate form container appearance
+        popup.after(100, lambda: AnimationHelper.fade_in_widget(form_container, duration=400))
         
         # Two-column layout
         left_column = tk.Frame(form_container, bg='#ffffff')
@@ -1236,6 +1446,10 @@ class PrescriptionModule:
         
         right_column = tk.Frame(form_container, bg='#ffffff')
         right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 0))
+        
+        # Animate columns with slight delay
+        popup.after(150, lambda: AnimationHelper.fade_in_widget(left_column, duration=300))
+        popup.after(200, lambda: AnimationHelper.fade_in_widget(right_column, duration=300))
         
         # Form fields frame with better styling
         form_frame = tk.LabelFrame(
@@ -1251,6 +1465,9 @@ class PrescriptionModule:
         )
         form_frame.pack(fill=tk.X, pady=(0, 10))
         
+        # Animate form frame appearance
+        popup.after(180, lambda: AnimationHelper.fade_in_widget(form_frame, duration=350))
+        
         # Status indicator frame (shows completion status)
         status_frame = tk.Frame(form_frame, bg='#ffffff', pady=5)
         status_frame.pack(fill=tk.X, pady=(0, 10))
@@ -1265,16 +1482,22 @@ class PrescriptionModule:
         status_label.pack(side=tk.LEFT)
         
         def update_status():
-            """Update status indicator"""
+            """Update status indicator with smooth animation"""
             patient_status = "✓" if selected_patient_id['value'] else "✗"
             doctor_status = "✓" if selected_doctor_id['value'] else "✗"
             med_status = "✓" if medicines else "✗"
             
             if selected_patient_id['value'] and selected_doctor_id['value'] and medicines:
-                status_label.config(text="✅ All required fields completed", fg='#10b981')
+                new_text = "✅ All required fields completed"
+                new_color = '#10b981'
             else:
-                status_text = f"⚪ Patient: {patient_status} | Doctor: {doctor_status} | Medicines: {med_status}"
-                status_label.config(text=status_text, fg='#f59e0b')
+                new_text = f"⚪ Patient: {patient_status} | Doctor: {doctor_status} | Medicines: {med_status}"
+                new_color = '#f59e0b'
+            
+            # Smooth color transition
+            current_color = status_label.cget('fg')
+            AnimationHelper.animate_color_transition(status_label, current_color, new_color, duration=300)
+            status_label.config(text=new_text, fg=new_color)
         
         # Patient selection with popup button
         patient_label_frame = tk.Frame(form_frame, bg='#ffffff')
@@ -1323,6 +1546,10 @@ class PrescriptionModule:
             x = (patient_popup.winfo_screenwidth() // 2) - (800 // 2)
             y = (patient_popup.winfo_screenheight() // 2) - (600 // 2)
             patient_popup.geometry(f"800x600+{x}+{y}")
+            
+            # Apply fade-in animation
+            patient_popup.update_idletasks()
+            AnimationHelper.fade_in_window(patient_popup, duration=200)
             
             # Header
             header_frame = tk.Frame(patient_popup, bg='#1e40af', height=60)
@@ -1483,6 +1710,15 @@ class PrescriptionModule:
         )
         patient_btn.pack(side=tk.LEFT)
         
+        # Add smooth hover effect
+        if not view_only:
+            def on_patient_btn_enter(e):
+                AnimationHelper.animate_color_transition(patient_btn, '#3b82f6', '#2563eb', duration=150)
+            def on_patient_btn_leave(e):
+                AnimationHelper.animate_color_transition(patient_btn, '#2563eb', '#3b82f6', duration=150)
+            patient_btn.bind('<Enter>', on_patient_btn_enter)
+            patient_btn.bind('<Leave>', on_patient_btn_leave)
+        
         # Doctor selection with popup button
         doctor_label_frame = tk.Frame(form_frame, bg='#ffffff')
         doctor_label_frame.pack(fill=tk.X, pady=(0, 8))
@@ -1520,6 +1756,10 @@ class PrescriptionModule:
             x = (doctor_popup.winfo_screenwidth() // 2) - (900 // 2)
             y = (doctor_popup.winfo_screenheight() // 2) - (600 // 2)
             doctor_popup.geometry(f"900x600+{x}+{y}")
+            
+            # Apply fade-in animation
+            doctor_popup.update_idletasks()
+            AnimationHelper.fade_in_window(doctor_popup, duration=200)
             
             # Header
             header_frame = tk.Frame(doctor_popup, bg='#1e40af', height=60)
@@ -1685,6 +1925,15 @@ class PrescriptionModule:
         )
         doctor_btn.pack(side=tk.LEFT)
         
+        # Add smooth hover effect
+        if not view_only:
+            def on_doctor_btn_enter(e):
+                AnimationHelper.animate_color_transition(doctor_btn, '#3b82f6', '#2563eb', duration=150)
+            def on_doctor_btn_leave(e):
+                AnimationHelper.animate_color_transition(doctor_btn, '#2563eb', '#3b82f6', duration=150)
+            doctor_btn.bind('<Enter>', on_doctor_btn_enter)
+            doctor_btn.bind('<Leave>', on_doctor_btn_leave)
+        
         # Appointment ID (optional)
         appointment_label_frame = tk.Frame(form_frame, bg='#ffffff')
         appointment_label_frame.pack(fill=tk.X, pady=(0, 8))
@@ -1721,6 +1970,10 @@ class PrescriptionModule:
             x = (calendar_window.winfo_screenwidth() // 2) - (300 // 2)
             y = (calendar_window.winfo_screenheight() // 2) - (280 // 2)
             calendar_window.geometry(f"300x280+{x}+{y}")
+            
+            # Apply fade-in animation
+            calendar_window.update_idletasks()
+            AnimationHelper.fade_in_window(calendar_window, duration=200)
             
             # Header
             header_frame = tk.Frame(calendar_window, bg='#1e40af', height=40)
@@ -1961,6 +2214,15 @@ class PrescriptionModule:
         )
         calendar_btn.pack(side=tk.LEFT)
         
+        # Add smooth hover effect to calendar button
+        if not view_only:
+            def on_calendar_enter(e):
+                AnimationHelper.animate_color_transition(calendar_btn, '#3b82f6', '#2563eb', duration=150)
+            def on_calendar_leave(e):
+                AnimationHelper.animate_color_transition(calendar_btn, '#2563eb', '#3b82f6', duration=150)
+            calendar_btn.bind('<Enter>', on_calendar_enter)
+            calendar_btn.bind('<Leave>', on_calendar_leave)
+        
         # Diagnosis with templates
         diagnosis_label_frame = tk.Frame(form_frame, bg='#ffffff')
         diagnosis_label_frame.pack(fill=tk.X, pady=(0, 8))
@@ -2037,6 +2299,9 @@ class PrescriptionModule:
         )
         notes_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
+        # Animate notes frame appearance
+        popup.after(220, lambda: AnimationHelper.fade_in_widget(notes_frame, duration=350))
+        
         notes_label_frame = tk.Frame(notes_frame, bg='#ffffff')
         notes_label_frame.pack(fill=tk.X, pady=(0, 8))
         tk.Label(notes_label_frame, text="Doctor's Notes", font=('Segoe UI', 10), bg='#ffffff', fg='#6b7280').pack(anchor='w')
@@ -2094,6 +2359,9 @@ class PrescriptionModule:
             bd=2
         )
         medicines_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        
+        # Animate medicines section appearance
+        popup.after(250, lambda: AnimationHelper.fade_in_widget(medicines_frame, duration=400))
         
         # Common medicines list for searchable dropdown
         default_medicines = [
@@ -2181,10 +2449,10 @@ class PrescriptionModule:
             "Progesterone", "Estradiol", "Alendronate", "Ibandronate"
         ]
         
-        # Get all medicines that have been added through prescriptions
+        # Get all medicines from medicines_master table only
         db_medicines = self.db.get_all_medicines()
         
-        # Combine default medicines with database medicines, removing duplicates
+        # Use only medicines from medicines_master, combine with default medicines as fallback
         common_medicines = list(set(default_medicines + db_medicines))
         common_medicines.sort()  # Sort alphabetically
         
@@ -2193,9 +2461,13 @@ class PrescriptionModule:
         med_list_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
         
         # Info label
+        info_text = "📋 Added Medicines (Double-click to remove"
+        if not view_only:
+            info_text += " | Click Frequency/Duration to edit"
+        info_text += ")"
         info_label = tk.Label(
             med_list_frame, 
-            text="📋 Added Medicines (Double-click to remove)", 
+            text=info_text, 
             font=('Segoe UI', 9), 
             bg='#ffffff', 
             fg='#6b7280',
@@ -2260,8 +2532,262 @@ class PrescriptionModule:
             # Update status indicator
             update_status()
         
-        # Bind double-click to remove
-        med_tree.bind('<Double-1>', lambda e: remove_selected_medicine())
+        # Inline editing with dropdowns for Frequency and Duration
+        editing_combo = None
+        editing_item = None
+        editing_column = None
+        
+        def start_edit_cell(event):
+            """Start editing a cell with dropdown"""
+            nonlocal editing_combo, editing_item, editing_column
+            
+            # Get clicked region
+            region = med_tree.identify_region(event.x, event.y)
+            if region != "cell":
+                return
+            
+            # Get clicked item and column
+            item = med_tree.identify_row(event.y)
+            column = med_tree.identify_column(event.x)
+            
+            if not item or not column:
+                return
+            
+            # Get column index (column is like '#1', '#2', etc.)
+            col_index = int(column.replace('#', '')) - 1
+            column_name = med_columns[col_index] if col_index < len(med_columns) else None
+            
+            # Only allow editing Frequency and Duration columns
+            if column_name not in ['Frequency', 'Duration']:
+                return
+            
+            # Don't allow editing in view-only mode
+            if view_only:
+                return
+            
+            # Close any existing editor
+            if editing_combo:
+                editing_combo.destroy()
+                editing_combo = None
+            
+            # Get current value
+            current_values = list(med_tree.item(item, 'values'))
+            current_value = current_values[col_index] if col_index < len(current_values) else ''
+            
+            # Get bounding box of the cell
+            bbox = med_tree.bbox(item, column)
+            if not bbox:
+                return
+            
+            x, y, width, height = bbox
+            
+            # Determine options based on column
+            if column_name == 'Frequency':
+                options = [
+                    "Once daily", "Twice daily", "Three times daily", "Four times daily",
+                    "Once in morning", "Once in evening", "Once at night",
+                    "Every 4 hours", "Every 6 hours", "Every 8 hours", "Every 12 hours",
+                    "As needed", "Before meals", "After meals", "With meals",
+                    "Before bedtime", "As directed", "When required",
+                    "Once weekly", "Twice weekly", "Three times weekly",
+                    "Every other day", "Alternate days",
+                    "1x/day", "2x/day", "3x/day", "4x/day"
+                ]
+            else:  # Duration
+                options = [
+                    "1 day", "2 days", "3 days", "4 days", "5 days", "6 days", "7 days",
+                    "10 days", "14 days", "15 days", "21 days",
+                    "1 week", "2 weeks", "3 weeks", "4 weeks",
+                    "1 month", "2 months", "3 months", "6 months",
+                    "Until finished", "As needed", "As directed",
+                    "For 5 days", "For 7 days", "For 10 days", "For 14 days"
+                ]
+            
+            # Create combobox overlay
+            editing_item = item
+            editing_column = col_index
+            
+            # Get the parent window
+            parent_window = med_tree.winfo_toplevel()
+            
+            editing_combo = ttk.Combobox(
+                parent_window,
+                values=options,
+                font=('Segoe UI', 9),
+                width=max(20, width // 8)
+            )
+            editing_combo.set(current_value)
+            
+            # Position the combobox over the cell
+            # Get absolute coordinates of the tree widget
+            tree_x = med_tree.winfo_rootx()
+            tree_y = med_tree.winfo_rooty()
+            # Get absolute coordinates of parent window
+            parent_x = parent_window.winfo_rootx()
+            parent_y = parent_window.winfo_rooty()
+            # Calculate relative position
+            rel_x = (tree_x - parent_x) + x
+            rel_y = (tree_y - parent_y) + y
+            editing_combo.place(x=rel_x, y=rel_y, width=width, height=height)
+            editing_combo.focus_set()
+            editing_combo.select_range(0, tk.END)
+            
+            def on_combo_select(event=None):
+                """Handle combobox selection"""
+                nonlocal editing_combo, editing_item, editing_column
+                
+                if not editing_item or editing_combo is None:
+                    return
+                
+                new_value = editing_combo.get().strip()
+                if new_value:
+                    # Update tree item
+                    current_values = list(med_tree.item(editing_item, 'values'))
+                    if editing_column < len(current_values):
+                        current_values[editing_column] = new_value
+                        med_tree.item(editing_item, values=current_values)
+                        
+                        # Update medicine data map
+                        if editing_item in medicine_data_map:
+                            if editing_column == 3:  # Frequency column
+                                medicine_data_map[editing_item]['frequency'] = new_value
+                            elif editing_column == 4:  # Duration column
+                                medicine_data_map[editing_item]['duration'] = new_value
+                
+                # Clean up
+                if editing_combo:
+                    editing_combo.destroy()
+                    editing_combo = None
+                editing_item = None
+                editing_column = None
+            
+            def on_combo_escape(event):
+                """Cancel editing on Escape"""
+                nonlocal editing_combo, editing_item, editing_column
+                if editing_combo:
+                    editing_combo.destroy()
+                    editing_combo = None
+                editing_item = None
+                editing_column = None
+                return "break"
+            
+            def on_focus_out(event):
+                """Handle focus loss - close editor when focus leaves"""
+                # Only close if focus actually left (not just to dropdown)
+                if editing_combo and editing_item:
+                    try:
+                        # Small delay to check if dropdown opened
+                        parent_window.after(150, lambda: close_if_no_focus())
+                    except:
+                        pass
+            
+            def close_if_no_focus():
+                """Close combobox if it doesn't have focus"""
+                if editing_combo and editing_item:
+                    try:
+                        focused = parent_window.focus_get()
+                        # If focus is not on combobox or its children, close it
+                        if focused != editing_combo:
+                            # Check if it's a child of combobox (dropdown list)
+                            widget_str = str(focused)
+                            if 'combobox' not in widget_str.lower():
+                                on_combo_select()
+                    except:
+                        # If we can't determine focus, keep it open
+                        pass
+            
+            def on_dropdown_click(event=None):
+                """Ensure all options are shown when dropdown is clicked"""
+                # Reset to all options when dropdown opens
+                editing_combo['values'] = options
+            
+            editing_combo.bind('<<ComboboxSelected>>', on_combo_select)
+            editing_combo.bind('<Return>', on_combo_select)
+            editing_combo.bind('<Escape>', on_combo_escape)
+            editing_combo.bind('<FocusOut>', on_focus_out)
+            editing_combo.bind('<Button-1>', on_dropdown_click)
+            # Also bind to down arrow key to open dropdown
+            editing_combo.bind('<Down>', lambda e: (on_dropdown_click(), None))
+            
+            # Create StringVar and set up combobox with all options
+            editing_combo_var = tk.StringVar(value=current_value)
+            editing_combo.configure(textvariable=editing_combo_var)
+            editing_combo['values'] = options  # Always show all options initially
+            
+            # Make it searchable - filter only when user types (KeyPress events)
+            def on_key_press(event):
+                """Filter options as user types"""
+                # Get current text
+                current_text = editing_combo_var.get().lower().strip()
+                
+                # Allow navigation keys without filtering
+                if event.keysym in ['Up', 'Down', 'Return', 'Escape', 'Tab']:
+                    return
+                
+                # Filter based on typed text
+                if not current_text or len(current_text) < 1:
+                    editing_combo['values'] = options
+                else:
+                    filtered = [opt for opt in options if current_text in opt.lower()]
+                    if filtered and len(filtered) < len(options):
+                        editing_combo['values'] = filtered
+                    else:
+                        editing_combo['values'] = options
+                
+                # Update after a short delay to catch the new value
+                parent_window.after(10, lambda: update_filter())
+            
+            def update_filter():
+                """Update filter based on current text"""
+                if editing_combo is None:
+                    return
+                current_text = editing_combo_var.get().lower().strip()
+                if not current_text:
+                    editing_combo['values'] = options
+                else:
+                    filtered = [opt for opt in options if current_text in opt.lower()]
+                    if filtered and len(filtered) < len(options):
+                        editing_combo['values'] = filtered
+                    else:
+                        editing_combo['values'] = options
+            
+            # Bind key events for filtering
+            editing_combo.bind('<KeyPress>', on_key_press)
+            editing_combo.bind('<KeyRelease>', lambda e: update_filter())
+            
+            # Ensure all options are shown when dropdown arrow is clicked
+            def ensure_all_options():
+                """Reset to all options"""
+                editing_combo['values'] = options
+            
+            # Bind to focus in to ensure all options are available
+            editing_combo.bind('<FocusIn>', lambda e: ensure_all_options())
+        
+        # Bind single click to edit Frequency and Duration columns
+        def on_tree_click(event):
+            """Handle clicks on the tree"""
+            # Only start editing if clicking on Frequency or Duration columns
+            # and not already editing
+            if editing_combo is None:
+                region = med_tree.identify_region(event.x, event.y)
+                if region == "cell":
+                    column = med_tree.identify_column(event.x)
+                    if column:
+                        col_index = int(column.replace('#', '')) - 1
+                        column_name = med_columns[col_index] if col_index < len(med_columns) else None
+                        if column_name in ['Frequency', 'Duration'] and not view_only:
+                            # Delay slightly to allow selection first
+                            med_tree.after(100, lambda: start_edit_cell(event))
+        
+        med_tree.bind('<Button-1>', on_tree_click)
+        
+        # Bind double-click to remove (works on any column except when editing)
+        def on_double_click(event):
+            """Handle double-click to remove medicine"""
+            if editing_combo is None:
+                remove_selected_medicine()
+        
+        med_tree.bind('<Double-1>', on_double_click)
         
         # Add Remove Selected button below the medicine list
         remove_btn_frame = tk.Frame(medicines_frame, bg='#ffffff')
@@ -2281,6 +2807,15 @@ class PrescriptionModule:
             activebackground='#dc2626'
         )
         remove_selected_btn.pack(side=tk.LEFT)
+        
+        # Add smooth hover effect
+        if not view_only:
+            def on_remove_enter(e):
+                AnimationHelper.animate_color_transition(remove_selected_btn, '#ef4444', '#dc2626', duration=150)
+            def on_remove_leave(e):
+                AnimationHelper.animate_color_transition(remove_selected_btn, '#dc2626', '#ef4444', duration=150)
+            remove_selected_btn.bind('<Enter>', on_remove_enter)
+            remove_selected_btn.bind('<Leave>', on_remove_leave)
         
         # Add medicine frame with better styling
         add_med_frame = tk.LabelFrame(
@@ -2541,27 +3076,64 @@ class PrescriptionModule:
             search_var.trace('w', on_search)
             search_entry.bind('<Return>', lambda e: on_search())
             
-            # Double-click to select
+            # Double-click to directly add medicine to list
             selected_medicine = {'name': None, 'dosage': None}
             
             def on_double_click(event):
+                """Double-click to directly add medicine to the list"""
                 selection = medicine_tree.selection()
-                if selection:
-                    item = medicine_tree.item(selection[0])
-                    values = item['values']
-                    if values:
-                        selected_medicine['name'] = values[0]
-                        selected_medicine['dosage'] = values[2] if len(values) > 2 else None
-                        med_name_var.set(values[0])
-                        # Update dosage options and set selected dosage if available
-                        update_dosage_options(values[0])
-                        if selected_medicine['dosage']:
-                            # If dosage contains comma, don't set it (let user select from dropdown)
-                            dosage_value = str(selected_medicine['dosage']).strip()
-                            if ',' not in dosage_value:
-                                dosage_var.set(dosage_value)
-                            # If comma-separated, leave empty so user can select from dropdown
-                        medicine_window.destroy()
+                if not selection:
+                    return
+                
+                item = medicine_tree.item(selection[0])
+                values = item['values']
+                if not values:
+                    return
+                
+                # Get medicine details from the selected row
+                med_name = values[0] if len(values) > 0 else ''
+                dosage_value = values[2] if len(values) > 2 else ''
+                
+                if not med_name:
+                    return
+                
+                # Close the medicine selector window first
+                medicine_window.destroy()
+                
+                # Set medicine name and update dosage options
+                med_name_var.set(med_name)
+                update_dosage_options(med_name)
+                
+                # Set dosage if available and not comma-separated
+                if dosage_value:
+                    dosage_str = str(dosage_value).strip()
+                    if ',' not in dosage_str and dosage_str:
+                        dosage_var.set(dosage_str)
+                    # If comma-separated, try to use first dosage or leave for user to select
+                    elif ',' in dosage_str:
+                        # Use first dosage from comma-separated list
+                        first_dosage = dosage_str.split(',')[0].strip()
+                        if first_dosage:
+                            dosage_var.set(first_dosage)
+                
+                # Ensure default frequency and duration are set (use defaults from form)
+                # These will be set by reset_add_medicine_defaults() or use explicit defaults
+                if not frequency_var.get().strip():
+                    # Try to use the default from outer scope, fallback to "Twice daily"
+                    try:
+                        frequency_var.set(default_frequency)
+                    except NameError:
+                        frequency_var.set("Twice daily")
+                if not duration_var.get().strip():
+                    # Try to use the default from outer scope, fallback to "5 days"
+                    try:
+                        duration_var.set(default_duration)
+                    except NameError:
+                        duration_var.set("5 days")
+                
+                # Directly add the medicine to the list
+                # Small delay to ensure UI updates are complete
+                popup.after(100, lambda: add_medicine())
             
             medicine_tree.bind('<Double-1>', on_double_click)
             
@@ -2636,6 +3208,15 @@ class PrescriptionModule:
             state='normal' if not view_only else 'disabled'
         )
         select_med_btn.pack(side=tk.LEFT)
+        
+        # Add smooth hover effect
+        if not view_only:
+            def on_browse_enter(e):
+                AnimationHelper.animate_color_transition(select_med_btn, '#6366f1', '#4f46e5', duration=150)
+            def on_browse_leave(e):
+                AnimationHelper.animate_color_transition(select_med_btn, '#4f46e5', '#6366f1', duration=150)
+            select_med_btn.bind('<Enter>', on_browse_enter)
+            select_med_btn.bind('<Leave>', on_browse_leave)
         
         # Medicine details in a grid - improved layout
         details_frame = tk.Frame(add_med_frame, bg='#ffffff')
@@ -2863,6 +3444,34 @@ class PrescriptionModule:
                 duration_combo['values'] = filtered
         
         duration_var.trace('w', filter_duration)
+
+        # Default selections for fast entry (only in editable mode)
+        def _pick_default(options, preferred):
+            for p in preferred:
+                if p in options:
+                    return p
+            return options[0] if options else ''
+
+        default_frequency = _pick_default(
+            frequency_options,
+            preferred=["Twice daily", "Once daily", "2x/day", "1x/day"]
+        )
+        default_duration = _pick_default(
+            duration_options,
+            preferred=["5 days", "7 days", "For 5 days", "For 7 days"]
+        )
+
+        def reset_add_medicine_defaults():
+            """Reset add-medicine inputs to defaults for quick entry."""
+            if view_only:
+                return
+            if not frequency_var.get().strip():
+                frequency_var.set(default_frequency)
+            if not duration_var.get().strip():
+                duration_var.set(default_duration)
+
+        # Initialize defaults on first open
+        reset_add_medicine_defaults()
         
         # Instructions field
         instructions_label_frame = tk.Frame(details_frame, bg='#ffffff')
@@ -2951,17 +3560,26 @@ class PrescriptionModule:
             # Update status indicator
             update_status()
             
+            # Animate the newly added item (highlight briefly)
+            try:
+                med_tree.selection_set(item)
+                med_tree.see(item)
+                # Remove selection after animation
+                popup.after(500, lambda: med_tree.selection_remove(item))
+            except:
+                pass
+            
             # Clear fields
             med_name_var.set('')
             dosage_var.set('')
-            frequency_var.set('')
-            duration_var.set('')
+            frequency_var.set(default_frequency)
+            duration_var.set(default_duration)
             instructions_entry.delete(0, tk.END)
             
             # Set focus back to medicine name for quick entry
             med_name_entry.focus_set()
             
-            # Show success feedback
+            # Show success feedback with smooth animation
             med_tree.see(item)  # Scroll to show the newly added item
         
         # Add Medicine button - improved styling
@@ -2984,6 +3602,15 @@ class PrescriptionModule:
             state='normal' if not view_only else 'disabled'
         )
         add_med_btn.pack(side=tk.LEFT)
+        
+        # Add smooth hover effect
+        if not view_only:
+            def on_add_med_enter(e):
+                AnimationHelper.animate_color_transition(add_med_btn, '#3b82f6', '#2563eb', duration=150)
+            def on_add_med_leave(e):
+                AnimationHelper.animate_color_transition(add_med_btn, '#2563eb', '#3b82f6', duration=150)
+            add_med_btn.bind('<Enter>', on_add_med_enter)
+            add_med_btn.bind('<Leave>', on_add_med_leave)
         
         # Quick tip label
         tip_label = tk.Label(
@@ -3123,6 +3750,9 @@ class PrescriptionModule:
         
         inner_button_frame = tk.Frame(button_frame, bg='#f8f9fa')
         inner_button_frame.pack(padx=20, pady=15)
+        
+        # Animate button frame appearance
+        popup.after(300, lambda: AnimationHelper.fade_in_widget(button_frame, duration=400))
         
         def save_prescription():
             # Get selected patient ID
@@ -3637,6 +4267,14 @@ Date: {prescription_date}
                 activeforeground='white'
             )
             save_btn.pack(side=tk.LEFT, padx=(0, 10))
+            
+            # Add smooth hover effect to save button
+            def on_save_enter(e):
+                AnimationHelper.animate_color_transition(save_btn, '#10b981', '#059669', duration=150)
+            def on_save_leave(e):
+                AnimationHelper.animate_color_transition(save_btn, '#059669', '#10b981', duration=150)
+            save_btn.bind('<Enter>', on_save_enter)
+            save_btn.bind('<Leave>', on_save_leave)
         
         # Print button - always show (can print even in view mode)
         print_btn = tk.Button(
@@ -3655,6 +4293,14 @@ Date: {prescription_date}
             activeforeground='white'
         )
         print_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # Add smooth hover effect to print button
+        def on_print_enter(e):
+            AnimationHelper.animate_color_transition(print_btn, '#f59e0b', '#d97706', duration=150)
+        def on_print_leave(e):
+            AnimationHelper.animate_color_transition(print_btn, '#d97706', '#f59e0b', duration=150)
+        print_btn.bind('<Enter>', on_print_enter)
+        print_btn.bind('<Leave>', on_print_leave)
         
         cancel_btn = tk.Button(
             inner_button_frame,

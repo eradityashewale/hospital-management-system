@@ -306,7 +306,6 @@ class Database:
         """Get patient by ID"""
         self.cursor.execute("SELECT * FROM patients WHERE patient_id = ?", (patient_id,))
         row = self.cursor.fetchone()
-        # Convert sqlite3.Row to dictionary - same as other methods
         return dict(row) if row else None
     
     def update_patient(self, patient_id: str, patient_data: Dict) -> bool:
@@ -779,17 +778,17 @@ class Database:
             return False
     
     def get_all_medicines(self) -> List[str]:
-        """Get all unique medicine names from prescription items"""
+        """Get all unique medicine names from medicines_master table"""
         try:
             self.cursor.execute("""
-                SELECT DISTINCT medicine_name FROM prescription_items 
+                SELECT DISTINCT medicine_name FROM medicines_master 
                 ORDER BY medicine_name ASC
             """)
             medicines = [row[0] for row in self.cursor.fetchall()]
-            log_debug(f"Retrieved {len(medicines)} unique medicines from database")
+            log_debug(f"Retrieved {len(medicines)} unique medicines from medicines_master table")
             return medicines
         except Exception as e:
-            log_error("Failed to retrieve medicines from database", e)
+            log_error("Failed to retrieve medicines from medicines_master table", e)
             return []
     
     # Billing operations
