@@ -154,7 +154,7 @@ class DoctorModule:
             minwidth = min_widths.get(col, 100)
             # All columns should stretch to fill available space, but respect minimum width
             # This ensures columns are always visible and readable
-            self.tree.column(col, width=width, minwidth=minwidth, stretch=True, anchor='w')
+            self.tree.column(col, width=width, minwidth=minwidth, stretch=True, anchor='center')
         
         # Add both vertical and horizontal scrollbars with theme styling
         v_scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview, style="Vertical.TScrollbar")

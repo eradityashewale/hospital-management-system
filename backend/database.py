@@ -241,6 +241,50 @@ class Database:
         except Exception as e:
             log_error("Error adding is_pediatric column to medicines_master", e)
         
+        # Migration: Add vital signs and follow-up date to prescriptions table
+        try:
+            self.cursor.execute("PRAGMA table_info(prescriptions)")
+            columns = [row[1] for row in self.cursor.fetchall()]
+            
+            vital_fields = {
+                'weight': 'TEXT',
+                'spo2': 'TEXT',
+                'hr': 'TEXT',
+                'rr': 'TEXT',
+                'bp': 'TEXT',
+                'height': 'TEXT',
+                'ideal_body_weight': 'TEXT',
+                'follow_up_date': 'TEXT',
+                'icd_codes': 'TEXT'
+            }
+            
+            for field_name, field_type in vital_fields.items():
+                if field_name not in columns:
+                    log_info(f"Adding {field_name} column to prescriptions table")
+                    self.cursor.execute(f"""
+                        ALTER TABLE prescriptions 
+                        ADD COLUMN {field_name} {field_type}
+                    """)
+                    self.conn.commit()
+                    log_info(f"Successfully added {field_name} column")
+        except Exception as e:
+            log_error("Error adding vital signs columns to prescriptions", e)
+        
+        # Migration: Add purpose field to prescription_items table
+        try:
+            self.cursor.execute("PRAGMA table_info(prescription_items)")
+            columns = [row[1] for row in self.cursor.fetchall()]
+            if 'purpose' not in columns:
+                log_info("Adding purpose column to prescription_items table")
+                self.cursor.execute("""
+                    ALTER TABLE prescription_items 
+                    ADD COLUMN purpose TEXT
+                """)
+                self.conn.commit()
+                log_info("Successfully added purpose column")
+        except Exception as e:
+            log_error("Error adding purpose column to prescription_items", e)
+        
         self.conn.commit()
         log_info("Database initialized successfully")
         
@@ -627,8 +671,10 @@ class Database:
         try:
             self.cursor.execute("""
                 INSERT INTO prescriptions (prescription_id, patient_id, doctor_id,
-                appointment_id, prescription_date, diagnosis, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                appointment_id, prescription_date, diagnosis, notes,
+                weight, spo2, hr, rr, bp, height, ideal_body_weight,
+                follow_up_date, icd_codes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 prescription_data['prescription_id'],
                 prescription_data['patient_id'],
@@ -636,21 +682,31 @@ class Database:
                 prescription_data.get('appointment_id'),
                 prescription_data['prescription_date'],
                 prescription_data.get('diagnosis', ''),
-                prescription_data.get('notes', '')
+                prescription_data.get('notes', ''),
+                prescription_data.get('weight', ''),
+                prescription_data.get('spo2', ''),
+                prescription_data.get('hr', ''),
+                prescription_data.get('rr', ''),
+                prescription_data.get('bp', ''),
+                prescription_data.get('height', ''),
+                prescription_data.get('ideal_body_weight', ''),
+                prescription_data.get('follow_up_date', ''),
+                prescription_data.get('icd_codes', '')
             ))
             
             for item in items:
                 self.cursor.execute("""
                     INSERT INTO prescription_items (prescription_id, medicine_name,
-                    dosage, frequency, duration, instructions)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    dosage, frequency, duration, instructions, purpose)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (
                     prescription_data['prescription_id'],
                     item['medicine_name'],
                     item['dosage'],
                     item['frequency'],
                     item['duration'],
-                    item.get('instructions', '')
+                    item.get('instructions', ''),
+                    item.get('purpose', '')
                 ))
             
             self.conn.commit()
@@ -738,7 +794,9 @@ class Database:
             self.cursor.execute("""
                 UPDATE prescriptions 
                 SET patient_id = ?, doctor_id = ?, appointment_id = ?,
-                    prescription_date = ?, diagnosis = ?, notes = ?
+                    prescription_date = ?, diagnosis = ?, notes = ?,
+                    weight = ?, spo2 = ?, hr = ?, rr = ?, bp = ?,
+                    height = ?, ideal_body_weight = ?, follow_up_date = ?, icd_codes = ?
                 WHERE prescription_id = ?
             """, (
                 prescription_data['patient_id'],
@@ -747,6 +805,15 @@ class Database:
                 prescription_data['prescription_date'],
                 prescription_data.get('diagnosis', ''),
                 prescription_data.get('notes', ''),
+                prescription_data.get('weight', ''),
+                prescription_data.get('spo2', ''),
+                prescription_data.get('hr', ''),
+                prescription_data.get('rr', ''),
+                prescription_data.get('bp', ''),
+                prescription_data.get('height', ''),
+                prescription_data.get('ideal_body_weight', ''),
+                prescription_data.get('follow_up_date', ''),
+                prescription_data.get('icd_codes', ''),
                 prescription_id
             ))
             
@@ -759,15 +826,16 @@ class Database:
             for item in items:
                 self.cursor.execute("""
                     INSERT INTO prescription_items (prescription_id, medicine_name,
-                    dosage, frequency, duration, instructions)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    dosage, frequency, duration, instructions, purpose)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
                 """, (
                     prescription_id,
                     item['medicine_name'],
                     item['dosage'],
                     item['frequency'],
                     item['duration'],
-                    item.get('instructions', '')
+                    item.get('instructions', ''),
+                    item.get('purpose', '')
                 ))
             
             self.conn.commit()

@@ -289,6 +289,22 @@ class PrescriptionModule:
         )
         header.pack(pady=20)
         
+        # Selection indicator frame - shows selected prescription
+        self.selection_indicator_frame = tk.Frame(self.parent, bg='#e0e7ff', relief=tk.FLAT, bd=0)
+        self.selection_indicator_frame.pack(fill=tk.X, padx=25, pady=(0, 10))
+        self.selection_indicator_frame.pack_forget()  # Initially hidden
+        
+        self.selection_label = tk.Label(
+            self.selection_indicator_frame,
+            text="",
+            font=('Segoe UI', 11, 'bold'),
+            bg='#e0e7ff',
+            fg='#1e40af',
+            padx=15,
+            pady=10
+        )
+        self.selection_label.pack(side=tk.LEFT, padx=10)
+        
         # Top frame
         top_frame = tk.Frame(self.parent, bg='#f5f7fa')
         top_frame.pack(fill=tk.X, padx=25, pady=15)
@@ -744,7 +760,7 @@ class PrescriptionModule:
             self.tree.heading(col, text=col)
             width = column_widths.get(col, 150)
             minwidth = min_widths.get(col, 100)
-            self.tree.column(col, width=width, minwidth=minwidth, stretch=True, anchor='w')
+            self.tree.column(col, width=width, minwidth=minwidth, stretch=True, anchor='center')
         
         # Add both vertical and horizontal scrollbars with theme styling
         v_scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview, style="Vertical.TScrollbar")
@@ -758,8 +774,34 @@ class PrescriptionModule:
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
-        # Remove double-click binding - will use popup instead
-        # self.tree.bind('<Double-1>', self.edit_prescription)
+        # Bind double-click to view prescription details
+        self.tree.bind('<Double-1>', self.view_prescription)
+        
+        # Bind selection event to update indicator
+        def on_selection_change(event=None):
+            """Update selection indicator when prescription is selected"""
+            selection = self.tree.selection()
+            if selection:
+                item = self.tree.item(selection[0])
+                values = item['values']
+                if values:
+                    prescription_id = values[0]
+                    patient_name = values[2] if len(values) > 2 else 'Unknown'
+                    doctor_name = values[3] if len(values) > 3 else 'Unknown'
+                    date = values[4] if len(values) > 4 else ''
+                    
+                    indicator_text = f"📋 Selected: {prescription_id} | Patient: {patient_name} | Doctor: {doctor_name}"
+                    if date:
+                        indicator_text += f" | Date: {date}"
+                    
+                    self.selection_label.config(text=indicator_text)
+                    # Show indicator frame
+                    if not self.selection_indicator_frame.winfo_viewable():
+                        self.selection_indicator_frame.pack(fill=tk.X, padx=25, pady=(0, 10))
+            else:
+                self.selection_indicator_frame.pack_forget()
+        
+        self.tree.bind('<<TreeviewSelect>>', on_selection_change)
     
     def refresh_list(self):
         """Refresh prescription list (shows all prescriptions)"""
@@ -889,17 +931,17 @@ class PrescriptionModule:
         for col in columns:
             tree.heading(col, text=col)
             if col == 'ID':
-                tree.column(col, width=150)
+                tree.column(col, width=150, anchor='center')
             elif col == 'Patient ID':
-                tree.column(col, width=120)
+                tree.column(col, width=120, anchor='center')
             elif col == 'Patient Name':
-                tree.column(col, width=180)
+                tree.column(col, width=180, anchor='center')
             elif col == 'Doctor':
-                tree.column(col, width=200)
+                tree.column(col, width=200, anchor='center')
             elif col == 'Date':
-                tree.column(col, width=120)
+                tree.column(col, width=120, anchor='center')
             else:
-                tree.column(col, width=200)
+                tree.column(col, width=200, anchor='center')
         
         scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -1104,45 +1146,386 @@ class PrescriptionModule:
         # Create popup window
         popup = tk.Toplevel(self.parent)
         popup.title(f"Prescription Details - {prescription_id}")
-        popup.geometry("800x700")
         popup.configure(bg='#f5f7fa')
         popup.transient(self.parent)
         popup.grab_set()
-        
-        # Center the window
-        popup.update_idletasks()
-        x = (popup.winfo_screenwidth() // 2) - (800 // 2)
-        y = (popup.winfo_screenheight() // 2) - (700 // 2)
-        popup.geometry(f"800x700+{x}+{y}")
         
         # Header
         header_frame = tk.Frame(popup, bg='#1e40af', height=60)
         header_frame.pack(fill=tk.X)
         header_frame.pack_propagate(False)
         
-        tk.Label(
+        # Title
+        title_label = tk.Label(
             header_frame,
             text=f"Prescription Details - {prescription_id}",
             font=('Segoe UI', 14, 'bold'),
             bg='#1e40af',
             fg='white'
-        ).pack(pady=18)
+        )
+        title_label.pack(side=tk.LEFT, padx=25, pady=18)
+        
+        # Edit button
+        def open_edit():
+            popup.destroy()
+            self.show_prescription_form_popup(prescription_id=prescription_id, view_only=False)
+        
+        edit_btn = tk.Button(
+            header_frame,
+            text="✏️ Edit",
+            command=open_edit,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#10b981',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            activebackground='#059669',
+            activeforeground='white'
+        )
+        edit_btn.pack(side=tk.RIGHT, padx=(0, 10), pady=12)
+        
+        # Print button
+        def print_prescription():
+            """Print/Export prescription as PDF"""
+            try:
+                from reportlab.lib.pagesizes import A4
+                from reportlab.lib.units import mm
+                from reportlab.lib import colors
+                from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+                from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                from reportlab.lib.enums import TA_LEFT, TA_CENTER
+                from tkinter import filedialog
+                from datetime import datetime
+                import os
+                import platform
+                import subprocess
+                
+                # Get patient and doctor details
+                patient = self.db.get_patient_by_id(prescription_data.get('patient_id'))
+                doctor = self.db.get_doctor_by_id(prescription_data.get('doctor_id'))
+                
+                if not patient or not doctor:
+                    messagebox.showerror("Error", "Could not retrieve patient or doctor information")
+                    return
+                
+                # Ask user where to save PDF
+                prescription_date = prescription_data.get('prescription_date', '')
+                filename = filedialog.asksaveasfilename(
+                    defaultextension=".pdf",
+                    filetypes=[("PDF files", "*.pdf"), ("All files", "*.*")],
+                    initialfile=f"Prescription_{prescription_id}_{prescription_date.replace('-', '')}.pdf"
+                )
+                
+                if not filename:
+                    return  # User cancelled
+                
+                # Create PDF document
+                doc = SimpleDocTemplate(filename, pagesize=A4,
+                                      rightMargin=15*mm, leftMargin=15*mm,
+                                      topMargin=15*mm, bottomMargin=15*mm)
+                
+                elements = []
+                styles = getSampleStyleSheet()
+                
+                title_style = ParagraphStyle(
+                    'CustomTitle',
+                    parent=styles['Heading1'],
+                    fontSize=18,
+                    textColor=colors.HexColor('#1a237e'),
+                    spaceAfter=12,
+                    alignment=TA_CENTER,
+                    fontName='Helvetica-Bold'
+                )
+                
+                heading_style = ParagraphStyle(
+                    'CustomHeading',
+                    parent=styles['Heading2'],
+                    fontSize=12,
+                    textColor=colors.HexColor('#1a237e'),
+                    spaceAfter=6,
+                    spaceBefore=12,
+                    fontName='Helvetica-Bold'
+                )
+                
+                normal_style = ParagraphStyle(
+                    'CustomNormal',
+                    parent=styles['Normal'],
+                    fontSize=10,
+                    textColor=colors.black,
+                    spaceAfter=6,
+                    fontName='Helvetica'
+                )
+                
+                # Header
+                doctor_name = f"Dr. {doctor.get('first_name', '')} {doctor.get('last_name', '')}".strip()
+                doctor_qual = doctor.get('qualification', '')
+                doctor_spec = doctor.get('specialization', '')
+                
+                # Calculate patient age
+                patient_age = ""
+                patient_gender = patient.get('gender', '')
+                if patient.get('date_of_birth'):
+                    try:
+                        dob = datetime.strptime(patient['date_of_birth'], '%Y-%m-%d')
+                        age = (datetime.now() - dob).days // 365
+                        patient_age = f"{age}"
+                    except:
+                        pass
+                
+                patient_name = f"{patient.get('first_name', '')} {patient.get('last_name', '')}".strip().upper()
+                
+                # Format date
+                try:
+                    date_obj = datetime.strptime(prescription_date, '%Y-%m-%d')
+                    formatted_date = date_obj.strftime('%d.%m.%Y')
+                except:
+                    formatted_date = prescription_date
+                
+                # Header table
+                header_data = [[
+                    Paragraph(f"<b>{doctor_name}</b><br/>"
+                             f"{doctor_qual}<br/>"
+                             f"Specialization: {doctor_spec}<br/>"
+                             f"Mobile: {doctor.get('phone', 'N/A')}<br/>"
+                             f"Email: {doctor.get('email', 'N/A')}", normal_style),
+                    Paragraph(f"<b>PRESCRIPTION</b><br/>"
+                             f"Date: {formatted_date}<br/>"
+                             f"Prescription ID: {prescription_id}", normal_style)
+                ]]
+                
+                header_table = Table(header_data, colWidths=[90*mm, 90*mm])
+                header_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                ]))
+                elements.append(header_table)
+                elements.append(Spacer(1, 8*mm))
+                
+                # Patient Information
+                patient_info_data = [
+                    ['Name:', patient_name],
+                    ['Age/Gender:', f"{patient_age}/{patient_gender}" if patient_age else patient_gender],
+                    ['Patient ID:', prescription_data.get('patient_id')],
+                ]
+                if patient.get('phone'):
+                    patient_info_data.append(['Phone:', patient.get('phone')])
+                if patient.get('address'):
+                    patient_info_data.append(['Address:', patient.get('address')])
+                
+                patient_table = Table(patient_info_data, colWidths=[30*mm, 150*mm])
+                patient_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                    ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                    ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                    ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ]))
+                elements.append(Paragraph("<b>PATIENT INFORMATION</b>", heading_style))
+                elements.append(patient_table)
+                elements.append(Spacer(1, 6*mm))
+                
+                # Vital Signs
+                weight = prescription_data.get('weight', '')
+                spo2 = prescription_data.get('spo2', '')
+                hr = prescription_data.get('hr', '')
+                rr = prescription_data.get('rr', '')
+                bp = prescription_data.get('bp', '')
+                height = prescription_data.get('height', '')
+                ideal_body_weight = prescription_data.get('ideal_body_weight', '')
+                follow_up_date = prescription_data.get('follow_up_date', '')
+                
+                vitals_data = []
+                if weight or spo2 or hr or rr or bp or height or ideal_body_weight:
+                    vitals_data.append(['VITAL SIGNS & MEASUREMENTS', ''])
+                    if weight:
+                        vitals_data.append(['Weight:', f"{weight} Kgs"])
+                    if spo2:
+                        vitals_data.append(['SPO2:', f"{spo2}%"])
+                    if hr:
+                        vitals_data.append(['HR:', f"{hr}/min"])
+                    if rr:
+                        vitals_data.append(['RR:', f"{rr}/min"])
+                    if bp:
+                        vitals_data.append(['BP:', f"{bp} mmHg"])
+                    if height:
+                        vitals_data.append(['Height:', f"{height} Mtrs"])
+                    if ideal_body_weight:
+                        vitals_data.append(['Ideal Body Weight:', f"{ideal_body_weight} Kgs"])
+                    if follow_up_date:
+                        vitals_data.append(['Follow-up Date:', follow_up_date])
+                    
+                    vitals_table = Table(vitals_data, colWidths=[50*mm, 130*mm])
+                    vitals_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a237e')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                        ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#f0f0f0')),
+                        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+                        ('FONTNAME', (1, 1), (1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                        ('TOPPADDING', (0, 0), (-1, -1), 6),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ]))
+                    elements.append(vitals_table)
+                    elements.append(Spacer(1, 6*mm))
+                
+                # Diagnosis
+                diagnosis = prescription_data.get('diagnosis', '')
+                icd_codes = prescription_data.get('icd_codes', '')
+                if diagnosis or icd_codes:
+                    elements.append(Paragraph("<b>DIAGNOSIS</b>", heading_style))
+                    if diagnosis:
+                        elements.append(Paragraph(diagnosis.replace('\n', '<br/>'), normal_style))
+                    if icd_codes:
+                        elements.append(Paragraph(f"<b>ICD Codes:</b> {icd_codes}", normal_style))
+                    elements.append(Spacer(1, 6*mm))
+                
+                # Medicines
+                if items:
+                    elements.append(Paragraph("<b>PRESCRIBED MEDICINES</b>", heading_style))
+                    med_data = [['R', 'Medicine Name', 'Type', 'Dosage', 'Frequency', 'Duration', 'Instructions']]
+                    for idx, item in enumerate(items, 1):
+                        med_data.append([
+                            str(idx),
+                            item.get('medicine_name', ''),
+                            item.get('medicine_type', ''),
+                            item.get('dosage', ''),
+                            item.get('frequency', ''),
+                            item.get('duration', ''),
+                            item.get('instructions', '')
+                        ])
+                    
+                    med_table = Table(med_data, colWidths=[8*mm, 40*mm, 20*mm, 22*mm, 25*mm, 22*mm, 43*mm])
+                    med_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a237e')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                        ('ALIGN', (1, 1), (1, -1), 'LEFT'),
+                        ('ALIGN', (6, 1), (6, -1), 'LEFT'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 9),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                        ('TOPPADDING', (0, 0), (-1, -1), 4),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9f9f9')]),
+                    ]))
+                    elements.append(med_table)
+                    elements.append(Spacer(1, 8*mm))
+                
+                # Notes
+                notes = prescription_data.get('notes', '')
+                if notes:
+                    elements.append(Paragraph("<b>DOCTOR'S NOTES</b>", heading_style))
+                    elements.append(Paragraph(notes.replace('\n', '<br/>'), normal_style))
+                    elements.append(Spacer(1, 8*mm))
+                
+                # Footer
+                footer_data = [['Signature: _________________________', f'Date: {formatted_date}']]
+                footer_table = Table(footer_data, colWidths=[90*mm, 90*mm])
+                footer_table.setStyle(TableStyle([
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 20),
+                ]))
+                elements.append(footer_table)
+                
+                # Build PDF
+                doc.build(elements)
+                messagebox.showinfo("Success", f"Prescription PDF saved successfully!\n\n{filename}")
+                
+                # Ask if user wants to open the PDF
+                if messagebox.askyesno("Open PDF", "Do you want to open the PDF now?"):
+                    system = platform.system()
+                    if system == "Windows":
+                        os.startfile(filename)
+                    elif system == "Darwin":  # macOS
+                        subprocess.run(['open', filename])
+                    else:  # Linux
+                        subprocess.run(['xdg-open', filename])
+                        
+            except ImportError:
+                messagebox.showerror("Error", 
+                    "reportlab library is not installed.\n\n"
+                    "Please install it using: pip install reportlab")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to generate PDF: {str(e)}")
+        
+        print_btn = tk.Button(
+            header_frame,
+            text="🖨️ Print",
+            command=print_prescription,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#6366f1',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            activebackground='#4f46e5',
+            activeforeground='white'
+        )
+        print_btn.pack(side=tk.RIGHT, padx=(0, 10), pady=12)
+        
+        # Main container frame
+        main_container = tk.Frame(popup, bg='#f5f7fa')
+        main_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
         
         # Scrollable content
-        canvas = tk.Canvas(popup, bg='#f5f7fa', highlightthickness=0)
-        scrollbar = ttk.Scrollbar(popup, orient="vertical", command=canvas.yview)
+        canvas = tk.Canvas(main_container, bg='#f5f7fa', highlightthickness=0)
+        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(canvas, bg='#f5f7fa')
         
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        def update_scrollregion(event=None):
+            canvas.update_idletasks()
+            bbox = canvas.bbox("all")
+            if bbox:
+                canvas.configure(scrollregion=bbox)
+                # Hide scrollbar if content fits within canvas
+                content_height = bbox[3] - bbox[1]
+                canvas_height = canvas.winfo_height()
+                if content_height <= canvas_height and canvas_height > 0:
+                    scrollbar.pack_forget()
+                else:
+                    if not scrollbar.winfo_viewable():
+                        scrollbar.pack(side="right", fill="y")
         
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        scrollable_frame.bind("<Configure>", update_scrollregion)
+        
+        canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        
+        def on_canvas_configure(event):
+            canvas_width = event.width
+            canvas.itemconfig(canvas_window, width=canvas_width)
+        
+        canvas.bind('<Configure>', on_canvas_configure)
+        
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        
+        canvas.bind_all("<MouseWheel>", on_mousewheel)
+        
         canvas.configure(yscrollcommand=scrollbar.set)
         
-        canvas.pack(side="left", fill="both", expand=True, padx=20, pady=15)
-        scrollbar.pack(side="right", fill="y", pady=15)
+        # Pack scrollbar initially (will be hidden if not needed)
+        scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
         
         # Content frame
         content_frame = tk.Frame(scrollable_frame, bg='#ffffff', relief=tk.RAISED, bd=2)
@@ -1179,6 +1562,96 @@ class PrescriptionModule:
             justify=tk.LEFT,
             anchor='w'
         ).pack(fill=tk.X, padx=5, pady=5)
+        
+        # Vital Signs & Measurements
+        has_vitals = any([
+            prescription_data.get('weight'),
+            prescription_data.get('spo2'),
+            prescription_data.get('hr'),
+            prescription_data.get('rr'),
+            prescription_data.get('bp'),
+            prescription_data.get('height'),
+            prescription_data.get('ideal_body_weight'),
+            prescription_data.get('follow_up_date')
+        ])
+        
+        if has_vitals:
+            vitals_frame = tk.LabelFrame(
+                content_frame,
+                text="📊 Vital Signs & Measurements",
+                font=('Segoe UI', 11, 'bold'),
+                bg='#ffffff',
+                fg='#1a237e',
+                padx=15,
+                pady=10
+            )
+            vitals_frame.pack(fill=tk.X, padx=15, pady=10)
+            
+            # Create a grid layout for vital signs
+            vitals_grid = tk.Frame(vitals_frame, bg='#ffffff')
+            vitals_grid.pack(fill=tk.X, padx=5, pady=5)
+            
+            # Configure grid columns for equal spacing
+            vitals_grid.grid_columnconfigure(0, weight=1, uniform='vitals')
+            vitals_grid.grid_columnconfigure(1, weight=1, uniform='vitals')
+            vitals_grid.grid_columnconfigure(2, weight=1, uniform='vitals')
+            vitals_grid.grid_columnconfigure(3, weight=1, uniform='vitals')
+            
+            # Helper function to create vital sign display
+            def create_vital_display(parent, row, col, label_text, value):
+                """Helper function to create a vital sign display"""
+                if not value:
+                    return
+                frame = tk.Frame(parent, bg='#ffffff')
+                frame.grid(row=row, column=col, padx=10, pady=5, sticky='ew')
+                tk.Label(
+                    frame,
+                    text=label_text,
+                    font=('Segoe UI', 9, 'bold'),
+                    bg='#ffffff',
+                    fg='#6b7280'
+                ).pack(anchor='w')
+                tk.Label(
+                    frame,
+                    text=str(value),
+                    font=('Segoe UI', 10),
+                    bg='#ffffff',
+                    fg='#374151'
+                ).pack(anchor='w', pady=(2, 0))
+            
+            # Get vital signs values
+            weight = prescription_data.get('weight', '')
+            spo2 = prescription_data.get('spo2', '')
+            hr = prescription_data.get('hr', '')
+            rr = prescription_data.get('rr', '')
+            bp = prescription_data.get('bp', '')
+            height = prescription_data.get('height', '')
+            ibw = prescription_data.get('ideal_body_weight', '')
+            followup = prescription_data.get('follow_up_date', '')
+            
+            # Row 1: Weight, SPO2, HR, RR
+            row = 0
+            if weight or spo2 or hr or rr:
+                if weight:
+                    create_vital_display(vitals_grid, row, 0, "Weight (Kgs)", weight)
+                if spo2:
+                    create_vital_display(vitals_grid, row, 1, "SPO2 (%)", spo2)
+                if hr:
+                    create_vital_display(vitals_grid, row, 2, "HR (/min)", hr)
+                if rr:
+                    create_vital_display(vitals_grid, row, 3, "RR (/min)", rr)
+                row += 1
+            
+            # Row 2: BP, Height, Ideal Body Weight, Follow-up Date
+            if bp or height or ibw or followup:
+                if bp:
+                    create_vital_display(vitals_grid, row, 0, "BP (mmHg)", bp)
+                if height:
+                    create_vital_display(vitals_grid, row, 1, "Height (Mtrs)", height)
+                if ibw:
+                    create_vital_display(vitals_grid, row, 2, "Ideal Body Weight (Kgs)", ibw)
+                if followup:
+                    create_vital_display(vitals_grid, row, 3, "Follow-up Date", followup)
         
         # Diagnosis
         if prescription_data.get('diagnosis'):
@@ -1218,20 +1691,20 @@ class PrescriptionModule:
             )
             medicines_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=10)
             
-            # Treeview for medicines
+            # Treeview for medicines - show all items
             med_columns = ('Medicine', 'Type', 'Dosage', 'Frequency', 'Duration', 'Instructions')
-            med_tree = ttk.Treeview(medicines_frame, columns=med_columns, show='headings', height=min(len(items), 10))
+            med_tree = ttk.Treeview(medicines_frame, columns=med_columns, show='headings', height=len(items) if items else 1)
             
             for col in med_columns:
                 med_tree.heading(col, text=col)
                 if col == 'Medicine':
-                    med_tree.column(col, width=200)
+                    med_tree.column(col, width=200, anchor='center')
                 elif col == 'Type':
                     med_tree.column(col, width=90, anchor='center')
                 elif col == 'Instructions':
-                    med_tree.column(col, width=200)
+                    med_tree.column(col, width=200, anchor='center')
                 else:
-                    med_tree.column(col, width=120)
+                    med_tree.column(col, width=120, anchor='center')
             
             for item in items:
                 med_tree.insert('', tk.END, values=(
@@ -1270,21 +1743,31 @@ class PrescriptionModule:
             )
             notes_label.pack(fill=tk.X, padx=5, pady=5)
         
-        # Close button
-        close_btn = tk.Button(
-            popup,
-            text="Close",
-            command=popup.destroy,
-            font=('Segoe UI', 10, 'bold'),
-            bg='#6b7280',
-            fg='white',
-            padx=40,
-            pady=10,
-            cursor='hand2',
-            relief=tk.FLAT,
-            activebackground='#4b5563'
-        )
-        close_btn.pack(pady=15)
+        # Update scroll region and window size after all content is added
+        popup.update_idletasks()
+        update_scrollregion()
+        
+        # Calculate optimal window size (max 90% of screen, min 800x600)
+        content_height = scrollable_frame.winfo_reqheight() + 120  # Add header and padding
+        content_width = max(800, scrollable_frame.winfo_reqwidth() + 60)  # Add padding
+        
+        screen_width = popup.winfo_screenwidth()
+        screen_height = popup.winfo_screenheight()
+        
+        max_width = int(screen_width * 0.9)
+        max_height = int(screen_height * 0.9)
+        
+        window_width = min(content_width, max_width)
+        window_height = min(content_height, max_height)
+        
+        # Center the window
+        x = (screen_width // 2) - (window_width // 2)
+        y = (screen_height // 2) - (window_height // 2)
+        popup.geometry(f"{window_width}x{window_height}+{x}+{y}")
+        
+        # Final update to ensure scrollbar visibility is correct
+        popup.update_idletasks()
+        update_scrollregion()
     
     def show_prescription_form_popup(self, prescription_id=None, view_only=False):
         """Show prescription form in popup window - doctor-friendly"""
@@ -1299,6 +1782,8 @@ class PrescriptionModule:
                 messagebox.showerror("Error", "Prescription not found")
                 return
             existing_items = self.db.get_prescription_items(prescription_id)
+        else:
+            existing_items = []
         
         # Create popup window
         popup = tk.Toplevel(self.parent)
@@ -1344,12 +1829,59 @@ class PrescriptionModule:
         scrollbar = ttk.Scrollbar(form_parent, orient="vertical", command=canvas.yview)
         scrollable_frame = tk.Frame(canvas, bg='#f5f7fa')
         
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
+        def update_scroll_region(event=None):
+            canvas.update_idletasks()
+            canvas.configure(scrollregion=canvas.bbox("all"))
         
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        scrollable_frame.bind("<Configure>", update_scroll_region)
+        
+        canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        
+        def on_canvas_configure(event):
+            """Update canvas window width when canvas is resized"""
+            canvas_width = event.width
+            canvas.itemconfig(canvas_window, width=canvas_width)
+        
+        canvas.bind('<Configure>', on_canvas_configure)
+        
+        # Mouse wheel scrolling - works from anywhere in the window
+        def on_mousewheel(event):
+            """Handle mouse wheel scrolling"""
+            # Windows uses delta, Linux/Mac uses num
+            if event.num == 4 or (hasattr(event, 'delta') and event.delta > 0):
+                canvas.yview_scroll(-1, "units")
+            elif event.num == 5 or (hasattr(event, 'delta') and event.delta < 0):
+                canvas.yview_scroll(1, "units")
+            return "break"
+        
+        # Bind mouse wheel to canvas
+        canvas.bind("<MouseWheel>", on_mousewheel)
+        canvas.bind("<Button-4>", on_mousewheel)  # Linux scroll up
+        canvas.bind("<Button-5>", on_mousewheel)  # Linux scroll down
+        
+        # Also bind to the popup window so scrolling works from anywhere
+        popup.bind("<MouseWheel>", lambda e: on_mousewheel(e) if canvas.winfo_exists() else None)
+        popup.bind("<Button-4>", lambda e: on_mousewheel(e) if canvas.winfo_exists() else None)
+        popup.bind("<Button-5>", lambda e: on_mousewheel(e) if canvas.winfo_exists() else None)
+        
+        # Bind to scrollable frame and all child widgets for universal scrolling
+        def bind_mousewheel_to_widget(widget):
+            """Recursively bind mouse wheel to widget and its children"""
+            widget.bind("<MouseWheel>", on_mousewheel)
+            widget.bind("<Button-4>", on_mousewheel)
+            widget.bind("<Button-5>", on_mousewheel)
+            for child in widget.winfo_children():
+                try:
+                    bind_mousewheel_to_widget(child)
+                except:
+                    pass
+        
+        # Bind mouse wheel to scrollable frame after it's created
+        def bind_all_widgets():
+            bind_mousewheel_to_widget(scrollable_frame)
+        
+        popup.after(100, bind_all_widgets)
+        
         canvas.configure(yscrollcommand=scrollbar.set)
         
         canvas.pack(side="left", fill="both", expand=True)
@@ -1601,11 +2133,11 @@ class PrescriptionModule:
             for col in columns:
                 tree.heading(col, text=col)
                 if col == 'Patient ID':
-                    tree.column(col, width=150)
+                    tree.column(col, width=150, anchor='center')
                 elif col in ['First Name', 'Last Name']:
-                    tree.column(col, width=150)
+                    tree.column(col, width=150, anchor='center')
                 else:
-                    tree.column(col, width=100)
+                    tree.column(col, width=100, anchor='center')
             
             scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=tree.yview)
             tree.configure(yscrollcommand=scrollbar.set)
@@ -1811,13 +2343,13 @@ class PrescriptionModule:
             for col in columns:
                 tree.heading(col, text=col)
                 if col == 'Doctor ID':
-                    tree.column(col, width=150)
+                    tree.column(col, width=150, anchor='center')
                 elif col in ['First Name', 'Last Name']:
-                    tree.column(col, width=150)
+                    tree.column(col, width=150, anchor='center')
                 elif col == 'Specialization':
-                    tree.column(col, width=180)
+                    tree.column(col, width=180, anchor='center')
                 else:
-                    tree.column(col, width=150)
+                    tree.column(col, width=150, anchor='center')
             
             scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=tree.yview)
             tree.configure(yscrollcommand=scrollbar.set)
@@ -2223,6 +2755,53 @@ class PrescriptionModule:
             calendar_btn.bind('<Enter>', on_calendar_enter)
             calendar_btn.bind('<Leave>', on_calendar_leave)
         
+        # Vital Signs Section - Better organized layout
+        vitals_frame = tk.LabelFrame(
+            form_frame,
+            text="📊 Vital Signs & Measurements",
+            font=('Segoe UI', 11, 'bold'),
+            bg='#ffffff',
+            fg='#1a237e',
+            padx=20,
+            pady=15,
+            relief=tk.RAISED,
+            bd=2
+        )
+        vitals_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        # Create a grid layout for better organization
+        vitals_grid = tk.Frame(vitals_frame, bg='#ffffff')
+        vitals_grid.pack(fill=tk.X, padx=10, pady=10)
+        
+        # Configure grid columns for equal spacing
+        vitals_grid.grid_columnconfigure(0, weight=1, uniform='vitals')
+        vitals_grid.grid_columnconfigure(1, weight=1, uniform='vitals')
+        vitals_grid.grid_columnconfigure(2, weight=1, uniform='vitals')
+        vitals_grid.grid_columnconfigure(3, weight=1, uniform='vitals')
+        
+        # Helper function to create vital field
+        def create_vital_field(parent, row, col, label_text):
+            """Helper function to create a vital sign field"""
+            frame = tk.Frame(parent, bg='#ffffff')
+            frame.grid(row=row, column=col, padx=15, pady=8, sticky='ew')
+            tk.Label(frame, text=label_text, font=('Segoe UI', 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w', pady=(0, 3))
+            var = tk.StringVar()
+            entry = tk.Entry(frame, textvariable=var, font=('Segoe UI', 10), width=15, relief=tk.SOLID, bd=1, state='normal' if not view_only else 'disabled', bg='#f9fafb')
+            entry.pack(fill=tk.X)
+            return var, entry
+        
+        # Row 1: Weight, SPO2, HR, RR
+        weight_var, weight_entry = create_vital_field(vitals_grid, 0, 0, "Weight (Kgs)")
+        spo2_var, spo2_entry = create_vital_field(vitals_grid, 0, 1, "SPO2 (%)")
+        hr_var, hr_entry = create_vital_field(vitals_grid, 0, 2, "HR (/min)")
+        rr_var, rr_entry = create_vital_field(vitals_grid, 0, 3, "RR (/min)")
+        
+        # Row 2: BP, Height, Ideal Body Weight, Follow-up Date
+        bp_var, bp_entry = create_vital_field(vitals_grid, 1, 0, "BP (mmHg)")
+        height_var, height_entry = create_vital_field(vitals_grid, 1, 1, "Height (Mtrs)")
+        ibw_var, ibw_entry = create_vital_field(vitals_grid, 1, 2, "Ideal Body Weight (Kgs)")
+        followup_var, followup_entry = create_vital_field(vitals_grid, 1, 3, "Follow-up Date")
+        
         # Diagnosis with templates
         diagnosis_label_frame = tk.Frame(form_frame, bg='#ffffff')
         diagnosis_label_frame.pack(fill=tk.X, pady=(0, 8))
@@ -2231,6 +2810,17 @@ class PrescriptionModule:
         diagnosis_title_frame.pack(fill=tk.X)
         
         tk.Label(diagnosis_title_frame, text="Diagnosis", font=('Segoe UI', 10, 'bold'), bg='#ffffff', fg='#374151').pack(side=tk.LEFT, anchor='w')
+        
+        # ICD Codes field - cleaner layout
+        icd_frame = tk.Frame(diagnosis_label_frame, bg='#ffffff')
+        icd_frame.pack(fill=tk.X, pady=(8, 0))
+        icd_label_frame = tk.Frame(icd_frame, bg='#ffffff')
+        icd_label_frame.pack(fill=tk.X, pady=(0, 5))
+        tk.Label(icd_label_frame, text="ICD Codes (optional):", font=('Segoe UI', 9, 'bold'), bg='#ffffff', fg='#374151').pack(side=tk.LEFT)
+        tk.Label(icd_label_frame, text="💡 Enter codes separated by commas (e.g., D51.9, E55.9)", font=('Segoe UI', 8), bg='#ffffff', fg='#9ca3af').pack(side=tk.LEFT, padx=(10, 0))
+        icd_var = tk.StringVar()
+        icd_entry = tk.Entry(icd_frame, textvariable=icd_var, font=('Segoe UI', 10), relief=tk.SOLID, bd=1, state='normal' if not view_only else 'disabled', bg='#f9fafb')
+        icd_entry.pack(fill=tk.X, pady=(0, 5), ipady=5)
         
         # Common diagnosis templates
         common_diagnoses = [
@@ -2282,8 +2872,8 @@ class PrescriptionModule:
             )
             btn.pack(side=tk.LEFT, padx=2, pady=3)
         
-        diagnosis_text = tk.Text(form_frame, font=('Segoe UI', 10), height=4, wrap=tk.WORD, relief=tk.SOLID, bd=1, padx=5, pady=5, state='normal' if not view_only else 'disabled')
-        diagnosis_text.pack(fill=tk.X, pady=(0, 10))
+        diagnosis_text = tk.Text(form_frame, font=('Segoe UI', 10), height=4, wrap=tk.WORD, relief=tk.SOLID, bd=1, padx=8, pady=8, bg='#f9fafb', state='normal' if not view_only else 'disabled')
+        diagnosis_text.pack(fill=tk.X, pady=(0, 15))
         
         # Additional Notes section
         notes_frame = tk.LabelFrame(
@@ -2338,9 +2928,20 @@ class PrescriptionModule:
             date_entry.delete(0, tk.END)
             date_entry.insert(0, prescription_data.get('prescription_date', get_current_date()))
             
-            # Set diagnosis
+            # Set vital signs
+            weight_var.set(prescription_data.get('weight', ''))
+            spo2_var.set(prescription_data.get('spo2', ''))
+            hr_var.set(prescription_data.get('hr', ''))
+            rr_var.set(prescription_data.get('rr', ''))
+            bp_var.set(prescription_data.get('bp', ''))
+            height_var.set(prescription_data.get('height', ''))
+            ibw_var.set(prescription_data.get('ideal_body_weight', ''))
+            followup_var.set(prescription_data.get('follow_up_date', ''))
+            
+            # Set diagnosis and ICD codes
             diagnosis_text.delete('1.0', tk.END)
             diagnosis_text.insert('1.0', prescription_data.get('diagnosis', ''))
+            icd_var.set(prescription_data.get('icd_codes', ''))
             
             # Set notes
             notes_text.delete('1.0', tk.END)
@@ -2475,7 +3076,7 @@ class PrescriptionModule:
         )
         info_label.pack(fill=tk.X, pady=(0, 5))
         
-        med_columns = ('Medicine', 'Type', 'Dosage', 'Frequency', 'Duration', 'Instructions')
+        med_columns = ('Medicine', 'Type', 'Dosage', 'Frequency', 'Duration', 'Purpose', 'Instructions')
         med_tree = ttk.Treeview(med_list_frame, columns=med_columns, show='headings', height=6)
         
         # Configure treeview style
@@ -2500,13 +3101,15 @@ class PrescriptionModule:
         for col in med_columns:
             med_tree.heading(col, text=col)
             if col == 'Medicine':
-                med_tree.column(col, width=200)
+                med_tree.column(col, width=200, anchor='center')
             elif col == 'Type':
                 med_tree.column(col, width=90, anchor='center')
+            elif col == 'Purpose':
+                med_tree.column(col, width=150, anchor='center')
             elif col == 'Instructions':
-                med_tree.column(col, width=200)
+                med_tree.column(col, width=200, anchor='center')
             else:
-                med_tree.column(col, width=120)
+                med_tree.column(col, width=120, anchor='center')
         
         med_scrollbar = ttk.Scrollbar(med_list_frame, orient=tk.VERTICAL, command=med_tree.yview)
         med_tree.configure(yscrollcommand=med_scrollbar.set)
@@ -2916,12 +3519,12 @@ class PrescriptionModule:
             medicine_tree.heading('Category', text='Category')
             medicine_tree.heading('Description', text='Description')
             
-            medicine_tree.column('Medicine Name', width=200, anchor='w', stretch=True)
-            medicine_tree.column('Company', width=150, anchor='w', stretch=True)
-            medicine_tree.column('Dosage (mg)', width=120, anchor='w', stretch=True)
-            medicine_tree.column('Form', width=100, anchor='w', stretch=True)
-            medicine_tree.column('Category', width=120, anchor='w', stretch=True)
-            medicine_tree.column('Description', width=300, anchor='w', stretch=True)
+            medicine_tree.column('Medicine Name', width=200, anchor='center', stretch=True)
+            medicine_tree.column('Company', width=150, anchor='center', stretch=True)
+            medicine_tree.column('Dosage (mg)', width=120, anchor='center', stretch=True)
+            medicine_tree.column('Form', width=100, anchor='center', stretch=True)
+            medicine_tree.column('Category', width=120, anchor='center', stretch=True)
+            medicine_tree.column('Description', width=300, anchor='center', stretch=True)
             
             # Scrollbars
             v_scrollbar = ttk.Scrollbar(tree_frame, orient=tk.VERTICAL, command=medicine_tree.yview)
@@ -3473,9 +4076,26 @@ class PrescriptionModule:
         # Initialize defaults on first open
         reset_add_medicine_defaults()
         
+        # Purpose field
+        purpose_label_frame = tk.Frame(details_frame, bg='#ffffff')
+        purpose_label_frame.grid(row=1, column=2, sticky='w', padx=(0, 8), pady=5)
+        tk.Label(purpose_label_frame, text="Purpose", font=('Segoe UI', 9), bg='#ffffff', fg='#6b7280').pack(anchor='w')
+        
+        purpose_var = tk.StringVar()
+        purpose_entry = tk.Entry(
+            details_frame,
+            textvariable=purpose_var,
+            font=('Segoe UI', 9), 
+            width=20,
+            relief=tk.SOLID,
+            bd=1,
+            state=entry_state
+        )
+        purpose_entry.grid(row=1, column=3, padx=(0, 15), pady=5, sticky='ew', ipady=3)
+        
         # Instructions field
         instructions_label_frame = tk.Frame(details_frame, bg='#ffffff')
-        instructions_label_frame.grid(row=1, column=2, sticky='w', padx=(0, 8), pady=5)
+        instructions_label_frame.grid(row=2, column=0, sticky='w', padx=(0, 8), pady=5)
         tk.Label(instructions_label_frame, text="Instructions", font=('Segoe UI', 9), bg='#ffffff', fg='#6b7280').pack(anchor='w')
         
         instructions_var = tk.StringVar()
@@ -3488,7 +4108,7 @@ class PrescriptionModule:
             bd=1,
             state=entry_state
         )
-        instructions_entry.grid(row=1, column=3, padx=(0, 0), pady=5, sticky='ew', ipady=3)
+        instructions_entry.grid(row=2, column=1, padx=(0, 0), pady=5, sticky='ew', ipady=3)
         
         details_frame.grid_columnconfigure(1, weight=1)
         details_frame.grid_columnconfigure(3, weight=1)
@@ -3544,13 +4164,17 @@ class PrescriptionModule:
                 else:
                     medicine_type = form  # Use the form as-is if not recognized
             
-            # Add to tree (Medicine, Type, Dosage, Frequency, Duration, Instructions)
-            item = med_tree.insert('', tk.END, values=(med_name, medicine_type, dosage, frequency, duration, instructions))
+            # Get purpose
+            purpose = purpose_var.get().strip()
+            
+            # Add to tree (Medicine, Type, Dosage, Frequency, Duration, Purpose, Instructions)
+            item = med_tree.insert('', tk.END, values=(med_name, medicine_type, dosage, frequency, duration, purpose, instructions))
             medicine_data = {
                 'medicine_name': med_name,
                 'dosage': dosage,
                 'frequency': frequency,
                 'duration': duration,
+                'purpose': purpose,
                 'instructions': instructions,
                 'type': medicine_type
             }
@@ -3574,6 +4198,7 @@ class PrescriptionModule:
             dosage_var.set('')
             frequency_var.set(default_frequency)
             duration_var.set(default_duration)
+            purpose_var.set('')
             instructions_entry.delete(0, tk.END)
             
             # Set focus back to medicine name for quick entry
@@ -3667,6 +4292,7 @@ class PrescriptionModule:
                 dosage = item.get('dosage', '')
                 frequency = item.get('frequency', '')
                 duration = item.get('duration', '')
+                purpose = item.get('purpose', '')
                 instructions = item.get('instructions', '')
                 
                 # Get medicine form/type from database
@@ -3692,13 +4318,14 @@ class PrescriptionModule:
                     else:
                         medicine_type = form
                 
-                # Add to tree
-                tree_item = med_tree.insert('', tk.END, values=(med_name, medicine_type, dosage, frequency, duration, instructions))
+                # Add to tree with purpose
+                tree_item = med_tree.insert('', tk.END, values=(med_name, medicine_type, dosage, frequency, duration, purpose, instructions))
                 medicine_data = {
                     'medicine_name': med_name,
                     'dosage': dosage,
                     'frequency': frequency,
                     'duration': duration,
+                    'purpose': purpose,
                     'instructions': instructions,
                     'type': medicine_type
                 }
@@ -3782,7 +4409,16 @@ class PrescriptionModule:
                 'appointment_id': appointment_id,
                 'prescription_date': date_entry.get() or get_current_date(),
                 'diagnosis': diagnosis_text.get('1.0', tk.END).strip(),
-                'notes': notes_text.get('1.0', tk.END).strip()
+                'notes': notes_text.get('1.0', tk.END).strip(),
+                'weight': weight_var.get().strip(),
+                'spo2': spo2_var.get().strip(),
+                'hr': hr_var.get().strip(),
+                'rr': rr_var.get().strip(),
+                'bp': bp_var.get().strip(),
+                'height': height_var.get().strip(),
+                'ideal_body_weight': ibw_var.get().strip(),
+                'follow_up_date': followup_var.get().strip(),
+                'icd_codes': icd_var.get().strip()
             }
             
             if is_editing:
@@ -3831,6 +4467,17 @@ class PrescriptionModule:
             prescription_date = date_entry.get() or get_current_date()
             diagnosis = diagnosis_text.get('1.0', tk.END).strip()
             notes = notes_text.get('1.0', tk.END).strip()
+            
+            # Get vital signs
+            weight = weight_var.get().strip()
+            spo2 = spo2_var.get().strip()
+            hr = hr_var.get().strip()
+            rr = rr_var.get().strip()
+            bp = bp_var.get().strip()
+            height = height_var.get().strip()
+            ideal_body_weight = ibw_var.get().strip()
+            follow_up_date = followup_var.get().strip()
+            icd_codes = icd_var.get().strip()
             
             # Try to generate PDF using reportlab
             try:
@@ -3982,16 +4629,60 @@ class PrescriptionModule:
                 elements.append(patient_table)
                 elements.append(Spacer(1, 6*mm))
                 
+                # Vital Signs & Measurements
+                vitals_data = []
+                if weight or spo2 or hr or rr or bp or height or ideal_body_weight:
+                    vitals_data.append(['VITAL SIGNS & MEASUREMENTS', ''])
+                    
+                    if weight:
+                        vitals_data.append(['Weight:', f"{weight} Kgs"])
+                    if spo2:
+                        vitals_data.append(['SPO2:', f"{spo2}%"])
+                    if hr:
+                        vitals_data.append(['HR:', f"{hr}/min"])
+                    if rr:
+                        vitals_data.append(['RR:', f"{rr}/min"])
+                    if bp:
+                        vitals_data.append(['BP:', f"{bp} mmHg"])
+                    if height:
+                        vitals_data.append(['Height:', f"{height} Mtrs"])
+                    if ideal_body_weight:
+                        vitals_data.append(['Ideal Body Weight:', f"{ideal_body_weight} Kgs"])
+                    if follow_up_date:
+                        vitals_data.append(['Follow-up Date:', follow_up_date])
+                    
+                    vitals_table = Table(vitals_data, colWidths=[50*mm, 130*mm])
+                    vitals_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.white),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                        ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#f0f0f0')),
+                        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+                        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+                        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
+                        ('FONTNAME', (1, 1), (1, -1), 'Helvetica'),
+                        ('FONTSIZE', (0, 0), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                        ('TOPPADDING', (0, 0), (-1, -1), 6),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ]))
+                    elements.append(vitals_table)
+                    elements.append(Spacer(1, 6*mm))
+                
                 # Diagnosis
-                if diagnosis:
+                if diagnosis or icd_codes:
                     elements.append(Paragraph("<b>DIAGNOSIS</b>", heading_style))
-                    elements.append(Paragraph(diagnosis.replace('\n', '<br/>'), normal_style))
+                    if diagnosis:
+                        elements.append(Paragraph(diagnosis.replace('\n', '<br/>'), normal_style))
+                    if icd_codes:
+                        elements.append(Paragraph(f"<b>ICD Codes:</b> {icd_codes}", normal_style))
                     elements.append(Spacer(1, 6*mm))
                 
                 # Medicines
                 elements.append(Paragraph("<b>PRESCRIBED MEDICINES</b>", heading_style))
                 
-                med_data = [['R', 'Medicine Name', 'Dosage', 'Frequency', 'Duration', 'Instructions']]
+                med_data = [['R', 'Medicine Name', 'Dosage', 'Frequency', 'Duration', 'Purpose', 'Instructions']]
                 for idx, med in enumerate(medicines, 1):
                     med_data.append([
                         str(idx),
@@ -3999,16 +4690,17 @@ class PrescriptionModule:
                         med['dosage'],
                         med['frequency'],
                         med['duration'],
+                        med.get('purpose', ''),
                         med.get('instructions', '')
                     ])
                 
-                med_table = Table(med_data, colWidths=[8*mm, 50*mm, 25*mm, 35*mm, 25*mm, 37*mm])
+                med_table = Table(med_data, colWidths=[8*mm, 45*mm, 22*mm, 30*mm, 22*mm, 30*mm, 33*mm])
                 med_table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a237e')),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
                     ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                     ('ALIGN', (1, 1), (1, -1), 'LEFT'),
-                    ('ALIGN', (5, 1), (5, -1), 'LEFT'),
+                    ('ALIGN', (5, 1), (6, -1), 'LEFT'),
                     ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
                     ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
                     ('FONTSIZE', (0, 0), (-1, -1), 9),
@@ -4062,14 +4754,14 @@ class PrescriptionModule:
                     "Please install it using: pip install reportlab\n\n"
                     "Falling back to text format...")
                 _generate_text_prescription(patient, doctor, prescription_id, prescription_date, 
-                                          diagnosis, notes, medicines, patient_id)
+                                          diagnosis, notes, medicines, patient_id, weight, spo2, hr, rr, bp, height, ideal_body_weight, follow_up_date, icd_codes)
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to generate PDF: {str(e)}\n\nFalling back to text format...")
                 _generate_text_prescription(patient, doctor, prescription_id, prescription_date, 
-                                          diagnosis, notes, medicines, patient_id)
+                                          diagnosis, notes, medicines, patient_id, weight, spo2, hr, rr, bp, height, ideal_body_weight, follow_up_date, icd_codes)
         
         def _generate_text_prescription(patient, doctor, prescription_id, prescription_date, 
-                                       diagnosis, notes, medicines, patient_id):
+                                       diagnosis, notes, medicines, patient_id, weight='', spo2='', hr='', rr='', bp='', height='', ideal_body_weight='', follow_up_date='', icd_codes=''):
             """Fallback text prescription generator"""
             patient_name = f"{patient.get('first_name', '')} {patient.get('last_name', '')}".strip()
             doctor_name = f"Dr. {doctor.get('first_name', '')} {doctor.get('last_name', '')}".strip()
@@ -4084,6 +4776,29 @@ class PrescriptionModule:
                 except:
                     pass
             
+            # Build vital signs text
+            vitals_text = ""
+            if weight or spo2 or hr or rr or bp or height or ideal_body_weight or follow_up_date:
+                vitals_text = "\nVITAL SIGNS & MEASUREMENTS:\n"
+                vitals_text += "-" * 60 + "\n"
+                if weight:
+                    vitals_text += f"Weight: {weight} Kgs\n"
+                if spo2:
+                    vitals_text += f"SPO2: {spo2}%\n"
+                if hr:
+                    vitals_text += f"HR: {hr}/min\n"
+                if rr:
+                    vitals_text += f"RR: {rr}/min\n"
+                if bp:
+                    vitals_text += f"BP: {bp} mmHg\n"
+                if height:
+                    vitals_text += f"Height: {height} Mtrs\n"
+                if ideal_body_weight:
+                    vitals_text += f"Ideal Body Weight: {ideal_body_weight} Kgs\n"
+                if follow_up_date:
+                    vitals_text += f"Follow-up Date: {follow_up_date}\n"
+                vitals_text += "-" * 60 + "\n"
+            
             print_text = f"""
 ================================================================
                     PRESCRIPTION
@@ -4091,6 +4806,7 @@ class PrescriptionModule:
 
 Prescription ID: {prescription_id}
 Date: {prescription_date}
+{vitals_text}
 
 ----------------------------------------------------------------
 DOCTOR INFORMATION
@@ -4112,6 +4828,7 @@ PATIENT INFORMATION
 DIAGNOSIS
 ----------------------------------------------------------------
 {diagnosis if diagnosis else 'N/A'}
+{('ICD Codes: ' + icd_codes) if icd_codes else ''}
 
 ----------------------------------------------------------------
 PRESCRIBED MEDICINES
@@ -4124,6 +4841,8 @@ PRESCRIBED MEDICINES
    Dosage: {med['dosage']}
    Frequency: {med['frequency']}
    Duration: {med['duration']}"""
+                if med.get('purpose'):
+                    print_text += f"\n   Purpose: {med['purpose']}"
                 if med.get('instructions'):
                     print_text += f"\n   Instructions: {med['instructions']}"
                 print_text += "\n"
@@ -4337,22 +5056,7 @@ Date: {prescription_date}
         )
         shortcuts_label.pack(fill=tk.X, padx=10, pady=5)
         
-        # Update canvas scroll region when content changes
-        def update_scroll_region(event=None):
-            canvas.configure(scrollregion=canvas.bbox("all"))
-        
-        scrollable_frame.bind('<Configure>', update_scroll_region)
-        
-        # Mouse wheel scrolling
-        def on_mousewheel(event):
-            # Windows uses delta, Linux uses num
-            if event.num == 4 or event.delta > 0:
-                canvas.yview_scroll(-1, "units")
-            elif event.num == 5 or event.delta < 0:
-                canvas.yview_scroll(1, "units")
-        
-        # Bind mouse wheel events
-        canvas.bind("<MouseWheel>", on_mousewheel)
-        canvas.bind("<Button-4>", on_mousewheel)  # Linux
-        canvas.bind("<Button-5>", on_mousewheel)  # Linux
+        # Final update to ensure scroll region is correct after all widgets are created
+        popup.update_idletasks()
+        update_scroll_region()
 

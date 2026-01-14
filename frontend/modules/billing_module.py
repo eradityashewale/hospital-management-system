@@ -509,7 +509,7 @@ class BillingModule:
             self.tree.heading(col, text=col)
             width = column_widths.get(col, 150)
             minwidth = min_widths.get(col, 100)
-            self.tree.column(col, width=width, minwidth=minwidth, stretch=True, anchor='w')
+            self.tree.column(col, width=width, minwidth=minwidth, stretch=True, anchor='center')
         
         # Add both vertical and horizontal scrollbars with theme styling
         v_scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview, style="Vertical.TScrollbar")
@@ -1078,17 +1078,17 @@ NOTES
         for col in columns:
             tree.heading(col, text=col)
             if col == 'Bill ID':
-                tree.column(col, width=150)
+                tree.column(col, width=150, anchor='center')
             elif col in ['Patient ID', 'Patient Name']:
-                tree.column(col, width=150)
+                tree.column(col, width=150, anchor='center')
             elif col == 'Date':
-                tree.column(col, width=120)
+                tree.column(col, width=120, anchor='center')
             elif col == 'Total Amount':
-                tree.column(col, width=120)
+                tree.column(col, width=120, anchor='center')
             elif col == 'Status':
-                tree.column(col, width=100)
+                tree.column(col, width=100, anchor='center')
             else:
-                tree.column(col, width=150)
+                tree.column(col, width=150, anchor='center')
         
         scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
@@ -1309,7 +1309,7 @@ NOTES
             mode_label = tk.Label(main_frame)
             mode_label.pack(pady=5)
         elif is_edit:
-            mode_label = tk.Label(main_frame), 
+            mode_label = tk.Label(main_frame)
             mode_label.pack(pady=5)
         
         if not is_edit:
@@ -1342,7 +1342,7 @@ NOTES
         
         # Set state based on view_only
         combo_state = 'readonly' if view_only else 'normal'
-        entry_state = 'readonly' if view_only else 'normal'
+        entry_state = 'disabled' if view_only else 'normal'
         
         # Patient ID - Full width at top
         patient_frame = tk.Frame(form_frame, bg='#f5f7fa')

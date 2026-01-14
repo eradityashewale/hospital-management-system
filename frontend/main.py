@@ -212,6 +212,9 @@ class HospitalManagementSystem:
         try:
             log_info("Loading dashboard...")
             self.show_dashboard()
+            # Highlight Dashboard button on initial load
+            if hasattr(self, 'update_nav_button_colors'):
+                self.update_nav_button_colors("Dashboard")
             # Ensure buttons remain enabled after dashboard loads
             for button_name, btn in self.nav_buttons.items():
                 btn.config(state=tk.NORMAL)
@@ -432,6 +435,19 @@ class HospitalManagementSystem:
         
         log_info("Main layout created successfully")
         
+        # Method to update navigation button colors
+        def update_nav_button_colors(active_button_name):
+            """Update navigation button colors - highlight active button"""
+            for btn_name, btn in self.nav_buttons.items():
+                if btn_name == active_button_name:
+                    # Active button - different color (lighter blue)
+                    btn.config(bg='#5c6bc0', activebackground='#7986cb')
+                else:
+                    # Inactive buttons - default color
+                    btn.config(bg='#3949ab', activebackground='#5c6bc0')
+        
+        self.update_nav_button_colors = update_nav_button_colors
+        
         # Update user info label if user is authenticated
         if hasattr(self, 'authenticated_user') and self.authenticated_user:
             username = self.authenticated_user.get('username', 'User')
@@ -483,6 +499,9 @@ class HospitalManagementSystem:
             self.root.update()
             command()
             self.current_module = button_name
+            # Update navigation button colors to highlight active button
+            if hasattr(self, 'update_nav_button_colors'):
+                self.update_nav_button_colors(button_name)
             # Force UI update after module loads
             self.root.update_idletasks()
             self.root.update()

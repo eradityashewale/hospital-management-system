@@ -156,7 +156,7 @@ class PatientModule:
             self.tree.heading(col, text=col)
             width = column_widths.get(col, 150)
             minwidth = min_widths.get(col, 100)
-            self.tree.column(col, width=width, minwidth=minwidth, stretch=True, anchor='w')
+            self.tree.column(col, width=width, minwidth=minwidth, stretch=True, anchor='center')
         
         # Add both vertical and horizontal scrollbars with theme styling
         v_scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview, style="Vertical.TScrollbar")

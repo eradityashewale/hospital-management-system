@@ -537,7 +537,7 @@ class AppointmentModule:
             self.tree.heading(col, text=col)
             width = column_widths.get(col, 150)
             minwidth = min_widths.get(col, 100)
-            self.tree.column(col, width=width, minwidth=minwidth, stretch=True, anchor='w')
+            self.tree.column(col, width=width, minwidth=minwidth, stretch=True, anchor='center')
         
         # Add both vertical and horizontal scrollbars with theme styling
         v_scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview, style="Vertical.TScrollbar")
@@ -698,17 +698,17 @@ class AppointmentModule:
         for col in columns:
             tree.heading(col, text=col)
             if col == 'ID':
-                tree.column(col, width=150)
+                tree.column(col, width=150, anchor='center')
             elif col in ['Patient', 'Doctor']:
-                tree.column(col, width=180)
+                tree.column(col, width=180, anchor='center')
             elif col == 'Date':
-                tree.column(col, width=120)
+                tree.column(col, width=120, anchor='center')
             elif col == 'Time':
-                tree.column(col, width=100)
+                tree.column(col, width=100, anchor='center')
             elif col == 'Status':
-                tree.column(col, width=120)
+                tree.column(col, width=120, anchor='center')
             else:
-                tree.column(col, width=200)
+                tree.column(col, width=200, anchor='center')
         
         scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=tree.yview)
         tree.configure(yscrollcommand=scrollbar.set)
