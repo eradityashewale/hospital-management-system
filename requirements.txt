@@ -2,7 +2,7 @@
 # Python 3.7+ required
 
 # This project uses only built-in Python libraries:
-# - tkinter (GUI)
+tkinter == 1.0.0 (GUI)
 # - sqlite3 (database)
 # - datetime, uuid, os, sys, typing (standard library)
 #
