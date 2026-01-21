@@ -2,7 +2,7 @@
 # Python 3.7+ required
 
 # This project uses only built-in Python libraries:
-tkinter == 1.0.0 (GUI)
+tkinter == 1.0.0
 # - sqlite3 (database)
 # - datetime, uuid, os, sys, typing (standard library)
 #
@@ -16,3 +16,7 @@ tkinter == 1.0.0 (GUI)
 pyinstaller>=5.0.0        # For creating .exe files
 reportlab>=4.0.0          # For PDF generation (reports/printouts)
 Pillow>=10.0.0            # For image handling (logo display)
+
+# Flask API dependencies (for web mode):
+flask>=2.0.0              # Flask web framework
+flask-cors>=3.0.0         # CORS support for Flask API

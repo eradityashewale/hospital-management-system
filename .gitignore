@@ -32,9 +32,14 @@ MANIFEST
 *.xml
 *.yaml
 *.yml
+# Ignore HTML/CSS/JS files but allow web folder
 *.html
 *.css
 *.js
+!web/
+!web/**/*.html
+!web/**/*.js
+!web/**/*.css
 *.php
 *.sql
 *.bat

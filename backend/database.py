@@ -56,7 +56,8 @@ class Database:
     def connect(self) -> None:
         """Establish database connection"""
         log_info(f"Connecting to database: {self.db_name}")
-        self.conn = sqlite3.connect(self.db_name)
+        # Allow SQLite connections to be used across threads (for Flask)
+        self.conn = sqlite3.connect(self.db_name, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.cursor = self.conn.cursor()
         log_info("Database connection established")
