@@ -5,7 +5,10 @@ __pycache__/
 
 # C extensions
 *.so
+# Ignore markdown files except important ones
 *.md
+!README.md
+!docs/**/*.md
 *.db
 # Distribution / packaging
 .Python
