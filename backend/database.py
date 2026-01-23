@@ -221,9 +221,20 @@ class Database:
                 username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
                 full_name TEXT,
-                role TEXT DEFAULT 'admin',
+                email TEXT,
                 is_active INTEGER DEFAULT 1,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
+        # User permissions table - stores direct module access for users
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS user_permissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                module_name TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                UNIQUE(user_id, module_name)
             )
         """)
         
@@ -285,6 +296,50 @@ class Database:
                 log_info("Successfully added purpose column")
         except Exception as e:
             log_error("Error adding purpose column to prescription_items", e)
+        
+        # Migration: Add email column to users table if it doesn't exist
+        try:
+            self.cursor.execute("PRAGMA table_info(users)")
+            columns = [row[1] for row in self.cursor.fetchall()]
+            if 'email' not in columns:
+                log_info("Adding email column to users table")
+                self.cursor.execute("""
+                    ALTER TABLE users 
+                    ADD COLUMN email TEXT
+                """)
+                self.conn.commit()
+                log_info("Successfully added email column")
+        except Exception as e:
+            log_error("Error adding email column to users table", e)
+        
+        # Migration: Remove role_id and role columns if they exist (cleanup from old role system)
+        try:
+            self.cursor.execute("PRAGMA table_info(users)")
+            columns = [row[1] for row in self.cursor.fetchall()]
+            if 'role_id' in columns or 'role' in columns:
+                log_info("Removing role-related columns from users table")
+                # Create new table without role columns
+                self.cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS users_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT UNIQUE NOT NULL,
+                        password TEXT NOT NULL,
+                        full_name TEXT,
+                        email TEXT,
+                        is_active INTEGER DEFAULT 1,
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    )
+                """)
+                self.cursor.execute("""
+                    INSERT INTO users_new (id, username, password, full_name, email, is_active, created_at)
+                    SELECT id, username, password, full_name, email, is_active, created_at FROM users
+                """)
+                self.cursor.execute("DROP TABLE users")
+                self.cursor.execute("ALTER TABLE users_new RENAME TO users")
+                self.conn.commit()
+                log_info("Successfully removed role columns")
+        except Exception as e:
+            log_error("Error removing role columns from users table", e)
         
         self.conn.commit()
         log_info("Database initialized successfully")
@@ -1842,12 +1897,22 @@ class Database:
                 password_hash = hashlib.sha256('admin'.encode()).hexdigest()
                 
                 self.cursor.execute("""
-                    INSERT INTO users (username, password, full_name, role, is_active)
+                    INSERT INTO users (username, password, full_name, email, is_active)
                     VALUES (?, ?, ?, ?, ?)
-                """, ('admin', password_hash, 'System Administrator', 'admin', 1))
+                """, ('admin', password_hash, 'System Administrator', 'admin@hospital.com', 1))
+                
+                user_id = self.cursor.lastrowid
+                
+                # Grant all module permissions to admin user
+                all_modules = ['patient', 'doctor', 'appointments', 'prescription', 'billing', 'report']
+                for module in all_modules:
+                    self.cursor.execute("""
+                        INSERT INTO user_permissions (user_id, module_name)
+                        VALUES (?, ?)
+                    """, (user_id, module))
                 
                 self.conn.commit()
-                log_info("Default user created: username='admin', password='admin'")
+                log_info("Default admin user created: username='admin', password='admin' with all permissions")
             else:
                 log_debug(f"Users table already has {count} user(s), skipping default user creation")
         except Exception as e:
@@ -1884,5 +1949,191 @@ class Database:
             return dict(row) if row else None
         except Exception as e:
             log_error(f"Error getting user: {username}", e)
+            return None
+    
+    # User permission management operations
+    def user_has_permission(self, user_id: int, module_name: str) -> bool:
+        """Check if a user has permission to access a specific module"""
+        try:
+            # Check direct user permissions
+            self.cursor.execute("""
+                SELECT COUNT(*) FROM user_permissions 
+                WHERE user_id = ? AND module_name = ?
+            """, (user_id, module_name))
+            count = self.cursor.fetchone()[0]
+            return count > 0
+        except Exception as e:
+            log_error(f"Failed to check user permission: user_id={user_id}, module={module_name}", e)
+            return False
+    
+    def get_user_permissions(self, user_id: int) -> List[str]:
+        """Get list of modules that a user has access to"""
+        try:
+            self.cursor.execute("""
+                SELECT module_name FROM user_permissions 
+                WHERE user_id = ?
+            """, (user_id,))
+            return [row[0] for row in self.cursor.fetchall()]
+        except Exception as e:
+            log_error(f"Failed to get user permissions: {user_id}", e)
+            return []
+    
+    def set_user_permissions(self, user_id: int, permissions: List[str]) -> bool:
+        """Set direct module permissions for a user (replaces existing permissions)"""
+        try:
+            log_debug(f"Setting direct permissions for user: {user_id}")
+            # Delete existing permissions
+            self.cursor.execute("DELETE FROM user_permissions WHERE user_id = ?", (user_id,))
+            # Add new permissions
+            for module in permissions:
+                self.cursor.execute("""
+                    INSERT INTO user_permissions (user_id, module_name)
+                    VALUES (?, ?)
+                """, (user_id, module))
+            self.conn.commit()
+            log_info(f"Direct permissions set successfully for user: {user_id}")
+            return True
+        except Exception as e:
+            log_error(f"Failed to set user permissions: {user_id}", e)
+            return False
+    
+    def get_user_direct_permissions(self, user_id: int) -> List[str]:
+        """Get direct module permissions for a user"""
+        try:
+            self.cursor.execute("""
+                SELECT module_name FROM user_permissions 
+                WHERE user_id = ?
+            """, (user_id,))
+            return [row[0] for row in self.cursor.fetchall()]
+        except Exception as e:
+            log_error(f"Failed to get user direct permissions: {user_id}", e)
+            return []
+    
+    def create_user(self, username: str, password: str, full_name: str = '', email: str = '', permissions: List[str] = None) -> Optional[int]:
+        """Create a new user with username, password, email, and optional direct permissions"""
+        try:
+            import hashlib
+            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            
+            log_debug(f"Creating user: {username}")
+            self.cursor.execute("""
+                INSERT INTO users (username, password, full_name, email, is_active)
+                VALUES (?, ?, ?, ?, ?)
+            """, (username, password_hash, full_name, email, 1))
+            
+            user_id = self.cursor.lastrowid
+            
+            # Add direct permissions if provided
+            if permissions:
+                for module in permissions:
+                    self.cursor.execute("""
+                        INSERT INTO user_permissions (user_id, module_name)
+                        VALUES (?, ?)
+                    """, (user_id, module))
+            
+            self.conn.commit()
+            log_info(f"User created successfully: {username} (ID: {user_id})")
+            return user_id
+        except sqlite3.IntegrityError as e:
+            log_error(f"Failed to create user (duplicate username): {username}", e)
+            return None
+        except Exception as e:
+            log_error(f"Failed to create user: {username}", e)
+            return None
+    
+    def get_all_users(self) -> List[Dict]:
+        """Get all users with their permissions"""
+        try:
+            self.cursor.execute("SELECT * FROM users ORDER BY created_at DESC")
+            users = []
+            for row in self.cursor.fetchall():
+                user = dict(row)
+                # Get permissions for this user
+                self.cursor.execute("""
+                    SELECT module_name FROM user_permissions 
+                    WHERE user_id = ?
+                """, (user['id'],))
+                permissions = [row[0] for row in self.cursor.fetchall()]
+                user['permissions'] = permissions
+                users.append(user)
+            return users
+        except Exception as e:
+            log_error("Failed to get all users", e)
+            return []
+    
+    def update_user(self, user_id: int, username: str = None, full_name: str = None, email: str = None, 
+                    password: str = None, is_active: int = None) -> bool:
+        """Update user information"""
+        try:
+            log_debug(f"Updating user: {user_id}")
+            updates = []
+            params = []
+            
+            if username is not None:
+                updates.append("username = ?")
+                params.append(username)
+            if full_name is not None:
+                updates.append("full_name = ?")
+                params.append(full_name)
+            if email is not None:
+                updates.append("email = ?")
+                params.append(email)
+            if password is not None:
+                import hashlib
+                password_hash = hashlib.sha256(password.encode()).hexdigest()
+                updates.append("password = ?")
+                params.append(password_hash)
+            if is_active is not None:
+                updates.append("is_active = ?")
+                params.append(is_active)
+            
+            if not updates:
+                return False
+            
+            params.append(user_id)
+            self.cursor.execute(f"""
+                UPDATE users SET {', '.join(updates)}
+                WHERE id = ?
+            """, params)
+            self.conn.commit()
+            log_info(f"User updated successfully: {user_id}")
+            return True
+        except Exception as e:
+            log_error(f"Failed to update user: {user_id}", e)
+            return False
+    
+    def delete_user(self, user_id: int) -> bool:
+        """Delete a user (soft delete by setting is_active = 0)"""
+        try:
+            log_debug(f"Deleting user: {user_id}")
+            self.cursor.execute("""
+                UPDATE users SET is_active = 0
+                WHERE id = ?
+            """, (user_id,))
+            self.conn.commit()
+            log_info(f"User deleted successfully: {user_id}")
+            return True
+        except Exception as e:
+            log_error(f"Failed to delete user: {user_id}", e)
+            return False
+    
+    def get_user_by_id(self, user_id: int) -> Optional[Dict]:
+        """Get user by ID with permissions"""
+        try:
+            self.cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+            row = self.cursor.fetchone()
+            if row:
+                user = dict(row)
+                # Get permissions for this user
+                self.cursor.execute("""
+                    SELECT module_name FROM user_permissions 
+                    WHERE user_id = ?
+                """, (user_id,))
+                permissions = [row[0] for row in self.cursor.fetchall()]
+                user['permissions'] = permissions
+                return user
+            return None
+        except Exception as e:
+            log_error(f"Error getting user: {user_id}", e)
             return None
     

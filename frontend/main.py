@@ -21,6 +21,7 @@ from frontend.modules.appointment_module import AppointmentModule
 from frontend.modules.prescription_module import PrescriptionModule
 from frontend.modules.billing_module import BillingModule
 from frontend.modules.reports_module import ReportsModule
+from frontend.modules.role_module import RoleModule
 
 
 class HospitalManagementSystem:
@@ -62,7 +63,12 @@ class HospitalManagementSystem:
             log_info(f"User: {authenticated_user.get('username', 'Unknown')}")
         log_info("=" * 60)
         
-        # Create UI first to make buttons immediately responsive
+        # Initialize database FIRST - needed for permission checks in create_main_layout
+        log_info("Initializing database...")
+        self.db = Database()
+        log_info("Database initialized successfully")
+        
+        # Create UI - this needs database for permission checks
         log_info("Creating main layout...")
         self.create_main_layout()
         
@@ -85,12 +91,6 @@ class HospitalManagementSystem:
         self.root.update()
         self.root.update_idletasks()
         self.root.update()
-        
-        # Initialize database - must be done before modules can load
-        # SQLite is fast, but we show window first so UI appears immediately
-        log_info("Initializing database...")
-        self.db = Database()
-        log_info("Database initialized successfully")
         
         # Schedule dashboard loading after UI is fully ready
         # This ensures buttons are responsive immediately
@@ -262,27 +262,57 @@ class HospitalManagementSystem:
     
     def _start_periodic_event_processing(self):
         """Start periodic event processing to ensure buttons always work"""
+        self._periodic_callback_id = None
+        
         def process_events_periodically():
             """Periodically process events to ensure buttons remain responsive"""
             try:
+                # Check if root window still exists
+                if not self.root.winfo_exists():
+                    return
+                
                 # Process pending idle tasks
                 self.root.update_idletasks()
                 
                 # Ensure all buttons are enabled
-                for button_name, btn in self.nav_buttons.items():
-                    if btn['state'] != tk.NORMAL:
-                        btn.config(state=tk.NORMAL)
+                if hasattr(self, 'nav_buttons'):
+                    for button_name, btn in self.nav_buttons.items():
+                        try:
+                            if btn.winfo_exists() and btn['state'] != tk.NORMAL:
+                                btn.config(state=tk.NORMAL)
+                        except:
+                            pass  # Button may have been destroyed
                 
                 # Schedule next processing (every 500ms - frequent enough but not too heavy)
-                self.root.after(500, process_events_periodically)
+                if self.root.winfo_exists():
+                    self._periodic_callback_id = self.root.after(500, process_events_periodically)
+            except tk.TclError:
+                # Window was destroyed, stop processing
+                return
             except Exception as e:
-                # If there's an error, still schedule next processing
+                # If there's an error, still schedule next processing if window exists
                 log_debug(f"Error in periodic event processing: {e}")
-                self.root.after(500, process_events_periodically)
+                try:
+                    if self.root.winfo_exists():
+                        self._periodic_callback_id = self.root.after(500, process_events_periodically)
+                except:
+                    return
         
         # Start periodic processing after a short delay
-        self.root.after(100, process_events_periodically)
-        log_info("Periodic event processing started")
+        try:
+            self._periodic_callback_id = self.root.after(100, process_events_periodically)
+            log_info("Periodic event processing started")
+        except:
+            pass
+    
+    def _stop_periodic_event_processing(self):
+        """Stop periodic event processing"""
+        try:
+            if hasattr(self, '_periodic_callback_id') and self._periodic_callback_id:
+                self.root.after_cancel(self._periodic_callback_id)
+                self._periodic_callback_id = None
+        except:
+            pass
     
     def create_main_layout(self):
         """Create main application layout"""
@@ -386,6 +416,36 @@ class HospitalManagementSystem:
             ("Billing", self.show_billing),
             ("Reports", self.show_reports)
         ]
+        
+        # Filter buttons based on user permissions
+        # Only show modules that the user has permission to access
+        filtered_buttons = []
+        for text, command in buttons:
+            # Dashboard is always accessible
+            if text == "Dashboard":
+                filtered_buttons.append((text, command))
+            # Check permissions for each module
+            elif text == "Patients" and self.has_permission('patient'):
+                filtered_buttons.append((text, command))
+            elif text == "Doctors" and self.has_permission('doctor'):
+                filtered_buttons.append((text, command))
+            elif text == "Appointments" and self.has_permission('appointments'):
+                filtered_buttons.append((text, command))
+            elif text == "Prescriptions" and self.has_permission('prescription'):
+                filtered_buttons.append((text, command))
+            elif text == "Billing" and self.has_permission('billing'):
+                filtered_buttons.append((text, command))
+            elif text == "Reports" and self.has_permission('report'):
+                filtered_buttons.append((text, command))
+        
+        # Add User Management button only for admin users
+        try:
+            if self.is_admin():
+                filtered_buttons.append(("User Management", self.show_roles))
+        except Exception as e:
+            log_error("Error checking admin status for User Management button", e)
+        
+        buttons = filtered_buttons
         
         # Store button references
         self.nav_buttons = {}
@@ -2512,8 +2572,59 @@ class HospitalManagementSystem:
             log_error("Failed to load Dashboard", e)
             messagebox.showerror("Error", f"Failed to load Dashboard: {str(e)}")
     
+    def is_admin(self):
+        """Check if current user is admin (has all permissions)"""
+        if not self.authenticated_user:
+            return False
+        
+        user_id = self.authenticated_user.get('id')
+        if not user_id:
+            return False
+        
+        # Admin has all module permissions
+        permissions = self.db.get_user_permissions(user_id)
+        all_modules = ['patient', 'doctor', 'appointments', 'prescription', 'billing', 'report']
+        return len(permissions) >= len(all_modules) and all(module in permissions for module in all_modules)
+    
+    def has_permission(self, module_name):
+        """Check if current user has permission to access a module"""
+        if not self.authenticated_user:
+            return False
+        
+        user_id = self.authenticated_user.get('id')
+        if not user_id:
+            return False
+        
+        try:
+            # Admin has all permissions
+            if self.is_admin():
+                return True
+            
+            # Check user permissions
+            has_perm = self.db.user_has_permission(user_id, module_name)
+            
+            # If user has no permissions at all, grant all permissions (backward compatibility)
+            # This handles cases where users were created before permission system
+            if not has_perm:
+                all_perms = self.db.get_user_permissions(user_id)
+                if len(all_perms) == 0:
+                    # User has no permissions - grant all for backward compatibility
+                    log_warning(f"User {user_id} has no permissions assigned, granting all permissions")
+                    all_modules = ['patient', 'doctor', 'appointments', 'prescription', 'billing', 'report']
+                    self.db.set_user_permissions(user_id, all_modules)
+                    return True
+            
+            return has_perm
+        except Exception as e:
+            log_error(f"Error checking permission for user {user_id}, module {module_name}", e)
+            # On error, grant permission to avoid blocking users
+            return True
+    
     def show_patients(self):
         """Show patient management module"""
+        if not self.has_permission('patient'):
+            messagebox.showerror("Access Denied", "You do not have permission to access the Patient module.")
+            return
         try:
             log_info("Loading Patients module...")
             self.clear_content()
@@ -2529,6 +2640,9 @@ class HospitalManagementSystem:
     
     def show_doctors(self):
         """Show doctor management module"""
+        if not self.has_permission('doctor'):
+            messagebox.showerror("Access Denied", "You do not have permission to access the Doctor module.")
+            return
         try:
             log_info("Loading Doctors module...")
             self.clear_content()
@@ -2543,6 +2657,9 @@ class HospitalManagementSystem:
     
     def show_appointments(self):
         """Show appointment management module"""
+        if not self.has_permission('appointments'):
+            messagebox.showerror("Access Denied", "You do not have permission to access the Appointments module.")
+            return
         try:
             log_info("Loading Appointments module...")
             self.clear_content()
@@ -2557,6 +2674,9 @@ class HospitalManagementSystem:
     
     def show_prescriptions(self):
         """Show prescription management module"""
+        if not self.has_permission('prescription'):
+            messagebox.showerror("Access Denied", "You do not have permission to access the Prescription module.")
+            return
         try:
             log_info("Loading Prescriptions module...")
             self.clear_content()
@@ -2571,6 +2691,9 @@ class HospitalManagementSystem:
     
     def show_billing(self):
         """Show billing module"""
+        if not self.has_permission('billing'):
+            messagebox.showerror("Access Denied", "You do not have permission to access the Billing module.")
+            return
         try:
             log_info("Loading Billing module...")
             self.clear_content()
@@ -2585,6 +2708,9 @@ class HospitalManagementSystem:
     
     def show_reports(self):
         """Show reports module"""
+        if not self.has_permission('report'):
+            messagebox.showerror("Access Denied", "You do not have permission to access the Reports module.")
+            return
         try:
             log_info("Loading Reports module...")
             self.clear_content()
@@ -2597,6 +2723,23 @@ class HospitalManagementSystem:
             log_error("Failed to load Reports module", e)
             messagebox.showerror("Error", f"Failed to load Reports module: {str(e)}")
     
+    def show_roles(self):
+        """Show user management module (admin only)"""
+        if not self.is_admin():
+            messagebox.showerror("Access Denied", "Only administrators can access User Management.")
+            return
+        try:
+            log_info("Loading User Management module...")
+            self.clear_content()
+            self.root.update_idletasks()
+            RoleModule(self.content_frame, self.db)
+            self.root.update_idletasks()
+            self.root.update()
+            log_info("User Management module loaded successfully")
+        except Exception as e:
+            log_error("Failed to load User Management module", e)
+            messagebox.showerror("Error", f"Failed to load User Management module: {str(e)}")
+    
     def logout(self):
         """Handle user logout"""
         from tkinter import messagebox
@@ -2604,6 +2747,8 @@ class HospitalManagementSystem:
         # Confirm logout
         if messagebox.askyesno("Logout", "Are you sure you want to logout?"):
             log_info("User logging out...")
+            # Stop periodic event processing
+            self._stop_periodic_event_processing()
             self.db.close()
             log_info("Database connection closed")
             log_info("=" * 60)
@@ -2620,6 +2765,8 @@ class HospitalManagementSystem:
     def on_closing(self):
         """Handle application closing"""
         log_info("Application closing...")
+        # Stop periodic event processing
+        self._stop_periodic_event_processing()
         self.db.close()
         log_info("Database connection closed")
         log_info("=" * 60)

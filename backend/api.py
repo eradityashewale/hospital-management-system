@@ -616,6 +616,150 @@ def get_recent_activities():
         log_error("Get recent activities error", e)
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/users/<int:user_id>/permissions', methods=['GET'])
+def get_user_permissions(user_id):
+    """Get permissions for a user"""
+    try:
+        permissions = db.get_user_permissions(user_id)
+        return jsonify({'success': True, 'permissions': permissions}), 200
+    except Exception as e:
+        log_error(f"Get user permissions error: {user_id}", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/<int:user_id>/has-permission/<module_name>', methods=['GET'])
+def check_user_permission(user_id, module_name):
+    """Check if user has permission for a module"""
+    try:
+        has_permission = db.user_has_permission(user_id, module_name)
+        return jsonify({'success': True, 'has_permission': has_permission}), 200
+    except Exception as e:
+        log_error(f"Check user permission error: user_id={user_id}, module={module_name}", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/<int:user_id>/permissions', methods=['PUT'])
+def set_user_permissions(user_id):
+    """Set direct permissions for a user"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        permissions = data.get('permissions', [])
+        success = db.set_user_permissions(user_id, permissions)
+        if success:
+            return jsonify({'success': True, 'message': 'Permissions updated successfully'}), 200
+        else:
+            return jsonify({'error': 'Failed to update permissions'}), 400
+    except Exception as e:
+        log_error(f"Set user permissions error: {user_id}", e)
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================================
+# User Management Routes
+# ============================================================================
+
+@app.route('/api/users', methods=['GET'])
+def get_users():
+    """Get all users"""
+    try:
+        users = db.get_all_users()
+        # Remove password hashes from response
+        for user in users:
+            user.pop('password', None)
+        return jsonify({'success': True, 'users': users}), 200
+    except Exception as e:
+        log_error("Get users error", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/<int:user_id>', methods=['GET'])
+def get_user(user_id):
+    """Get user by ID"""
+    try:
+        user = db.get_user_by_id(user_id)
+        if user:
+            user.pop('password', None)  # Remove password hash
+            return jsonify({'success': True, 'user': user}), 200
+        else:
+            return jsonify({'error': 'User not found'}), 404
+    except Exception as e:
+        log_error(f"Get user error: {user_id}", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users', methods=['POST'])
+def create_user():
+    """Create a new user"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        username = data.get('username')
+        password = data.get('password')
+        full_name = data.get('full_name', '')
+        email = data.get('email', '')
+        permissions = data.get('permissions', [])  # Direct module permissions
+        
+        if not username:
+            return jsonify({'error': 'Username is required'}), 400
+        
+        if not password:
+            return jsonify({'error': 'Password is required'}), 400
+        
+        if not email:
+            return jsonify({'error': 'Email is required'}), 400
+        
+        user_id = db.create_user(username, password, full_name, email, permissions)
+        if user_id:
+            return jsonify({'success': True, 'user_id': user_id, 'message': 'User created successfully'}), 201
+        else:
+            return jsonify({'error': 'Failed to create user. Username may already exist.'}), 400
+    except Exception as e:
+        log_error("Create user error", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/<int:user_id>', methods=['PUT'])
+def update_user(user_id):
+    """Update a user"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        username = data.get('username')
+        full_name = data.get('full_name')
+        email = data.get('email')
+        password = data.get('password')
+        is_active = data.get('is_active')
+        permissions = data.get('permissions')  # Direct module permissions
+        
+        success = db.update_user(user_id, username=username, full_name=full_name, 
+                                email=email, password=password, is_active=is_active)
+        
+        # Update permissions if provided
+        if success and permissions is not None:
+            db.set_user_permissions(user_id, permissions)
+        
+        if success:
+            return jsonify({'success': True, 'message': 'User updated successfully'}), 200
+        else:
+            return jsonify({'error': 'Failed to update user'}), 400
+    except Exception as e:
+        log_error(f"Update user error: {user_id}", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/users/<int:user_id>', methods=['DELETE'])
+def delete_user(user_id):
+    """Delete a user (soft delete)"""
+    try:
+        success = db.delete_user(user_id)
+        if success:
+            return jsonify({'success': True, 'message': 'User deleted successfully'}), 200
+        else:
+            return jsonify({'error': 'Failed to delete user'}), 400
+    except Exception as e:
+        log_error(f"Delete user error: {user_id}", e)
+        return jsonify({'error': str(e)}), 500
+
 # ============================================================================
 # Main Entry Point
 # ============================================================================

@@ -80,3 +80,5 @@ hospital-management-system/          (Main Git Repository)
 
 This structure follows the recommended monorepo pattern and makes it easy to maintain both offline and online modes! ✅
 
+
+

@@ -360,3 +360,5 @@ async function viewAppointmentDetails(appointmentId) {
     }
 }
 
+
+
