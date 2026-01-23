@@ -594,6 +594,288 @@ def get_statistics():
         log_error("Get statistics error", e)
         return jsonify({'error': str(e)}), 500
 
+# ============================================================================
+# Reports Routes
+# ============================================================================
+
+@app.route('/api/reports/financial', methods=['GET'])
+def get_financial_report():
+    """Get financial report data"""
+    try:
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+        
+        bills = db.get_all_bills()
+        
+        # Filter by date if provided
+        if from_date and to_date:
+            bills = [b for b in bills 
+                    if from_date <= b.get('bill_date', '') <= to_date]
+        
+        paid_bills = [b for b in bills if b.get('payment_status') == 'Paid']
+        pending_bills = [b for b in bills if b.get('payment_status') == 'Pending']
+        
+        total_revenue = sum(float(b.get('total_amount', 0)) for b in paid_bills)
+        total_pending = sum(float(b.get('total_amount', 0)) for b in pending_bills)
+        total_amount = sum(float(b.get('total_amount', 0)) for b in bills)
+        
+        # Daily revenue breakdown
+        daily_revenue = {}
+        for bill in paid_bills:
+            date = bill.get('bill_date', 'Unknown')
+            amount = float(bill.get('total_amount', 0))
+            daily_revenue[date] = daily_revenue.get(date, 0) + amount
+        
+        # Payment method breakdown
+        payment_methods = {}
+        for bill in bills:
+            method = bill.get('payment_method', 'Unknown')
+            payment_methods[method] = payment_methods.get(method, 0) + 1
+        
+        return jsonify({
+            'success': True,
+            'report': {
+                'total_revenue': total_revenue,
+                'total_pending': total_pending,
+                'total_amount': total_amount,
+                'total_bills': len(bills),
+                'paid_bills': len(paid_bills),
+                'pending_bills': len(pending_bills),
+                'collection_rate': (total_revenue / max(1, total_amount) * 100),
+                'average_bill': (total_amount / max(1, len(bills))),
+                'daily_revenue': daily_revenue,
+                'payment_methods': payment_methods,
+                'pending_bills_list': pending_bills[:50]  # Limit to 50
+            }
+        }), 200
+    except Exception as e:
+        log_error("Get financial report error", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/reports/patient', methods=['GET'])
+def get_patient_report():
+    """Get patient statistics report"""
+    try:
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+        
+        patients = db.get_all_patients()
+        appointments = db.get_all_appointments()
+        prescriptions = db.get_all_prescriptions()
+        
+        # Filter by date if provided
+        if from_date and to_date:
+            appointments = [a for a in appointments 
+                          if from_date <= a.get('appointment_date', '') <= to_date]
+            prescriptions = [p for p in prescriptions 
+                           if from_date <= p.get('prescription_date', '2000-01-01') <= to_date]
+        
+        # Calculate demographics
+        gender_dist = {}
+        age_groups = {'0-18': 0, '19-35': 0, '36-50': 0, '51-65': 0, '65+': 0}
+        blood_group_dist = {}
+        patient_visits = {}
+        
+        for appointment in appointments:
+            patient_id = appointment.get('patient_id')
+            if patient_id:
+                patient_visits[patient_id] = patient_visits.get(patient_id, 0) + 1
+        
+        for patient in patients:
+            gender = patient.get('gender', 'Unknown')
+            gender_dist[gender] = gender_dist.get(gender, 0) + 1
+            
+            blood_group = patient.get('blood_group', 'Unknown')
+            if blood_group:
+                blood_group_dist[blood_group] = blood_group_dist.get(blood_group, 0) + 1
+            
+            try:
+                from datetime import datetime
+                dob = datetime.strptime(patient.get('date_of_birth', '2000-01-01'), '%Y-%m-%d')
+                age = (datetime.now() - dob).days // 365
+                if age <= 18:
+                    age_groups['0-18'] += 1
+                elif age <= 35:
+                    age_groups['19-35'] += 1
+                elif age <= 50:
+                    age_groups['36-50'] += 1
+                elif age <= 65:
+                    age_groups['51-65'] += 1
+                else:
+                    age_groups['65+'] += 1
+            except:
+                pass
+        
+        # Top patients
+        top_patients = sorted(patient_visits.items(), key=lambda x: x[1], reverse=True)[:10]
+        top_patients_list = []
+        for patient_id, visits in top_patients:
+            patient = next((p for p in patients if p.get('patient_id') == patient_id), None)
+            top_patients_list.append({
+                'patient_id': patient_id,
+                'name': f"{patient.get('first_name', '')} {patient.get('last_name', '')}" if patient else patient_id,
+                'visits': visits
+            })
+        
+        return jsonify({
+            'success': True,
+            'report': {
+                'total_patients': len(patients),
+                'total_appointments': len(appointments),
+                'total_prescriptions': len(prescriptions),
+                'avg_appointments_per_patient': (len(appointments) / max(1, len(patients))),
+                'gender_distribution': gender_dist,
+                'age_groups': age_groups,
+                'blood_group_distribution': blood_group_dist,
+                'top_patients': top_patients_list
+            }
+        }), 200
+    except Exception as e:
+        log_error("Get patient report error", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/reports/doctor', methods=['GET'])
+def get_doctor_report():
+    """Get doctor performance report"""
+    try:
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+        
+        doctors = db.get_all_doctors()
+        appointments = db.get_all_appointments()
+        
+        # Filter by date if provided
+        if from_date and to_date:
+            appointments = [a for a in appointments 
+                          if from_date <= a.get('appointment_date', '') <= to_date]
+        
+        # Doctor statistics
+        doctor_stats = {}
+        specialization_dist = {}
+        
+        for doctor in doctors:
+            doctor_id = doctor.get('doctor_id')
+            specialization = doctor.get('specialization', 'Unknown')
+            specialization_dist[specialization] = specialization_dist.get(specialization, 0) + 1
+            
+            doctor_appointments = [a for a in appointments if a.get('doctor_id') == doctor_id]
+            completed = sum(1 for a in doctor_appointments if a.get('status') == 'Completed')
+            
+            doctor_stats[doctor_id] = {
+                'name': f"{doctor.get('first_name', '')} {doctor.get('last_name', '')}",
+                'specialization': specialization,
+                'total': len(doctor_appointments),
+                'completed': completed,
+                'scheduled': sum(1 for a in doctor_appointments if a.get('status') == 'Scheduled'),
+                'cancelled': sum(1 for a in doctor_appointments if a.get('status') == 'Cancelled'),
+                'completion_rate': (completed / max(1, len(doctor_appointments)) * 100)
+            }
+        
+        return jsonify({
+            'success': True,
+            'report': {
+                'total_doctors': len(doctors),
+                'total_appointments': len(appointments),
+                'avg_appointments_per_doctor': (len(appointments) / max(1, len(doctors))),
+                'specialization_distribution': specialization_dist,
+                'doctor_performance': list(doctor_stats.values())
+            }
+        }), 200
+    except Exception as e:
+        log_error("Get doctor report error", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/reports/appointment', methods=['GET'])
+def get_appointment_report():
+    """Get appointment statistics report"""
+    try:
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+        
+        appointments = db.get_all_appointments()
+        
+        # Filter by date if provided
+        if from_date and to_date:
+            appointments = [a for a in appointments 
+                          if from_date <= a.get('appointment_date', '') <= to_date]
+        
+        # Status breakdown
+        status_dist = {}
+        daily_appointments = {}
+        
+        for appointment in appointments:
+            status = appointment.get('status', 'Unknown')
+            status_dist[status] = status_dist.get(status, 0) + 1
+            
+            date = appointment.get('appointment_date', 'Unknown')
+            daily_appointments[date] = daily_appointments.get(date, 0) + 1
+        
+        # Top busiest days
+        sorted_daily = sorted(daily_appointments.items(), key=lambda x: x[1], reverse=True)[:10]
+        
+        unique_days = len(set(a.get('appointment_date') for a in appointments))
+        
+        return jsonify({
+            'success': True,
+            'report': {
+                'total_appointments': len(appointments),
+                'avg_appointments_per_day': (len(appointments) / max(1, unique_days)),
+                'status_distribution': status_dist,
+                'busiest_days': [{'date': date, 'count': count} for date, count in sorted_daily]
+            }
+        }), 200
+    except Exception as e:
+        log_error("Get appointment report error", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/reports/prescription', methods=['GET'])
+def get_prescription_report():
+    """Get prescription statistics report"""
+    try:
+        from_date = request.args.get('from_date')
+        to_date = request.args.get('to_date')
+        
+        prescriptions = db.get_all_prescriptions()
+        
+        # Filter by date if provided
+        if from_date and to_date:
+            prescriptions = [p for p in prescriptions 
+                           if from_date <= p.get('prescription_date', '2000-01-01') <= to_date]
+        
+        # Medicine usage statistics
+        medicine_usage = {}
+        daily_prescriptions = {}
+        
+        for prescription in prescriptions:
+            date = prescription.get('prescription_date', 'Unknown')
+            daily_prescriptions[date] = daily_prescriptions.get(date, 0) + 1
+            
+            # Get prescription items
+            prescription_id = prescription.get('prescription_id')
+            if prescription_id:
+                items = db.get_prescription_items(prescription_id)
+                for item in items:
+                    medicine = item.get('medicine_name', 'Unknown')
+                    medicine_usage[medicine] = medicine_usage.get(medicine, 0) + 1
+        
+        # Top prescribed medicines
+        sorted_medicines = sorted(medicine_usage.items(), key=lambda x: x[1], reverse=True)[:20]
+        
+        unique_days = len(set(p.get('prescription_date') for p in prescriptions))
+        
+        return jsonify({
+            'success': True,
+            'report': {
+                'total_prescriptions': len(prescriptions),
+                'unique_medicines': len(medicine_usage),
+                'avg_prescriptions_per_day': (len(prescriptions) / max(1, unique_days)),
+                'top_medicines': [{'medicine': med, 'count': count} for med, count in sorted_medicines]
+            }
+        }), 200
+    except Exception as e:
+        log_error("Get prescription report error", e)
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/appointments/today', methods=['GET'])
 def get_todays_appointments():
     """Get today's appointments"""
