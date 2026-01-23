@@ -1955,6 +1955,12 @@ class Database:
     def user_has_permission(self, user_id: int, module_name: str) -> bool:
         """Check if a user has permission to access a specific module"""
         try:
+            # Check if user is admin - admin always has all permissions
+            self.cursor.execute("SELECT username FROM users WHERE id = ?", (user_id,))
+            user_row = self.cursor.fetchone()
+            if user_row and user_row[0].lower() == 'admin':
+                return True
+            
             # Check direct user permissions
             self.cursor.execute("""
                 SELECT COUNT(*) FROM user_permissions 
@@ -1969,6 +1975,30 @@ class Database:
     def get_user_permissions(self, user_id: int) -> List[str]:
         """Get list of modules that a user has access to"""
         try:
+            # Check if user is admin - admin always has all permissions
+            self.cursor.execute("SELECT username FROM users WHERE id = ?", (user_id,))
+            user_row = self.cursor.fetchone()
+            if user_row and user_row[0].lower() == 'admin':
+                # Admin always has all permissions
+                all_modules = ['patient', 'doctor', 'appointments', 'prescription', 'billing', 'report']
+                # Ensure admin has all permissions in database
+                current_perms = self.cursor.execute("""
+                    SELECT module_name FROM user_permissions 
+                    WHERE user_id = ?
+                """, (user_id,)).fetchall()
+                current_module_names = [row[0] for row in current_perms]
+                
+                # Add any missing permissions
+                for module in all_modules:
+                    if module not in current_module_names:
+                        self.cursor.execute("""
+                            INSERT INTO user_permissions (user_id, module_name)
+                            VALUES (?, ?)
+                        """, (user_id, module))
+                self.conn.commit()
+                return all_modules
+            
+            # Regular user - get their permissions
             self.cursor.execute("""
                 SELECT module_name FROM user_permissions 
                 WHERE user_id = ?
@@ -1981,6 +2011,13 @@ class Database:
     def set_user_permissions(self, user_id: int, permissions: List[str]) -> bool:
         """Set direct module permissions for a user (replaces existing permissions)"""
         try:
+            # Prevent changing admin permissions
+            self.cursor.execute("SELECT username FROM users WHERE id = ?", (user_id,))
+            user_row = self.cursor.fetchone()
+            if user_row and user_row[0].lower() == 'admin':
+                log_warning(f"Attempted to change admin permissions - blocked")
+                return False
+            
             log_debug(f"Setting direct permissions for user: {user_id}")
             # Delete existing permissions
             self.cursor.execute("DELETE FROM user_permissions WHERE user_id = ?", (user_id,))
@@ -2065,6 +2102,13 @@ class Database:
                     password: str = None, is_active: int = None) -> bool:
         """Update user information"""
         try:
+            # Prevent updating admin user
+            self.cursor.execute("SELECT username FROM users WHERE id = ?", (user_id,))
+            user_row = self.cursor.fetchone()
+            if user_row and user_row[0].lower() == 'admin':
+                log_warning(f"Attempted to update admin user - blocked")
+                return False
+            
             log_debug(f"Updating user: {user_id}")
             updates = []
             params = []
@@ -2105,6 +2149,13 @@ class Database:
     def delete_user(self, user_id: int) -> bool:
         """Delete a user (soft delete by setting is_active = 0)"""
         try:
+            # Prevent deleting admin user
+            self.cursor.execute("SELECT username FROM users WHERE id = ?", (user_id,))
+            user_row = self.cursor.fetchone()
+            if user_row and user_row[0].lower() == 'admin':
+                log_warning(f"Attempted to delete admin user - blocked")
+                return False
+            
             log_debug(f"Deleting user: {user_id}")
             self.cursor.execute("""
                 UPDATE users SET is_active = 0

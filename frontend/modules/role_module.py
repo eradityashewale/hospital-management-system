@@ -187,6 +187,9 @@ class RoleModule:
             # Fetch users from database
             users = self.db.get_all_users()
             
+            # Filter out admin user - admin should not be shown or editable
+            users = [user for user in users if user.get('username', '').lower() != 'admin']
+            
             # Add users to treeview
             for user in users:
                 permissions = user.get('permissions', [])
@@ -199,7 +202,7 @@ class RoleModule:
                     permissions_str
                 ), tags=(user['id'],))
             
-            log_info(f"Refreshed user list: {len(users)} users")
+            log_info(f"Refreshed user list: {len(users)} users (admin hidden)")
         except Exception as e:
             log_error("Error refreshing user list", e)
             messagebox.showerror("Error", f"Failed to refresh user list: {str(e)}")
@@ -230,6 +233,11 @@ class RoleModule:
             user = self.db.get_user_by_id(user_id)
             if not user:
                 messagebox.showerror("Error", "User not found")
+                return
+            
+            # Prevent editing admin user
+            if user.get('username', '').lower() == 'admin':
+                messagebox.showerror("Access Denied", "Admin user cannot be edited. Admin permissions are fixed and cannot be changed.")
                 return
             
             self.user_dialog(user)
@@ -517,6 +525,11 @@ class RoleModule:
             
             user_id = int(tags[0])
             username = item['values'][0]
+            
+            # Prevent deleting admin user
+            if username.lower() == 'admin':
+                messagebox.showerror("Access Denied", "Admin user cannot be deleted.")
+                return
             
             # Confirm deletion
             if not messagebox.askyesno("Confirm Delete", 
