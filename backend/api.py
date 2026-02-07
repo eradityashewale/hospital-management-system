@@ -181,6 +181,140 @@ def update_patient(patient_id):
         return jsonify({'error': str(e)}), 500
 
 # ============================================================================
+# Admission (IPD) Routes - Admissions + Day-wise Notes
+# ============================================================================
+
+@app.route('/api/patients/<patient_id>/admissions', methods=['GET'])
+def get_patient_admissions(patient_id):
+    """Get all admissions for a patient"""
+    try:
+        admissions = db.get_admissions_by_patient(patient_id)
+        return jsonify({'success': True, 'admissions': admissions}), 200
+    except Exception as e:
+        log_error(f"Get patient admissions error: {patient_id}", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/patients/<patient_id>/admissions/active', methods=['GET'])
+def get_patient_active_admission(patient_id):
+    """Get active admission for a patient (if any)"""
+    try:
+        admission = db.get_active_admission_by_patient(patient_id)
+        return jsonify({'success': True, 'admission': admission}), 200
+    except Exception as e:
+        log_error(f"Get active admission error: {patient_id}", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admissions', methods=['GET'])
+def get_all_admissions():
+    """Get all admissions with optional status filter"""
+    try:
+        status = request.args.get('status')  # Optional: 'Admitted', 'Discharged', or None for all
+        
+        # Get all patients and their admissions
+        all_patients = db.get_all_patients()
+        all_admissions = []
+        
+        for patient in all_patients:
+            patient_admissions = db.get_admissions_by_patient(patient['patient_id'])
+            for admission in patient_admissions:
+                # Apply status filter if provided
+                if status and admission.get('status') != status:
+                    continue
+                
+                admission['patient_name'] = f"{patient['first_name']} {patient['last_name']}"
+                admission['patient_id'] = patient['patient_id']
+                all_admissions.append(admission)
+        
+        # Sort by admission date (newest first)
+        all_admissions.sort(key=lambda x: x.get('admission_date', ''), reverse=True)
+        
+        return jsonify({'success': True, 'admissions': all_admissions}), 200
+    except Exception as e:
+        log_error("Get all admissions error", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admissions/active', methods=['GET'])
+def get_active_admissions():
+    """Get all currently active admissions"""
+    try:
+        active_admissions = db.get_all_active_admissions()
+        return jsonify({'success': True, 'admissions': active_admissions}), 200
+    except Exception as e:
+        log_error("Get active admissions error", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admissions', methods=['POST'])
+def create_admission():
+    """Create a new admission"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        required = ['admission_id', 'patient_id', 'admission_date']
+        for r in required:
+            if not data.get(r):
+                return jsonify({'error': f'{r} is required'}), 400
+
+        success = db.add_admission(data)
+        if success:
+            return jsonify({'success': True, 'message': 'Admission created successfully'}), 201
+        return jsonify({'error': 'Failed to create admission'}), 400
+    except Exception as e:
+        log_error("Create admission error", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admissions/<admission_id>/discharge', methods=['PUT'])
+def discharge_admission(admission_id):
+    """Discharge an admission"""
+    try:
+        data = request.get_json() or {}
+        discharge_date = data.get('discharge_date')
+        discharge_summary = data.get('discharge_summary', '')
+
+        success = db.discharge_admission(admission_id, discharge_date=discharge_date, discharge_summary=discharge_summary)
+        if success:
+            return jsonify({'success': True, 'message': 'Admission discharged successfully'}), 200
+        return jsonify({'error': 'Failed to discharge admission'}), 400
+    except Exception as e:
+        log_error(f"Discharge admission error: {admission_id}", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admissions/<admission_id>/notes', methods=['GET'])
+def get_admission_notes(admission_id):
+    """Get day-wise notes for an admission"""
+    try:
+        notes = db.get_admission_notes(admission_id)
+        return jsonify({'success': True, 'notes': notes}), 200
+    except Exception as e:
+        log_error(f"Get admission notes error: {admission_id}", e)
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admissions/<admission_id>/notes', methods=['POST'])
+def add_admission_note(admission_id):
+    """Add a day-wise note for an admission"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        required = ['note_id', 'note_date', 'note_text']
+        for r in required:
+            if not data.get(r):
+                return jsonify({'error': f'{r} is required'}), 400
+
+        payload = dict(data)
+        payload['admission_id'] = admission_id
+
+        success = db.add_admission_note(payload)
+        if success:
+            return jsonify({'success': True, 'message': 'Admission note added successfully'}), 201
+        return jsonify({'error': 'Failed to add admission note'}), 400
+    except Exception as e:
+        log_error(f"Add admission note error: {admission_id}", e)
+        return jsonify({'error': str(e)}), 500
+
+# ============================================================================
 # Doctor Routes
 # ============================================================================
 

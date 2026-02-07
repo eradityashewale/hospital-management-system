@@ -4,7 +4,7 @@ Enhanced with multiple report types, filtering, and export capabilities
 """
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import csv
 import os
 from typing import Dict, List, Optional
@@ -22,6 +22,13 @@ try:
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
+
+# Try to import tkcalendar for date picker
+try:
+    from tkcalendar import DateEntry
+    CALENDAR_AVAILABLE = True
+except ImportError:
+    CALENDAR_AVAILABLE = False
 
 
 class ReportsModule:
@@ -78,29 +85,70 @@ class ReportsModule:
             fg='#374151'
         ).pack(side=tk.LEFT, padx=5)
         
-        self.from_date_entry = tk.Entry(
-            date_frame,
-            font=('Segoe UI', 10),
-            width=12
-        )
-        self.from_date_entry.pack(side=tk.LEFT, padx=5)
-        self.from_date_entry.insert(0, (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
-        
-        tk.Label(
-            date_frame,
-            text="To Date:",
-            font=('Segoe UI', 10),
-            bg='white',
-            fg='#374151'
-        ).pack(side=tk.LEFT, padx=5)
-        
-        self.to_date_entry = tk.Entry(
-            date_frame,
-            font=('Segoe UI', 10),
-            width=12
-        )
-        self.to_date_entry.pack(side=tk.LEFT, padx=5)
-        self.to_date_entry.insert(0, datetime.now().strftime('%Y-%m-%d'))
+        if CALENDAR_AVAILABLE:
+            # Use calendar date picker
+            default_from_date = datetime.now() - timedelta(days=30)
+            self.from_date_entry = DateEntry(
+                date_frame,
+                font=('Segoe UI', 10),
+                width=12,
+                background='darkblue',
+                foreground='white',
+                borderwidth=2,
+                date_pattern='yyyy-mm-dd',
+                year=default_from_date.year,
+                month=default_from_date.month,
+                day=default_from_date.day
+            )
+            self.from_date_entry.pack(side=tk.LEFT, padx=5)
+            
+            tk.Label(
+                date_frame,
+                text="To Date:",
+                font=('Segoe UI', 10),
+                bg='white',
+                fg='#374151'
+            ).pack(side=tk.LEFT, padx=5)
+            
+            default_to_date = datetime.now()
+            self.to_date_entry = DateEntry(
+                date_frame,
+                font=('Segoe UI', 10),
+                width=12,
+                background='darkblue',
+                foreground='white',
+                borderwidth=2,
+                date_pattern='yyyy-mm-dd',
+                year=default_to_date.year,
+                month=default_to_date.month,
+                day=default_to_date.day
+            )
+            self.to_date_entry.pack(side=tk.LEFT, padx=5)
+        else:
+            # Fallback to text entry if tkcalendar is not available
+            self.from_date_entry = tk.Entry(
+                date_frame,
+                font=('Segoe UI', 10),
+                width=12
+            )
+            self.from_date_entry.pack(side=tk.LEFT, padx=5)
+            self.from_date_entry.insert(0, (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+            
+            tk.Label(
+                date_frame,
+                text="To Date:",
+                font=('Segoe UI', 10),
+                bg='white',
+                fg='#374151'
+            ).pack(side=tk.LEFT, padx=5)
+            
+            self.to_date_entry = tk.Entry(
+                date_frame,
+                font=('Segoe UI', 10),
+                width=12
+            )
+            self.to_date_entry.pack(side=tk.LEFT, padx=5)
+            self.to_date_entry.insert(0, datetime.now().strftime('%Y-%m-%d'))
         
         tk.Button(
             date_frame,
@@ -261,12 +309,33 @@ class ReportsModule:
     def apply_filters(self):
         """Apply date filters"""
         try:
-            from_date_str = self.from_date_entry.get()
-            to_date_str = self.to_date_entry.get()
-            
-            # Validate dates
-            self.from_date = datetime.strptime(from_date_str, '%Y-%m-%d').date()
-            self.to_date = datetime.strptime(to_date_str, '%Y-%m-%d').date()
+            if CALENDAR_AVAILABLE:
+                # DateEntry returns a date object directly
+                from_date_value = self.from_date_entry.get_date()
+                to_date_value = self.to_date_entry.get_date()
+                
+                # Convert to date if it's a datetime
+                if isinstance(from_date_value, datetime):
+                    self.from_date = from_date_value.date()
+                elif isinstance(from_date_value, date):
+                    self.from_date = from_date_value
+                else:
+                    self.from_date = datetime.strptime(str(from_date_value), '%Y-%m-%d').date()
+                
+                if isinstance(to_date_value, datetime):
+                    self.to_date = to_date_value.date()
+                elif isinstance(to_date_value, date):
+                    self.to_date = to_date_value
+                else:
+                    self.to_date = datetime.strptime(str(to_date_value), '%Y-%m-%d').date()
+            else:
+                # Text entry returns a string
+                from_date_str = self.from_date_entry.get()
+                to_date_str = self.to_date_entry.get()
+                
+                # Validate dates
+                self.from_date = datetime.strptime(from_date_str, '%Y-%m-%d').date()
+                self.to_date = datetime.strptime(to_date_str, '%Y-%m-%d').date()
             
             if self.from_date > self.to_date:
                 messagebox.showerror("Error", "From date cannot be after To date")
@@ -275,13 +344,25 @@ class ReportsModule:
             self.generate_report()
         except ValueError:
             messagebox.showerror("Error", "Invalid date format. Please use YYYY-MM-DD")
+        except Exception as e:
+            messagebox.showerror("Error", f"Error applying filters: {str(e)}")
     
     def reset_filters(self):
         """Reset filters to default"""
-        self.from_date_entry.delete(0, tk.END)
-        self.from_date_entry.insert(0, (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
-        self.to_date_entry.delete(0, tk.END)
-        self.to_date_entry.insert(0, datetime.now().strftime('%Y-%m-%d'))
+        default_from_date = datetime.now() - timedelta(days=30)
+        default_to_date = datetime.now()
+        
+        if CALENDAR_AVAILABLE:
+            # DateEntry uses set_date() method
+            self.from_date_entry.set_date(default_from_date.date())
+            self.to_date_entry.set_date(default_to_date.date())
+        else:
+            # Text entry uses delete and insert
+            self.from_date_entry.delete(0, tk.END)
+            self.from_date_entry.insert(0, default_from_date.strftime('%Y-%m-%d'))
+            self.to_date_entry.delete(0, tk.END)
+            self.to_date_entry.insert(0, default_to_date.strftime('%Y-%m-%d'))
+        
         self.from_date = None
         self.to_date = None
         self.generate_report()
@@ -313,37 +394,80 @@ class ReportsModule:
             messagebox.showerror("Error", f"Failed to generate report: {str(e)}")
     
     def get_date_filter(self):
-        """Get date filter strings"""
+        """Get date filter as date objects"""
         if self.from_date and self.to_date:
-            return self.from_date.strftime('%Y-%m-%d'), self.to_date.strftime('%Y-%m-%d')
+            # Ensure they are date objects, not strings
+            if isinstance(self.from_date, str):
+                from_date = datetime.strptime(self.from_date, '%Y-%m-%d').date()
+            elif isinstance(self.from_date, datetime):
+                from_date = self.from_date.date()
+            else:
+                from_date = self.from_date
+            
+            if isinstance(self.to_date, str):
+                to_date = datetime.strptime(self.to_date, '%Y-%m-%d').date()
+            elif isinstance(self.to_date, datetime):
+                to_date = self.to_date.date()
+            else:
+                to_date = self.to_date
+            
+            return from_date, to_date
         return None, None
+    
+    def parse_date_safe(self, date_value):
+        """Safely parse a date value that could be string, date, or None"""
+        if date_value is None:
+            return None
+        if isinstance(date_value, datetime):
+            return date_value.date()
+        if isinstance(date_value, date):
+            return date_value
+        if isinstance(date_value, str):
+            try:
+                return datetime.strptime(date_value, '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                # Try other common formats
+                try:
+                    return datetime.strptime(date_value, '%Y/%m/%d').date()
+                except (ValueError, TypeError):
+                    return None
+        return None
     
     def generate_overview_report(self):
         """Generate overview statistics report"""
         from_date, to_date = self.get_date_filter()
         
+        # Always fetch all data first
+        patients = self.db.get_all_patients()
+        doctors = self.db.get_all_doctors()
+        appointments = self.db.get_all_appointments()
+        bills = self.db.get_all_bills()
+        
+        # Filter appointments and bills by date if needed
         if from_date and to_date:
-            stats = self.db.get_date_range_statistics(from_date, to_date)
+            filtered_appointments = []
+            for a in appointments:
+                appt_date = self.parse_date_safe(a.get('appointment_date'))
+                if appt_date and from_date <= appt_date <= to_date:
+                    filtered_appointments.append(a)
+            appointments = filtered_appointments
+            
+            filtered_bills = []
+            for b in bills:
+                bill_date = self.parse_date_safe(b.get('bill_date'))
+                if bill_date and from_date <= bill_date <= to_date:
+                    filtered_bills.append(b)
+            bills = filtered_bills
+            # get_date_range_statistics expects strings
+            stats = self.db.get_date_range_statistics(from_date.strftime('%Y-%m-%d'), to_date.strftime('%Y-%m-%d'))
             date_range_text = f"Date Range: {from_date} to {to_date}"
         else:
             stats = self.db.get_statistics()
             date_range_text = "All Time"
-            
-            patients = self.db.get_all_patients()
-            doctors = self.db.get_all_doctors()
-            appointments = self.db.get_all_appointments()
-            bills = self.db.get_all_bills()
-            
-        # Filter appointments and bills by date if needed
-        if from_date and to_date:
-            appointments = [a for a in appointments 
-                          if from_date <= datetime.strptime(a['appointment_date'], '%Y-%m-%d').date() <= to_date]
-            bills = [b for b in bills 
-                    if from_date <= datetime.strptime(b['bill_date'], '%Y-%m-%d').date() <= to_date]
         
-            total_appointments = len(appointments)
-            pending_bills = sum(1 for b in bills if b['payment_status'] == 'Pending')
-            paid_bills = sum(1 for b in bills if b['payment_status'] == 'Paid')
+        total_appointments = len(appointments)
+        pending_bills = sum(1 for b in bills if b['payment_status'] == 'Pending')
+        paid_bills = sum(1 for b in bills if b['payment_status'] == 'Paid')
         total_bill_amount = sum(float(b.get('total_amount', 0)) for b in bills)
         paid_amount = sum(float(b.get('total_amount', 0)) for b in bills if b['payment_status'] == 'Paid')
         
@@ -444,8 +568,12 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         bills = self.db.get_all_bills()
         
         if from_date and to_date:
-            bills = [b for b in bills 
-                    if from_date <= datetime.strptime(b['bill_date'], '%Y-%m-%d').date() <= to_date]
+            filtered_bills = []
+            for b in bills:
+                bill_date = self.parse_date_safe(b.get('bill_date'))
+                if bill_date and from_date <= bill_date <= to_date:
+                    filtered_bills.append(b)
+            bills = filtered_bills
             date_range_text = f"Date Range: {from_date} to {to_date}"
         else:
             date_range_text = "All Time"
@@ -546,10 +674,19 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         prescriptions = self.db.get_all_prescriptions()
         
         if from_date and to_date:
-            appointments = [a for a in appointments 
-                          if from_date <= datetime.strptime(a['appointment_date'], '%Y-%m-%d').date() <= to_date]
-            prescriptions = [p for p in prescriptions 
-                           if from_date <= datetime.strptime(p.get('prescription_date', '2000-01-01'), '%Y-%m-%d').date() <= to_date]
+            filtered_appointments = []
+            for a in appointments:
+                appt_date = self.parse_date_safe(a.get('appointment_date'))
+                if appt_date and from_date <= appt_date <= to_date:
+                    filtered_appointments.append(a)
+            appointments = filtered_appointments
+            
+            filtered_prescriptions = []
+            for p in prescriptions:
+                presc_date = self.parse_date_safe(p.get('prescription_date'))
+                if presc_date and from_date <= presc_date <= to_date:
+                    filtered_prescriptions.append(p)
+            prescriptions = filtered_prescriptions
             date_range_text = f"Date Range: {from_date} to {to_date}"
         else:
             date_range_text = "All Time"
@@ -667,8 +804,12 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         appointments = self.db.get_all_appointments()
         
         if from_date and to_date:
-            appointments = [a for a in appointments 
-                          if from_date <= datetime.strptime(a['appointment_date'], '%Y-%m-%d').date() <= to_date]
+            filtered_appointments = []
+            for a in appointments:
+                appt_date = self.parse_date_safe(a.get('appointment_date'))
+                if appt_date and from_date <= appt_date <= to_date:
+                    filtered_appointments.append(a)
+            appointments = filtered_appointments
             date_range_text = f"Date Range: {from_date} to {to_date}"
         else:
             date_range_text = "All Time"
@@ -748,8 +889,12 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         appointments = self.db.get_all_appointments()
         
         if from_date and to_date:
-            appointments = [a for a in appointments 
-                          if from_date <= datetime.strptime(a['appointment_date'], '%Y-%m-%d').date() <= to_date]
+            filtered_appointments = []
+            for a in appointments:
+                appt_date = self.parse_date_safe(a.get('appointment_date'))
+                if appt_date and from_date <= appt_date <= to_date:
+                    filtered_appointments.append(a)
+            appointments = filtered_appointments
             date_range_text = f"Date Range: {from_date} to {to_date}"
         else:
             date_range_text = "All Time"
@@ -815,8 +960,12 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         prescriptions = self.db.get_all_prescriptions()
         
         if from_date and to_date:
-            prescriptions = [p for p in prescriptions 
-                           if from_date <= datetime.strptime(p.get('prescription_date', '2000-01-01'), '%Y-%m-%d').date() <= to_date]
+            filtered_prescriptions = []
+            for p in prescriptions:
+                presc_date = self.parse_date_safe(p.get('prescription_date'))
+                if presc_date and from_date <= presc_date <= to_date:
+                    filtered_prescriptions.append(p)
+            prescriptions = filtered_prescriptions
             date_range_text = f"Date Range: {from_date} to {to_date}"
         else:
             date_range_text = "All Time"
@@ -875,7 +1024,8 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         from_date, to_date = self.get_date_filter()
         
         if from_date and to_date:
-            stats = self.db.get_date_range_statistics(from_date, to_date)
+            # get_date_range_statistics expects strings
+            stats = self.db.get_date_range_statistics(from_date.strftime('%Y-%m-%d'), to_date.strftime('%Y-%m-%d'))
             date_range_text = f"Date Range: {from_date} to {to_date}"
         else:
             stats = self.db.get_statistics()
@@ -889,12 +1039,26 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         
         # Filter by date if needed
         if from_date and to_date:
-            appointments = [a for a in appointments 
-                          if from_date <= datetime.strptime(a['appointment_date'], '%Y-%m-%d').date() <= to_date]
-            bills = [b for b in bills 
-                    if from_date <= datetime.strptime(b['bill_date'], '%Y-%m-%d').date() <= to_date]
-            prescriptions = [p for p in prescriptions 
-                           if from_date <= datetime.strptime(p.get('prescription_date', '2000-01-01'), '%Y-%m-%d').date() <= to_date]
+            filtered_appointments = []
+            for a in appointments:
+                appt_date = self.parse_date_safe(a.get('appointment_date'))
+                if appt_date and from_date <= appt_date <= to_date:
+                    filtered_appointments.append(a)
+            appointments = filtered_appointments
+            
+            filtered_bills = []
+            for b in bills:
+                bill_date = self.parse_date_safe(b.get('bill_date'))
+                if bill_date and from_date <= bill_date <= to_date:
+                    filtered_bills.append(b)
+            bills = filtered_bills
+            
+            filtered_prescriptions = []
+            for p in prescriptions:
+                presc_date = self.parse_date_safe(p.get('prescription_date'))
+                if presc_date and from_date <= presc_date <= to_date:
+                    filtered_prescriptions.append(p)
+            prescriptions = filtered_prescriptions
         
         paid_bills = [b for b in bills if b['payment_status'] == 'Paid']
         total_revenue = sum(float(b.get('total_amount', 0)) for b in paid_bills)

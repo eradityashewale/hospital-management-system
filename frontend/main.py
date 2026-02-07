@@ -22,6 +22,7 @@ from frontend.modules.prescription_module import PrescriptionModule
 from frontend.modules.billing_module import BillingModule
 from frontend.modules.reports_module import ReportsModule
 from frontend.modules.role_module import RoleModule
+from frontend.modules.ipd_module import IPDModule
 
 
 class HospitalManagementSystem:
@@ -413,6 +414,7 @@ class HospitalManagementSystem:
             ("Doctors", self.show_doctors),
             ("Appointments", self.show_appointments),
             ("Prescriptions", self.show_prescriptions),
+            ("IPD", self.show_ipd),
             ("Billing", self.show_billing),
             ("Reports", self.show_reports)
         ]
@@ -421,10 +423,9 @@ class HospitalManagementSystem:
         # Only show modules that the user has permission to access
         filtered_buttons = []
         for text, command in buttons:
-            # Dashboard is always accessible
-            if text == "Dashboard":
-                filtered_buttons.append((text, command))
             # Check permissions for each module
+            if text == "Dashboard" and self.has_permission('dashboard'):
+                filtered_buttons.append((text, command))
             elif text == "Patients" and self.has_permission('patient'):
                 filtered_buttons.append((text, command))
             elif text == "Doctors" and self.has_permission('doctor'):
@@ -432,6 +433,8 @@ class HospitalManagementSystem:
             elif text == "Appointments" and self.has_permission('appointments'):
                 filtered_buttons.append((text, command))
             elif text == "Prescriptions" and self.has_permission('prescription'):
+                filtered_buttons.append((text, command))
+            elif text == "IPD" and self.has_permission('ipd'):
                 filtered_buttons.append((text, command))
             elif text == "Billing" and self.has_permission('billing'):
                 filtered_buttons.append((text, command))
@@ -606,6 +609,10 @@ class HospitalManagementSystem:
     
     def show_dashboard(self):
         """Show dashboard with statistics"""
+        if not self.has_permission('dashboard'):
+            messagebox.showerror("Access Denied", "You do not have permission to access the Dashboard module.")
+            return
+        
         try:
             log_info("show_dashboard() called")
             self.clear_content()
@@ -1635,12 +1642,22 @@ class HospitalManagementSystem:
                     else:  # 'all'
                         stats = self.db.get_statistics()
                     
-                    # Update value labels (5 cards now)
+                    # Ensure admission stats exist with defaults
+                    if 'active_admissions' not in stats:
+                        stats['active_admissions'] = 0
+                    if 'total_admissions' not in stats:
+                        stats['total_admissions'] = 0
+                    if 'discharged_admissions' not in stats:
+                        stats['discharged_admissions'] = 0
+                    
+                    # Update value labels (7 cards now including admissions)
                     values = [
                         stats['total_patients'],
                         stats['total_doctors'],
                         stats['scheduled_appointments'],
                         stats['completed_appointments'],
+                        stats['active_admissions'],
+                        stats['total_admissions'],
                         f"${stats['total_revenue']:.2f}"
                     ]
                     
@@ -1835,21 +1852,35 @@ class HospitalManagementSystem:
                     'total_doctors': 0,
                     'scheduled_appointments': 0,
                     'completed_appointments': 0,
-                    'total_revenue': 0
+                    'total_revenue': 0,
+                    'active_admissions': 0,
+                    'total_admissions': 0,
+                    'discharged_admissions': 0
                 }
             
-            # Modern KPI Cards with icons
+            # Ensure admission stats exist with defaults
+            if 'active_admissions' not in stats:
+                stats['active_admissions'] = 0
+            if 'total_admissions' not in stats:
+                stats['total_admissions'] = 0
+            if 'discharged_admissions' not in stats:
+                stats['discharged_admissions'] = 0
+            
+            # Modern KPI Cards with icons - now includes admissions
             stat_cards = [
                 ("👥", "Total Patients", stats['total_patients'], "+12%", '#3b82f6'),
                 ("👨‍⚕️", "Active Doctors", stats['total_doctors'], "", '#8b5cf6'),
                 ("📅", "Today's Appointments", stats['scheduled_appointments'], "", '#ec4899'),
                 ("✅", "Completed Appointments", stats['completed_appointments'], "", '#f59e0b'),
+                ("🏥", "Active Admissions", stats['active_admissions'], "", '#ef4444'),
+                ("📋", "Total Admissions", stats['total_admissions'], "", '#06b6d4'),
                 ("💰", "Total Revenue", f"${stats['total_revenue']:.2f}", "", '#10b981')
             ]
             
             cards_frame = tk.Frame(stats_frame, bg='#f5f7fa')
             cards_frame.pack(fill=tk.X, pady=(0, 20))
             
+            # Arrange cards in 2 rows: 4 cards in first row, 3 in second row
             for i, (icon, label, value, trend, color) in enumerate(stat_cards):
                 card = tk.Frame(
                     cards_frame,
@@ -1857,9 +1888,11 @@ class HospitalManagementSystem:
                     relief=tk.FLAT,
                     bd=0
                 )
-                # Arrange all 5 cards in a single row
-                card.grid(row=0, column=i, padx=12, pady=12, sticky='nsew')
-                cards_frame.grid_columnconfigure(i, weight=1)
+                # First 4 cards in row 0, remaining in row 1
+                row = 0 if i < 4 else 1
+                col = i if i < 4 else (i - 4)
+                card.grid(row=row, column=col, padx=12, pady=12, sticky='nsew')
+                cards_frame.grid_columnconfigure(col, weight=1)
                 
                 # Icon and label frame
                 top_frame = tk.Frame(card, bg=color)
@@ -2406,6 +2439,122 @@ class HospitalManagementSystem:
                 tk.Label(item_frame, text=label, font=('Segoe UI', 11), bg='white', fg='#374151').pack(side=tk.LEFT)
                 tk.Label(item_frame, text=f"{percent} ({count})", font=('Segoe UI', 11, 'bold'), bg='white', fg='#6b7280').pack(side=tk.RIGHT)
             
+            # Active Admissions (Middle Column)
+            active_admissions_frame = tk.Frame(middle_column, bg='white', relief=tk.FLAT, bd=1)
+            active_admissions_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
+            
+            admissions_header = tk.Frame(active_admissions_frame, bg='white')
+            admissions_header.pack(fill=tk.X, padx=20, pady=(15, 10))
+            
+            tk.Label(
+                admissions_header,
+                text="Active Admissions",
+                font=('Segoe UI', 14, 'bold'),
+                bg='white',
+                fg='#1f2937'
+            ).pack(side=tk.LEFT)
+            
+            # Get active admissions
+            try:
+                active_admissions = self.db.get_all_active_admissions()
+            except Exception as e:
+                log_error("Failed to get active admissions", e)
+                active_admissions = []
+            
+            # Create scrollable frame for admissions list
+            admissions_canvas = tk.Canvas(active_admissions_frame, bg='white', highlightthickness=0, height=200)
+            admissions_scrollbar = tk.Scrollbar(active_admissions_frame, orient="vertical", command=admissions_canvas.yview)
+            admissions_scrollable = tk.Frame(admissions_canvas, bg='white')
+            
+            admissions_scrollable.bind(
+                "<Configure>",
+                lambda e: admissions_canvas.configure(scrollregion=admissions_canvas.bbox("all"))
+            )
+            
+            admissions_canvas.create_window((0, 0), window=admissions_scrollable, anchor="nw")
+            admissions_canvas.configure(yscrollcommand=admissions_scrollbar.set)
+            
+            if active_admissions:
+                for idx, admission in enumerate(active_admissions):
+                    adm_frame = tk.Frame(admissions_scrollable, bg='#f9fafb' if idx % 2 == 0 else 'white', relief=tk.FLAT)
+                    adm_frame.pack(fill=tk.X, padx=15, pady=8)
+                    
+                    # Patient name and admission ID
+                    name_frame = tk.Frame(adm_frame, bg=adm_frame['bg'])
+                    name_frame.pack(fill=tk.X, pady=(0, 4))
+                    
+                    patient_name = admission.get('patient_name', 'Unknown')
+                    admission_id = admission.get('admission_id', 'N/A')
+                    tk.Label(
+                        name_frame,
+                        text=f"👤 {patient_name}",
+                        font=('Segoe UI', 10, 'bold'),
+                        bg=adm_frame['bg'],
+                        fg='#1f2937',
+                        anchor='w'
+                    ).pack(side=tk.LEFT, fill=tk.X)
+                    
+                    tk.Label(
+                        name_frame,
+                        text=f"ID: {admission_id}",
+                        font=('Segoe UI', 8),
+                        bg=adm_frame['bg'],
+                        fg='#6b7280',
+                        anchor='e'
+                    ).pack(side=tk.RIGHT)
+                    
+                    # Admission details
+                    details_text = []
+                    if admission.get('admission_date'):
+                        details_text.append(f"📅 Admitted: {admission['admission_date']}")
+                    if admission.get('ward'):
+                        details_text.append(f"🏥 Ward: {admission['ward']}")
+                    if admission.get('bed'):
+                        details_text.append(f"🛏️ Bed: {admission['bed']}")
+                    if admission.get('doctor_name'):
+                        details_text.append(f"👨‍⚕️ Dr. {admission['doctor_name']}")
+                    
+                    if details_text:
+                        tk.Label(
+                            adm_frame,
+                            text=" | ".join(details_text),
+                            font=('Segoe UI', 8),
+                            bg=adm_frame['bg'],
+                            fg='#6b7280',
+                            anchor='w',
+                            wraplength=250
+                        ).pack(fill=tk.X, pady=(0, 2))
+                    
+                    # Days admitted
+                    if admission.get('admission_date'):
+                        try:
+                            from datetime import datetime
+                            adm_date = datetime.strptime(admission['admission_date'], '%Y-%m-%d')
+                            days_admitted = (datetime.now() - adm_date).days
+                            status_text = f"Day {days_admitted + 1}" if days_admitted >= 0 else "Just admitted"
+                            tk.Label(
+                                adm_frame,
+                                text=f"⏱️ {status_text}",
+                                font=('Segoe UI', 8, 'bold'),
+                                bg=adm_frame['bg'],
+                                fg='#ef4444',
+                                anchor='w'
+                            ).pack(fill=tk.X)
+                        except:
+                            pass
+            else:
+                no_adm_label = tk.Label(
+                    admissions_scrollable,
+                    text="No active admissions",
+                    font=('Segoe UI', 10),
+                    bg='white',
+                    fg='#9ca3af'
+                )
+                no_adm_label.pack(pady=20)
+            
+            admissions_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
+            admissions_scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=(0, 15))
+            
             # Recent Activities (Middle Column)
             activities_frame = tk.Frame(middle_column, bg='white', relief=tk.FLAT, bd=1)
             activities_frame.pack(fill=tk.BOTH, expand=True)
@@ -2583,7 +2732,7 @@ class HospitalManagementSystem:
         
         # Admin has all module permissions
         permissions = self.db.get_user_permissions(user_id)
-        all_modules = ['patient', 'doctor', 'appointments', 'prescription', 'billing', 'report']
+        all_modules = ['dashboard', 'patient', 'doctor', 'appointments', 'prescription', 'ipd', 'billing', 'report']
         return len(permissions) >= len(all_modules) and all(module in permissions for module in all_modules)
     
     def has_permission(self, module_name):
@@ -2610,7 +2759,7 @@ class HospitalManagementSystem:
                 if len(all_perms) == 0:
                     # User has no permissions - grant all for backward compatibility
                     log_warning(f"User {user_id} has no permissions assigned, granting all permissions")
-                    all_modules = ['patient', 'doctor', 'appointments', 'prescription', 'billing', 'report']
+                    all_modules = ['dashboard', 'patient', 'doctor', 'appointments', 'prescription', 'ipd', 'billing', 'report']
                     self.db.set_user_permissions(user_id, all_modules)
                     return True
             
@@ -2688,6 +2837,23 @@ class HospitalManagementSystem:
         except Exception as e:
             log_error("Failed to load Prescriptions module", e)
             messagebox.showerror("Error", f"Failed to load Prescriptions module: {str(e)}")
+    
+    def show_ipd(self):
+        """Show IPD (In-Patient Department) module"""
+        if not self.has_permission('ipd'):
+            messagebox.showerror("Access Denied", "You do not have permission to access the IPD module.")
+            return
+        try:
+            log_info("Loading IPD module...")
+            self.clear_content()
+            self.root.update_idletasks()
+            IPDModule(self.content_frame, self.db)
+            self.root.update_idletasks()
+            self.root.update()
+            log_info("IPD module loaded successfully")
+        except Exception as e:
+            log_error("Failed to load IPD module", e)
+            messagebox.showerror("Error", f"Failed to load IPD module: {str(e)}")
     
     def show_billing(self):
         """Show billing module"""

@@ -12,6 +12,9 @@ from utils.helpers import generate_id, get_current_date
 from utils.logger import (log_button_click, log_dialog_open, log_dialog_close, 
                    log_database_operation, log_error, log_info, log_warning, log_debug)
 
+# IPD Admissions / Daily Notes
+from frontend.modules.admission_module import AdmissionNotesWindow
+
 
 class PatientModule:
     """Patient management interface"""
@@ -217,6 +220,22 @@ class PatientModule:
             activebackground='#2563eb',
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
+
+        tk.Button(
+            action_frame,
+            text="IPD / Daily Notes",
+            command=self.open_ipd_notes,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#8b5cf6',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#7c3aed',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
         
         edit_btn = tk.Button(
             action_frame,
@@ -252,6 +271,17 @@ class PatientModule:
             activebackground='#dc2626',
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
+
+    def open_ipd_notes(self):
+        """Open IPD admission + day-wise notes for selected patient."""
+        patient_id = self.get_selected_patient_id()
+        if not patient_id:
+            return
+        try:
+            AdmissionNotesWindow(self.parent, self.db, patient_id)
+        except Exception as e:
+            log_error("Failed to open IPD notes window", e)
+            messagebox.showerror("Error", f"Failed to open IPD notes: {e}")
     
     def _focus_tree(self):
         """Ensure tree widget is immediately interactive for selection"""

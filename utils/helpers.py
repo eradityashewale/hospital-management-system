@@ -32,6 +32,11 @@ def get_current_datetime() -> str:
     return datetime.now().isoformat()
 
 
+def get_current_time() -> str:
+    """Get current time as string in HH:MM format"""
+    return datetime.now().strftime('%H:%M')
+
+
 def validate_email(email: str) -> bool:
     """Simple email validation"""
     return '@' in email and '.' in email.split('@')[1]

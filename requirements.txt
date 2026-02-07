@@ -11,11 +11,13 @@ tkinter == 1.0.0
 # Optional dependencies (uncomment if needed):
 # python-dateutil==2.8.2  # For enhanced date handling
 # reportlab==4.0.4        # For PDF generation (reports/printouts)
+# tkcalendar==1.6.1       # For calendar date picker widgets in reports
 
 # Build dependencies:
 pyinstaller>=5.0.0        # For creating .exe files
 reportlab>=4.0.0          # For PDF generation (reports/printouts)
 Pillow>=10.0.0            # For image handling (logo display)
+tkcalendar>=1.6.1         # For calendar date picker widgets in reports
 
 # Flask API dependencies (for web mode):
 flask>=2.0.0              # Flask web framework

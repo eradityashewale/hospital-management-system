@@ -12,5 +12,5 @@ if ! command -v python3 &> /dev/null; then
 fi
 
 # Run the application
-python3 main.py
+python3 app.py
 

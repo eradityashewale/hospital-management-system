@@ -5,7 +5,7 @@ Handles all database operations using SQLite
 import sqlite3
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 
 # Utils imports
@@ -126,6 +126,54 @@ class Database:
                 FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
                 FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
             )
+        """)
+
+        # Admissions (In-Patient) table
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS admissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                admission_id TEXT UNIQUE NOT NULL,
+                patient_id TEXT NOT NULL,
+                doctor_id TEXT,
+                admission_date TEXT NOT NULL,
+                expected_days INTEGER DEFAULT 0,
+                expected_discharge_date TEXT,
+                discharge_date TEXT,
+                discharge_summary TEXT,
+                status TEXT DEFAULT 'Admitted',
+                ward TEXT,
+                bed TEXT,
+                reason TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (patient_id) REFERENCES patients(patient_id),
+                FOREIGN KEY (doctor_id) REFERENCES doctors(doctor_id)
+            )
+        """)
+
+        # Daily progress notes for admissions
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS admission_notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                note_id TEXT UNIQUE NOT NULL,
+                admission_id TEXT NOT NULL,
+                note_date TEXT NOT NULL,
+                note_time TEXT,
+                note_text TEXT NOT NULL,
+                created_by TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (admission_id) REFERENCES admissions(admission_id)
+            )
+        """)
+
+        # Helpful indexes
+        self.cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_admissions_patient_status
+            ON admissions(patient_id, status)
+        """)
+        self.cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_admission_notes_admission_date
+            ON admission_notes(admission_id, note_date)
         """)
         
         # Prescriptions table
@@ -719,6 +767,147 @@ class Database:
             log_database_operation("UPDATE", "appointments", False, f"Appointment ID: {appointment_id} - Error: {str(e)}")
             log_error(f"Error updating appointment: {appointment_id}", e)
             return False
+
+    # Admission (IPD) operations
+    def add_admission(self, admission_data: Dict) -> bool:
+        """Add a new in-patient admission"""
+        try:
+            admission_date = admission_data.get('admission_date')
+            expected_days = int(admission_data.get('expected_days') or 0)
+            expected_discharge_date = admission_data.get('expected_discharge_date', '')
+
+            if admission_date and expected_days > 0 and not expected_discharge_date:
+                try:
+                    expected_discharge_date = (datetime.strptime(admission_date, '%Y-%m-%d') + timedelta(days=expected_days)).strftime('%Y-%m-%d')
+                except Exception:
+                    expected_discharge_date = ''
+
+            self.cursor.execute("""
+                INSERT INTO admissions (
+                    admission_id, patient_id, doctor_id, admission_date,
+                    expected_days, expected_discharge_date,
+                    status, ward, bed, reason
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                admission_data['admission_id'],
+                admission_data['patient_id'],
+                admission_data.get('doctor_id'),
+                admission_date,
+                expected_days,
+                expected_discharge_date,
+                admission_data.get('status', 'Admitted'),
+                admission_data.get('ward', ''),
+                admission_data.get('bed', ''),
+                admission_data.get('reason', '')
+            ))
+            self.conn.commit()
+            log_info(f"Admission added successfully: {admission_data['admission_id']}")
+            return True
+        except sqlite3.IntegrityError as e:
+            log_error(f"Failed to add admission (integrity error): {admission_data.get('admission_id')}", e)
+            return False
+        except Exception as e:
+            log_error(f"Failed to add admission: {admission_data.get('admission_id')}", e)
+            return False
+
+    def get_admissions_by_patient(self, patient_id: str) -> List[Dict]:
+        """Get admissions for a patient (latest first)"""
+        self.cursor.execute("""
+            SELECT a.*,
+                   d.first_name || ' ' || d.last_name AS doctor_name
+            FROM admissions a
+            LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE a.patient_id = ?
+            ORDER BY a.admission_date DESC, a.created_at DESC
+        """, (patient_id,))
+        return [dict(row) for row in self.cursor.fetchall()]
+
+    def get_active_admission_by_patient(self, patient_id: str) -> Optional[Dict]:
+        """Get the current active admission for a patient (if any)"""
+        self.cursor.execute("""
+            SELECT a.*,
+                   d.first_name || ' ' || d.last_name AS doctor_name
+            FROM admissions a
+            LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE a.patient_id = ? AND a.status = 'Admitted'
+            ORDER BY a.admission_date DESC, a.created_at DESC
+            LIMIT 1
+        """, (patient_id,))
+        row = self.cursor.fetchone()
+        return dict(row) if row else None
+    
+    def get_all_active_admissions(self) -> List[Dict]:
+        """Get all currently active admissions with patient and doctor details"""
+        self.cursor.execute("""
+            SELECT a.*,
+                   p.first_name || ' ' || p.last_name AS patient_name,
+                   p.patient_id,
+                   d.first_name || ' ' || d.last_name AS doctor_name
+            FROM admissions a
+            LEFT JOIN patients p ON a.patient_id = p.patient_id
+            LEFT JOIN doctors d ON a.doctor_id = d.doctor_id
+            WHERE a.status = 'Admitted'
+            ORDER BY a.admission_date DESC, a.created_at DESC
+        """)
+        return [dict(row) for row in self.cursor.fetchall()]
+
+    def discharge_admission(self, admission_id: str, discharge_date: str = None, discharge_summary: str = '') -> bool:
+        """Discharge an admission"""
+        try:
+            discharge_date = discharge_date or datetime.now().strftime('%Y-%m-%d')
+            self.cursor.execute("""
+                UPDATE admissions SET
+                    discharge_date = ?,
+                    discharge_summary = ?,
+                    status = 'Discharged',
+                    updated_at = ?
+                WHERE admission_id = ?
+            """, (discharge_date, discharge_summary or '', datetime.now().isoformat(), admission_id))
+            self.conn.commit()
+            log_info(f"Admission discharged: {admission_id}")
+            return True
+        except Exception as e:
+            log_error(f"Failed to discharge admission: {admission_id}", e)
+            return False
+
+    def add_admission_note(self, note_data: Dict) -> bool:
+        """Add a daily progress note for an admission"""
+        try:
+            self.cursor.execute("""
+                INSERT INTO admission_notes (
+                    note_id, admission_id, note_date, note_time,
+                    note_text, created_by
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                note_data['note_id'],
+                note_data['admission_id'],
+                note_data['note_date'],
+                note_data.get('note_time', ''),
+                note_data['note_text'],
+                note_data.get('created_by', '')
+            ))
+            self.conn.commit()
+            log_info(f"Admission note added successfully: {note_data['note_id']}")
+            return True
+        except sqlite3.IntegrityError as e:
+            log_error(f"Failed to add admission note (integrity error): {note_data.get('note_id')}", e)
+            return False
+        except Exception as e:
+            log_error(f"Failed to add admission note: {note_data.get('note_id')}", e)
+            return False
+
+    def get_admission_notes(self, admission_id: str) -> List[Dict]:
+        """Get progress notes for an admission (oldest first) with computed day number"""
+        self.cursor.execute("""
+            SELECT n.*,
+                   a.admission_date,
+                   CAST((julianday(n.note_date) - julianday(a.admission_date)) AS INTEGER) + 1 AS day_number
+            FROM admission_notes n
+            JOIN admissions a ON n.admission_id = a.admission_id
+            WHERE n.admission_id = ?
+            ORDER BY n.note_date ASC, n.created_at ASC
+        """, (admission_id,))
+        return [dict(row) for row in self.cursor.fetchall()]
     
     # Prescription operations
     def add_prescription(self, prescription_data: Dict, items: List[Dict]) -> bool:
@@ -1102,24 +1291,29 @@ class Database:
         """
         stats = {}
         
-        # Build date filter conditions for appointments
+        # Build date filter conditions for appointments, bills, and admissions
         appointment_filter = ""
         bill_filter = ""
+        admission_filter = ""
         
         if filter_type == 'daily' and filter_date:
             appointment_filter = f"AND appointment_date = '{filter_date}'"
             bill_filter = f"AND bill_date = '{filter_date}'"
+            admission_filter = f"AND admission_date = '{filter_date}'"
         elif filter_type == 'monthly' and filter_date:
             # filter_date should be in 'YYYY-MM' format
             appointment_filter = f"AND strftime('%Y-%m', appointment_date) = '{filter_date}'"
             bill_filter = f"AND strftime('%Y-%m', bill_date) = '{filter_date}'"
+            admission_filter = f"AND strftime('%Y-%m', admission_date) = '{filter_date}'"
         elif filter_type == 'yearly' and filter_date:
             # filter_date should be in 'YYYY' format
             appointment_filter = f"AND strftime('%Y', appointment_date) = '{filter_date}'"
             bill_filter = f"AND strftime('%Y', bill_date) = '{filter_date}'"
+            admission_filter = f"AND strftime('%Y', admission_date) = '{filter_date}'"
         elif filter_type == 'datewise' and filter_date:
             appointment_filter = f"AND appointment_date = '{filter_date}'"
             bill_filter = f"AND bill_date = '{filter_date}'"
+            admission_filter = f"AND admission_date = '{filter_date}'"
         
         # Total patients and doctors are not date-filtered (they're cumulative)
         self.cursor.execute("SELECT COUNT(*) FROM patients")
@@ -1141,6 +1335,25 @@ class Database:
             
             self.cursor.execute("SELECT COUNT(*) FROM appointments WHERE status = 'Completed'")
             stats['completed_appointments'] = self.cursor.fetchone()[0]
+        
+        # Admissions statistics
+        # Active admissions (currently admitted) - not date-filtered as they're current state
+        self.cursor.execute("SELECT COUNT(*) FROM admissions WHERE status = 'Admitted'")
+        stats['active_admissions'] = self.cursor.fetchone()[0]
+        
+        # Total admissions (all time or filtered by date)
+        if admission_filter:
+            self.cursor.execute(f"SELECT COUNT(*) FROM admissions WHERE 1=1 {admission_filter}")
+            stats['total_admissions'] = self.cursor.fetchone()[0]
+            
+            self.cursor.execute(f"SELECT COUNT(*) FROM admissions WHERE status = 'Discharged' {admission_filter}")
+            stats['discharged_admissions'] = self.cursor.fetchone()[0]
+        else:
+            self.cursor.execute("SELECT COUNT(*) FROM admissions")
+            stats['total_admissions'] = self.cursor.fetchone()[0]
+            
+            self.cursor.execute("SELECT COUNT(*) FROM admissions WHERE status = 'Discharged'")
+            stats['discharged_admissions'] = self.cursor.fetchone()[0]
         
         # Revenue with date filter
         if bill_filter:
@@ -1172,9 +1385,10 @@ class Database:
         """Get statistics for a date range"""
         stats = {}
         
-        # Build date filter conditions for appointments
+        # Build date filter conditions for appointments, bills, and admissions
         appointment_filter = f"AND appointment_date >= '{from_date}' AND appointment_date <= '{to_date}'"
         bill_filter = f"AND bill_date >= '{from_date}' AND bill_date <= '{to_date}'"
+        admission_filter = f"AND admission_date >= '{from_date}' AND admission_date <= '{to_date}'"
         
         # Total patients and doctors are not date-filtered (they're cumulative)
         self.cursor.execute("SELECT COUNT(*) FROM patients")
@@ -1189,6 +1403,19 @@ class Database:
         
         self.cursor.execute(f"SELECT COUNT(*) FROM appointments WHERE status = 'Completed' {appointment_filter}")
         stats['completed_appointments'] = self.cursor.fetchone()[0]
+        
+        # Admissions statistics
+        # Active admissions (currently admitted) - not date-filtered as they're current state
+        self.cursor.execute("SELECT COUNT(*) FROM admissions WHERE status = 'Admitted'")
+        stats['active_admissions'] = self.cursor.fetchone()[0]
+        
+        # Total admissions in date range
+        self.cursor.execute(f"SELECT COUNT(*) FROM admissions WHERE 1=1 {admission_filter}")
+        stats['total_admissions'] = self.cursor.fetchone()[0]
+        
+        # Discharged admissions in date range
+        self.cursor.execute(f"SELECT COUNT(*) FROM admissions WHERE status = 'Discharged' {admission_filter}")
+        stats['discharged_admissions'] = self.cursor.fetchone()[0]
         
         # Revenue with date range filter
         self.cursor.execute(f"SELECT SUM(total_amount) FROM billing WHERE payment_status = 'Paid' {bill_filter}")
@@ -1904,7 +2131,7 @@ class Database:
                 user_id = self.cursor.lastrowid
                 
                 # Grant all module permissions to admin user
-                all_modules = ['patient', 'doctor', 'appointments', 'prescription', 'billing', 'report']
+                all_modules = ['dashboard', 'patient', 'doctor', 'appointments', 'prescription', 'billing', 'report']
                 for module in all_modules:
                     self.cursor.execute("""
                         INSERT INTO user_permissions (user_id, module_name)
@@ -1980,7 +2207,7 @@ class Database:
             user_row = self.cursor.fetchone()
             if user_row and user_row[0].lower() == 'admin':
                 # Admin always has all permissions
-                all_modules = ['patient', 'doctor', 'appointments', 'prescription', 'billing', 'report']
+                all_modules = ['dashboard', 'patient', 'doctor', 'appointments', 'prescription', 'billing', 'report']
                 # Ensure admin has all permissions in database
                 current_perms = self.cursor.execute("""
                     SELECT module_name FROM user_permissions 
@@ -2053,6 +2280,24 @@ class Database:
             password_hash = hashlib.sha256(password.encode()).hexdigest()
             
             log_debug(f"Creating user: {username}")
+            
+            # First, check if an active user with this username already exists
+            self.cursor.execute("SELECT id, is_active FROM users WHERE username = ?", (username,))
+            existing_user = self.cursor.fetchone()
+            
+            if existing_user:
+                existing_user_dict = dict(existing_user)
+                # If an active user exists, return None (username already taken)
+                if existing_user_dict.get('is_active', 0) == 1:
+                    log_error(f"Failed to create user (active user already exists): {username}")
+                    return None
+                # If an inactive user exists, delete it first to allow reuse of username
+                else:
+                    log_info(f"Inactive user with username '{username}' found. Deleting to allow reuse.")
+                    self.cursor.execute("DELETE FROM users WHERE id = ?", (existing_user_dict['id'],))
+                    self.conn.commit()
+            
+            # Now insert the new user
             self.cursor.execute("""
                 INSERT INTO users (username, password, full_name, email, is_active)
                 VALUES (?, ?, ?, ?, ?)
@@ -2079,9 +2324,10 @@ class Database:
             return None
     
     def get_all_users(self) -> List[Dict]:
-        """Get all users with their permissions"""
+        """Get all active users with their permissions"""
         try:
-            self.cursor.execute("SELECT * FROM users ORDER BY created_at DESC")
+            # Only get active users (is_active = 1)
+            self.cursor.execute("SELECT * FROM users WHERE is_active = 1 ORDER BY created_at DESC")
             users = []
             for row in self.cursor.fetchall():
                 user = dict(row)
@@ -2152,7 +2398,10 @@ class Database:
             # Prevent deleting admin user
             self.cursor.execute("SELECT username FROM users WHERE id = ?", (user_id,))
             user_row = self.cursor.fetchone()
-            if user_row and user_row[0].lower() == 'admin':
+            if not user_row:
+                log_warning(f"User not found: {user_id}")
+                return False
+            if user_row[0].lower() == 'admin':
                 log_warning(f"Attempted to delete admin user - blocked")
                 return False
             
@@ -2161,11 +2410,18 @@ class Database:
                 UPDATE users SET is_active = 0
                 WHERE id = ?
             """, (user_id,))
+            
+            # Check if any rows were actually updated
+            if self.cursor.rowcount == 0:
+                log_warning(f"No rows updated for user: {user_id}")
+                return False
+            
             self.conn.commit()
             log_info(f"User deleted successfully: {user_id}")
             return True
         except Exception as e:
             log_error(f"Failed to delete user: {user_id}", e)
+            self.conn.rollback()
             return False
     
     def get_user_by_id(self, user_id: int) -> Optional[Dict]:

@@ -79,7 +79,7 @@ class RoleModule:
         list_frame.pack(fill=tk.BOTH, expand=True)
         
         # Treeview for user list
-        columns = ('Username', 'Full Name', 'Email', 'Permissions')
+        columns = ('Username', 'Full Name', 'Email', 'Permissions', 'Actions')
         
         # Configure style
         style = ttk.Style()
@@ -116,21 +116,31 @@ class RoleModule:
         self.tree.heading('Full Name', text='Full Name')
         self.tree.heading('Email', text='Email')
         self.tree.heading('Permissions', text='Module Permissions')
+        self.tree.heading('Actions', text='Actions')
         
         self.tree.column('Username', width=150, anchor=tk.W)
         self.tree.column('Full Name', width=200, anchor=tk.W)
         self.tree.column('Email', width=200, anchor=tk.W)
-        self.tree.column('Permissions', width=300, anchor=tk.W)
+        self.tree.column('Permissions', width=250, anchor=tk.W)
+        self.tree.column('Actions', width=100, anchor=tk.CENTER)
         
         self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         # Bind double-click to edit
         self.tree.bind('<Double-1>', lambda e: self.edit_user())
         
+        # Bind keyboard shortcuts
+        self.tree.bind('<Delete>', lambda e: self.delete_user())
+        self.tree.bind('<Return>', lambda e: self.edit_user())
+        
+        # Bind click on Actions column to delete
+        self.tree.bind('<Button-1>', self.on_tree_click)
+        
         # Right-click context menu
         self.context_menu = tk.Menu(self.root, tearoff=0)
         self.context_menu.add_command(label="Edit User", command=self.edit_user)
-        self.context_menu.add_command(label="Delete User", command=self.delete_user)
+        self.context_menu.add_separator()
+        self.context_menu.add_command(label="Delete User", command=self.delete_user, foreground='red')
         self.tree.bind('<Button-3>', self.show_context_menu)
         
         # Action buttons frame
@@ -169,6 +179,78 @@ class RoleModule:
         )
         delete_btn.pack(side=tk.LEFT, padx=5)
     
+    def on_tree_click(self, event):
+        """Handle clicks on the treeview, especially the Actions column"""
+        region = self.tree.identify_region(event.x, event.y)
+        if region == "cell":
+            column = self.tree.identify_column(event.x)
+            item = self.tree.identify_row(event.y)
+            
+            if item:
+                # Actions column is the 5th column (#5 in 1-indexed format)
+                # Try multiple ways to identify the Actions column
+                is_actions_column = False
+                try:
+                    # Method 1: Check column identifier
+                    if column == "#5":
+                        is_actions_column = True
+                    # Method 2: Check by column index
+                    elif column.startswith("#"):
+                        col_num = int(column[1:])
+                        if col_num == 5:
+                            is_actions_column = True
+                    # Method 3: Check by x-coordinate relative to column widths
+                    # Get column widths to calculate if click is in Actions column
+                    col_widths = [150, 200, 200, 250, 100]  # Username, Full Name, Email, Permissions, Actions
+                    total_width_before_actions = sum(col_widths[:4])
+                    if event.x >= total_width_before_actions:
+                        is_actions_column = True
+                except (ValueError, AttributeError):
+                    pass
+                
+                if is_actions_column:
+                    # Get the item data directly
+                    item_data = self.tree.item(item)
+                    tags = item_data.get('tags', [])
+                    values = item_data.get('values', [])
+                    
+                    if tags:
+                        try:
+                            user_id = int(tags[0])
+                            username = values[0] if values else ''
+                            
+                            # Prevent deleting admin user
+                            if username.lower() == 'admin':
+                                messagebox.showerror("Access Denied", "Admin user cannot be deleted.")
+                                return
+                            
+                            # Select the item for visual feedback
+                            self.tree.selection_set(item)
+                            
+                            # Confirm deletion
+                            if messagebox.askyesno("Confirm Delete", 
+                                                  f"Are you sure you want to delete user '{username}'?\n\n"
+                                                  "This action cannot be undone."):
+                                log_button_click(f"Delete User: {user_id}")
+                                
+                                success = self.db.delete_user(user_id)
+                                if success:
+                                    messagebox.showinfo("Success", "User deleted successfully")
+                                    log_database_operation("DELETE", "users", True, f"User ID: {user_id}")
+                                    self.refresh_list()
+                                else:
+                                    messagebox.showerror("Error", "Failed to delete user")
+                            return
+                        except (ValueError, IndexError) as e:
+                            log_error("Error parsing user data from tree item", e)
+                            messagebox.showerror("Error", "Could not find user ID")
+                            return
+        
+        # For clicks on other columns, allow normal selection
+        item = self.tree.identify_row(event.y)
+        if item:
+            self.tree.selection_set(item)
+    
     def show_context_menu(self, event):
         """Show context menu on right-click"""
         try:
@@ -199,7 +281,8 @@ class RoleModule:
                     user['username'],
                     user.get('full_name', ''),
                     user.get('email', ''),
-                    permissions_str
+                    permissions_str,
+                    '🗑️ Delete'
                 ), tags=(user['id'],))
             
             log_info(f"Refreshed user list: {len(users)} users (admin hidden)")
@@ -251,7 +334,7 @@ class RoleModule:
         
         dialog = tk.Toplevel(self.root)
         dialog.title("Edit User" if is_edit else "Create New User")
-        dialog.geometry("550x750")
+        dialog.geometry("600x800")
         dialog.configure(bg='#f5f7fa')
         dialog.resizable(True, True)
         dialog.transient(self.root)
@@ -259,9 +342,9 @@ class RoleModule:
         
         # Center dialog
         dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() // 2) - (550 // 2)
-        y = (dialog.winfo_screenheight() // 2) - (750 // 2)
-        dialog.geometry(f'550x750+{x}+{y}')
+        x = (dialog.winfo_screenwidth() // 2) - (600 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (800 // 2)
+        dialog.geometry(f'600x800+{x}+{y}')
         
         log_dialog_open("User Dialog")
         
@@ -284,7 +367,14 @@ class RoleModule:
         
         scrollable_frame.bind("<Configure>", update_scroll_region)
         
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        
+        def configure_canvas_window(event):
+            # Make the canvas window expand to fit the canvas width
+            canvas_width = event.width
+            canvas.itemconfig(canvas_window, width=canvas_width)
+        
+        canvas.bind('<Configure>', configure_canvas_window)
         canvas.configure(yscrollcommand=scrollbar.set)
         
         # Bind mousewheel to canvas
@@ -292,12 +382,16 @@ class RoleModule:
             canvas.yview_scroll(int(-1*(event.delta/120)), "units")
         
         canvas.bind("<MouseWheel>", on_mousewheel)
+        # Also bind to the scrollable_frame for better mouse wheel support
+        scrollable_frame.bind("<MouseWheel>", on_mousewheel)
         
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
-        inner_frame = scrollable_frame
-        inner_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+        # Create a container frame inside scrollable_frame for proper padding
+        inner_container = tk.Frame(scrollable_frame, bg='white')
+        inner_container.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
+        inner_frame = inner_container
         
         # Update scroll region after widgets are created
         def update_after_creation():
@@ -330,16 +424,64 @@ class RoleModule:
                               font=('Segoe UI', 11), width=40)
         email_entry.pack(fill=tk.X, pady=(0, 15), ipady=8)
         
-        # Password
-        tk.Label(inner_frame, text="Password *", font=('Segoe UI', 11, 'bold'),
-                bg='white', fg='#374151', anchor='w').pack(fill=tk.X, pady=(0, 5))
+        # Password field - only show for new users
         password_var = tk.StringVar()
-        password_entry = tk.Entry(inner_frame, textvariable=password_var,
-                                 font=('Segoe UI', 11), width=40, show='*')
-        password_entry.pack(fill=tk.X, pady=(0, 15), ipady=8)
-        if is_edit:
-            tk.Label(inner_frame, text="(Leave blank to keep current password)",
-                    font=('Segoe UI', 9), bg='white', fg='#6b7280', anchor='w').pack(fill=tk.X, pady=(0, 10))
+        password_entry = None
+        show_password_var = None
+        
+        if not is_edit:
+            # Password field for new users
+            password_label_frame = tk.Frame(inner_frame, bg='white')
+            password_label_frame.pack(fill=tk.X, pady=(0, 5))
+            tk.Label(password_label_frame, text="Password *", font=('Segoe UI', 11, 'bold'),
+                    bg='white', fg='#374151', anchor='w').pack(side=tk.LEFT)
+            
+            password_entry = tk.Entry(inner_frame, textvariable=password_var,
+                                     font=('Segoe UI', 11), width=40, show='*')
+            password_entry.pack(fill=tk.X, pady=(0, 5), ipady=8)
+            
+            # Show password checkbox
+            show_password_var = tk.BooleanVar()
+            show_password_check = tk.Checkbutton(
+                inner_frame,
+                text="Show Password",
+                variable=show_password_var,
+                font=('Segoe UI', 9),
+                bg='white',
+                fg='#6b7280',
+                activebackground='white',
+                activeforeground='#6366f1',
+                selectcolor='white',
+                anchor='w',
+                command=lambda: password_entry.config(show='' if show_password_var.get() else '*')
+            )
+            show_password_check.pack(fill=tk.X, pady=(0, 15), anchor='w')
+        else:
+            # Reset Password button for existing users
+            password_section_frame = tk.Frame(inner_frame, bg='white')
+            password_section_frame.pack(fill=tk.X, pady=(0, 15))
+            
+            tk.Label(password_section_frame, text="Password", font=('Segoe UI', 11, 'bold'),
+                    bg='white', fg='#374151', anchor='w').pack(side=tk.LEFT, fill=tk.X, expand=True)
+            
+            reset_password_btn = tk.Button(
+                password_section_frame,
+                text="🔑 Reset Password",
+                command=lambda: self.reset_password_dialog(dialog, user_data['id'], user_data['username']),
+                font=('Segoe UI', 10, 'bold'),
+                bg='#f59e0b',
+                fg='white',
+                padx=15,
+                pady=6,
+                cursor='hand2',
+                relief=tk.FLAT,
+                activebackground='#d97706',
+                activeforeground='white'
+            )
+            reset_password_btn.pack(side=tk.RIGHT)
+            
+            tk.Label(inner_frame, text="Click 'Reset Password' to change the user's password",
+                    font=('Segoe UI', 9), bg='white', fg='#6b7280', anchor='w').pack(fill=tk.X, pady=(5, 0))
         
         # Module permissions - Direct assignment
         tk.Label(inner_frame, text="Module Access Permissions *", font=('Segoe UI', 11, 'bold'),
@@ -351,14 +493,15 @@ class RoleModule:
         
         # Permissions frame with border
         permissions_container = tk.Frame(inner_frame, bg='white')
-        permissions_container.pack(fill=tk.X, pady=(0, 15))
+        permissions_container.pack(fill=tk.BOTH, expand=False, pady=(0, 15))
         
         # Create a frame with border for permissions
         permissions_frame = tk.Frame(permissions_container, bg='#f9fafb', relief=tk.SOLID, bd=1,
                                      highlightbackground='#e5e7eb', highlightthickness=1)
-        permissions_frame.pack(fill=tk.X, padx=5, pady=5)
+        permissions_frame.pack(fill=tk.BOTH, expand=False, padx=5, pady=5)
         
         modules = [
+            ('dashboard', 'Dashboard'),
             ('patient', 'Patient Management'),
             ('doctor', 'Doctor Management'),
             ('appointments', 'Appointments'),
@@ -394,9 +537,9 @@ class RoleModule:
                 selectcolor='white',
                 anchor='w',
                 padx=10,
-                pady=8
+                pady=10
             )
-            check.grid(row=row, column=col, sticky='w', padx=15, pady=8)
+            check.grid(row=row, column=col, sticky='w', padx=15, pady=10)
             
             col += 1
             if col >= 2:
@@ -407,6 +550,26 @@ class RoleModule:
         permissions_frame.grid_columnconfigure(0, weight=1)
         permissions_frame.grid_columnconfigure(1, weight=1)
         
+        # Ensure permissions frame has proper minimum height
+        permissions_frame.update_idletasks()
+        
+        # Update scroll region after checkboxes are created
+        def update_scroll_after_permissions():
+            dialog.update_idletasks()
+            # Force update of scroll region to include all widgets
+            canvas.update_idletasks()
+            canvas.configure(scrollregion=canvas.bbox("all"))
+            # Ensure canvas can scroll to show all content
+            canvas.yview_moveto(0)
+        
+        dialog.after(200, update_scroll_after_permissions)
+        
+        # Also update scroll region when window is resized
+        def on_dialog_configure(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        
+        dialog.bind('<Configure>', on_dialog_configure)
+        
         # Buttons - Fixed at bottom outside scrollable area
         button_frame = tk.Frame(main_container, bg='#f5f7fa')
         button_frame.pack(fill=tk.X, pady=(15, 0))
@@ -415,7 +578,6 @@ class RoleModule:
             username = username_var.get().strip()
             full_name = full_name_var.get().strip()
             email = email_var.get().strip()
-            password = password_var.get()
             permissions = [mod for mod, var in permission_vars.items() if var.get()]
             
             if not username:
@@ -426,9 +588,11 @@ class RoleModule:
                 messagebox.showwarning("Validation Error", "Email is required")
                 return
             
-            if not is_edit and not password:
-                messagebox.showwarning("Validation Error", "Password is required")
-                return
+            if not is_edit:
+                password = password_var.get() if password_var else ''
+                if not password:
+                    messagebox.showwarning("Validation Error", "Password is required")
+                    return
             
             if not permissions:
                 messagebox.showwarning("Validation Error", "At least one module permission must be selected")
@@ -436,14 +600,12 @@ class RoleModule:
             
             try:
                 if is_edit:
-                    # Update user
+                    # Update user (password is handled separately via reset password)
                     update_data = {
                         'username': username,
                         'full_name': full_name,
                         'email': email
                     }
-                    if password:
-                        update_data['password'] = password
                     
                     success = self.db.update_user(user_data['id'], **update_data)
                     if success:
@@ -455,6 +617,7 @@ class RoleModule:
                         messagebox.showerror("Error", "Failed to update user")
                 else:
                     # Create user with direct permissions
+                    password = password_var.get() if password_var else ''
                     user_id = self.db.create_user(username, password, full_name, email, permissions)
                     if user_id:
                         messagebox.showinfo("Success", f"User created successfully!\n\nUsername: {username}\nPassword: {password}\n\nUser can now login with these credentials.\n\nUser will only see: {', '.join([m.capitalize() for m in permissions])}")
@@ -508,6 +671,175 @@ class RoleModule:
             dialog.destroy()
         
         dialog.protocol("WM_DELETE_WINDOW", on_closing)
+    
+    def reset_password_dialog(self, parent_dialog, user_id, username):
+        """Dialog for resetting user password"""
+        log_dialog_open("Reset Password Dialog")
+        
+        reset_dialog = tk.Toplevel(parent_dialog)
+        reset_dialog.title("Reset Password")
+        reset_dialog.configure(bg='#f5f7fa')
+        reset_dialog.resizable(False, False)
+        reset_dialog.transient(parent_dialog)
+        reset_dialog.grab_set()
+        
+        # Set initial size to ensure proper visibility
+        reset_dialog.geometry("520x450")
+        
+        # Main container
+        main_frame = tk.Frame(reset_dialog, bg='#f5f7fa')
+        main_frame.pack(fill=tk.BOTH, expand=True, padx=30, pady=30)
+        
+        # Title
+        title_label = tk.Label(
+            main_frame,
+            text=f"Reset Password for {username}",
+            font=('Segoe UI', 16, 'bold'),
+            bg='#f5f7fa',
+            fg='#1a237e'
+        )
+        title_label.pack(pady=(0, 20))
+        
+        # Info text
+        info_label = tk.Label(
+            main_frame,
+            text="Enter a new password for this user:",
+            font=('Segoe UI', 10),
+            bg='#f5f7fa',
+            fg='#6b7280'
+        )
+        info_label.pack(pady=(0, 20))
+        
+        # Password field
+        password_frame = tk.Frame(main_frame, bg='#f5f7fa')
+        password_frame.pack(fill=tk.X, pady=(0, 10))
+        
+        tk.Label(password_frame, text="New Password *", font=('Segoe UI', 11, 'bold'),
+                bg='#f5f7fa', fg='#374151', anchor='w').pack(fill=tk.X, pady=(0, 5))
+        
+        password_var = tk.StringVar()
+        password_entry = tk.Entry(password_frame, textvariable=password_var,
+                                 font=('Segoe UI', 11), width=40, show='*')
+        password_entry.pack(fill=tk.X, ipady=8)
+        
+        # Confirm password field
+        confirm_frame = tk.Frame(main_frame, bg='#f5f7fa')
+        confirm_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        tk.Label(confirm_frame, text="Confirm Password *", font=('Segoe UI', 11, 'bold'),
+                bg='#f5f7fa', fg='#374151', anchor='w').pack(fill=tk.X, pady=(0, 5))
+        
+        confirm_password_var = tk.StringVar()
+        confirm_password_entry = tk.Entry(confirm_frame, textvariable=confirm_password_var,
+                                          font=('Segoe UI', 11), width=40, show='*')
+        confirm_password_entry.pack(fill=tk.X, ipady=8)
+        
+        # Show password checkbox
+        show_password_var = tk.BooleanVar()
+        show_password_check = tk.Checkbutton(
+            main_frame,
+            text="Show Password",
+            variable=show_password_var,
+            font=('Segoe UI', 9),
+            bg='#f5f7fa',
+            fg='#6b7280',
+            activebackground='#f5f7fa',
+            activeforeground='#6366f1',
+            selectcolor='white',
+            anchor='w',
+            command=lambda: [
+                password_entry.config(show='' if show_password_var.get() else '*'),
+                confirm_password_entry.config(show='' if show_password_var.get() else '*')
+            ]
+        )
+        show_password_check.pack(anchor='w', pady=(0, 25))
+        
+        # Buttons
+        button_frame = tk.Frame(main_frame, bg='#f5f7fa')
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        # Update dialog size after widgets are created and center it
+        reset_dialog.update_idletasks()
+        dialog_width = 520
+        dialog_height = max(reset_dialog.winfo_reqheight(), 450)
+        
+        # Center dialog on screen
+        x = (reset_dialog.winfo_screenwidth() // 2) - (dialog_width // 2)
+        y = (reset_dialog.winfo_screenheight() // 2) - (dialog_height // 2)
+        reset_dialog.geometry(f'{dialog_width}x{dialog_height}+{x}+{y}')
+        
+        # Ensure dialog is visible on screen
+        reset_dialog.lift()
+        reset_dialog.focus_force()
+        
+        def reset_password():
+            new_password = password_var.get().strip()
+            confirm_password = confirm_password_var.get().strip()
+            
+            if not new_password:
+                messagebox.showwarning("Validation Error", "Password is required")
+                return
+            
+            if len(new_password) < 4:
+                messagebox.showwarning("Validation Error", "Password must be at least 4 characters long")
+                return
+            
+            if new_password != confirm_password:
+                messagebox.showerror("Validation Error", "Passwords do not match")
+                return
+            
+            try:
+                success = self.db.update_user(user_id, password=new_password)
+                if success:
+                    messagebox.showinfo("Success", f"Password reset successfully for user '{username}'")
+                    log_database_operation("UPDATE", "users", True, f"Password reset for User ID: {user_id}")
+                    reset_dialog.destroy()
+                else:
+                    messagebox.showerror("Error", "Failed to reset password")
+            except Exception as e:
+                log_error("Error resetting password", e)
+                messagebox.showerror("Error", f"Failed to reset password: {str(e)}")
+        
+        reset_btn = tk.Button(
+            button_frame,
+            text="Reset Password",
+            command=reset_password,
+            font=('Segoe UI', 11, 'bold'),
+            bg='#f59e0b',
+            fg='white',
+            padx=25,
+            pady=10,
+            cursor='hand2',
+            relief=tk.FLAT,
+            activebackground='#d97706',
+            activeforeground='white'
+        )
+        reset_btn.pack(side=tk.RIGHT, padx=5)
+        
+        cancel_btn = tk.Button(
+            button_frame,
+            text="Cancel",
+            command=reset_dialog.destroy,
+            font=('Segoe UI', 11),
+            bg='#6b7280',
+            fg='white',
+            padx=25,
+            pady=10,
+            cursor='hand2',
+            relief=tk.FLAT,
+            activebackground='#4b5563',
+            activeforeground='white'
+        )
+        cancel_btn.pack(side=tk.RIGHT, padx=5)
+        
+        # Focus on password entry
+        password_entry.focus()
+        
+        def on_closing():
+            log_dialog_close("Reset Password Dialog")
+            reset_dialog.destroy()
+        
+        reset_dialog.protocol("WM_DELETE_WINDOW", on_closing)
     
     def delete_user(self):
         """Delete selected user"""

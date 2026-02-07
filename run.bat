@@ -14,7 +14,7 @@ if errorlevel 1 (
 )
 
 REM Run the application
-python main.py
+python app.py
 
 pause
 
