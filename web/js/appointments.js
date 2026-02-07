@@ -6,39 +6,48 @@
 async function showAppointments() {
     const content = document.getElementById('content');
     content.innerHTML = `
-        <h2>Appointment Management</h2>
-        <div style="display: flex; justify-content: space-between; margin: 20px 0; flex-wrap: wrap; gap: 10px;">
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" id="appointment-search" placeholder="Search by patient name..." 
-                       style="padding: 10px; width: 250px; border: 1px solid #ddd; border-radius: 5px;"
+        <div class="card">
+            <div class="card-header">
+                <h2>📅 Appointment Management</h2>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="appointment-search" class="search-input" 
+                       placeholder="🔍 Search by patient name..." 
                        onkeyup="searchAppointments()">
-                <input type="date" id="appointment-date-filter" 
-                       style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;"
+                <input type="date" id="appointment-date-filter" class="search-input" 
+                       style="width: auto; min-width: 180px;"
                        onchange="filterAppointmentsByDate()">
-                <select id="appointment-status-filter" 
-                        style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;"
+                <select id="appointment-status-filter" class="search-input" 
+                        style="width: auto; min-width: 150px;"
                         onchange="filterAppointmentsByStatus()">
                     <option value="">All Status</option>
                     <option value="Scheduled">Scheduled</option>
                     <option value="Completed">Completed</option>
                     <option value="Cancelled">Cancelled</option>
                 </select>
-                <button onclick="loadAppointments()" style="padding: 10px 15px;">Reset Filters</button>
+                <button onclick="loadAppointments()" class="btn btn-secondary">Reset Filters</button>
+                <button onclick="showAddAppointmentForm()" class="btn btn-success">+ New Appointment</button>
             </div>
-            <button onclick="showAddAppointmentForm()" class="btn-success">+ New Appointment</button>
+            <div id="appointments-list">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
         </div>
-        <div id="appointments-list">Loading...</div>
     `;
     await loadAppointments();
 }
 
 async function loadAppointments() {
+    const listDiv = document.getElementById('appointments-list');
+    showLoading(listDiv);
+    
     try {
         const result = await AppointmentAPI.getAll();
         displayAppointments(result.appointments);
     } catch (error) {
-        document.getElementById('appointments-list').innerHTML = 
-            '<p style="color: red;">Error loading appointments: ' + error.message + '</p>';
+        listDiv.innerHTML = 
+            `<div class="alert alert-error">❌ Error loading appointments: ${error.message}</div>`;
     }
 }
 
@@ -82,53 +91,55 @@ function displayAppointments(appointments) {
     const listDiv = document.getElementById('appointments-list');
     
     if (!appointments || appointments.length === 0) {
-        listDiv.innerHTML = '<p>No appointments found.</p>';
+        listDiv.innerHTML = '<div class="empty-state">No appointments found. Schedule your first appointment to get started.</div>';
         return;
     }
 
     let html = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Appointment ID</th>
-                    <th>Patient Name</th>
-                    <th>Doctor Name</th>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Appointment ID</th>
+                        <th>Patient Name</th>
+                        <th>Doctor Name</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
     `;
 
     appointments.forEach(appointment => {
-        const statusColor = appointment.status === 'Completed' ? '#4caf50' : 
-                           appointment.status === 'Cancelled' ? '#f44336' : '#2196f3';
+        const statusClass = appointment.status === 'Completed' ? 'badge-success' : 
+                           appointment.status === 'Cancelled' ? 'badge-cancelled' : 'badge-pending';
         
         html += `
             <tr>
-                <td>${appointment.appointment_id || ''}</td>
+                <td><strong>${appointment.appointment_id || ''}</strong></td>
                 <td>${appointment.patient_name || 'N/A'}</td>
                 <td>${appointment.doctor_name || 'N/A'}</td>
                 <td>${appointment.appointment_date || ''}</td>
                 <td>${appointment.appointment_time || ''}</td>
                 <td>
-                    <span style="padding: 5px 10px; border-radius: 3px; background: ${statusColor}; color: white; font-size: 12px;">
+                    <span class="badge ${statusClass}">
                         ${appointment.status || 'Scheduled'}
                     </span>
                 </td>
                 <td>
-                    <button onclick="editAppointment('${appointment.appointment_id}')">Edit</button>
-                    <button onclick="viewAppointmentDetails('${appointment.appointment_id}')">View</button>
+                    <button onclick="editAppointment('${appointment.appointment_id}')" class="btn btn-primary" style="padding: 4px 12px; font-size: 12px; margin-right: 4px;">Edit</button>
+                    <button onclick="viewAppointmentDetails('${appointment.appointment_id}')" class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px;">View</button>
                 </td>
             </tr>
         `;
     });
 
     html += `
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
     `;
 
     listDiv.innerHTML = html;
@@ -231,10 +242,18 @@ async function saveAppointment(event) {
 
     try {
         await AppointmentAPI.create(appointmentData);
-        alert('Appointment scheduled successfully!');
+        if (typeof showNotification === 'function') {
+            showNotification('✅ Appointment scheduled successfully!', 'success');
+        } else {
+            alert('Appointment scheduled successfully!');
+        }
         showAppointments();
     } catch (error) {
-        alert('Error scheduling appointment: ' + error.message);
+        if (typeof showNotification === 'function') {
+            showNotification('❌ Error scheduling appointment: ' + error.message, 'error');
+        } else {
+            alert('Error scheduling appointment: ' + error.message);
+        }
     }
 }
 
@@ -328,10 +347,18 @@ async function updateAppointment(event, appointmentId) {
 
     try {
         await AppointmentAPI.update(appointmentId, appointmentData);
-        alert('Appointment updated successfully!');
+        if (typeof showNotification === 'function') {
+            showNotification('✅ Appointment updated successfully!', 'success');
+        } else {
+            alert('Appointment updated successfully!');
+        }
         showAppointments();
     } catch (error) {
-        alert('Error updating appointment: ' + error.message);
+        if (typeof showNotification === 'function') {
+            showNotification('❌ Error updating appointment: ' + error.message, 'error');
+        } else {
+            alert('Error updating appointment: ' + error.message);
+        }
     }
 }
 
@@ -340,20 +367,32 @@ async function viewAppointmentDetails(appointmentId) {
         const result = await AppointmentAPI.getById(appointmentId);
         const appointment = result.appointment;
         
+        const statusClass = appointment.status === 'Completed' ? 'badge-success' : 
+                           appointment.status === 'Cancelled' ? 'badge-cancelled' : 'badge-pending';
+        
         const content = document.getElementById('content');
         content.innerHTML = `
-            <h2>Appointment Details</h2>
-            <div style="background: #f9f9f9; padding: 20px; border-radius: 5px; margin: 20px 0;">
-                <p><strong>Appointment ID:</strong> ${appointment.appointment_id || 'N/A'}</p>
-                <p><strong>Patient:</strong> ${appointment.patient_name || 'N/A'}</p>
-                <p><strong>Doctor:</strong> ${appointment.doctor_name || 'N/A'}</p>
-                <p><strong>Date:</strong> ${appointment.appointment_date || 'N/A'}</p>
-                <p><strong>Time:</strong> ${appointment.appointment_time || 'N/A'}</p>
-                <p><strong>Status:</strong> ${appointment.status || 'N/A'}</p>
-                <p><strong>Notes:</strong> ${appointment.notes || 'No notes'}</p>
+            <div class="card">
+                <div class="card-header">
+                    <h2>📋 Appointment Details</h2>
+                </div>
+                <div class="grid grid-2" style="margin-bottom: var(--spacing-lg);">
+                    <div class="card">
+                        <h3 style="margin-bottom: var(--spacing-md);">Appointment Information</h3>
+                        <p style="margin-bottom: var(--spacing-sm);"><strong>Appointment ID:</strong> ${appointment.appointment_id || 'N/A'}</p>
+                        <p style="margin-bottom: var(--spacing-sm);"><strong>Patient:</strong> ${appointment.patient_name || 'N/A'}</p>
+                        <p style="margin-bottom: var(--spacing-sm);"><strong>Doctor:</strong> ${appointment.doctor_name || 'N/A'}</p>
+                        <p style="margin-bottom: var(--spacing-sm);"><strong>Date:</strong> ${appointment.appointment_date || 'N/A'}</p>
+                        <p style="margin-bottom: var(--spacing-sm);"><strong>Time:</strong> ${appointment.appointment_time || 'N/A'}</p>
+                        <p style="margin-bottom: var(--spacing-sm);"><strong>Status:</strong> <span class="badge ${statusClass}">${appointment.status || 'N/A'}</span></p>
+                        <p><strong>Notes:</strong> ${appointment.notes || 'No notes'}</p>
+                    </div>
+                </div>
+                <div style="display: flex; gap: var(--spacing-md);">
+                    <button onclick="editAppointment('${appointmentId}')" class="btn btn-primary">✏️ Edit Appointment</button>
+                    <button onclick="showAppointments()" class="btn btn-secondary">← Back to List</button>
+                </div>
             </div>
-            <button onclick="editAppointment('${appointmentId}')">Edit Appointment</button>
-            <button onclick="showAppointments()">Back to List</button>
         `;
     } catch (error) {
         alert('Error loading appointment details: ' + error.message);

@@ -8,31 +8,40 @@ let prescriptionItems = []; // Temporary storage for prescription items being ad
 async function showPrescriptions() {
     const content = document.getElementById('content');
     content.innerHTML = `
-        <h2>Prescription Management</h2>
-        <div style="display: flex; justify-content: space-between; margin: 20px 0; flex-wrap: wrap; gap: 10px;">
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" id="prescription-search" placeholder="Search by patient name..." 
-                       style="padding: 10px; width: 250px; border: 1px solid #ddd; border-radius: 5px;"
-                       onkeyup="searchPrescriptions()">
-                <input type="date" id="prescription-date-filter" 
-                       style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;"
-                       onchange="filterPrescriptionsByDate()">
-                <button onclick="loadPrescriptions()" style="padding: 10px 15px;">Reset Filters</button>
+        <div class="card">
+            <div class="card-header">
+                <h2>💊 Prescription Management</h2>
             </div>
-            <button onclick="showAddPrescriptionForm()" class="btn-success">+ New Prescription</button>
+            <div class="search-bar">
+                <input type="text" id="prescription-search" class="search-input" 
+                       placeholder="🔍 Search by patient name..." 
+                       onkeyup="searchPrescriptions()">
+                <input type="date" id="prescription-date-filter" class="search-input" 
+                       style="width: auto; min-width: 180px;"
+                       onchange="filterPrescriptionsByDate()">
+                <button onclick="loadPrescriptions()" class="btn btn-secondary">Reset Filters</button>
+                <button onclick="showAddPrescriptionForm()" class="btn btn-success">+ New Prescription</button>
+            </div>
+            <div id="prescriptions-list">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
         </div>
-        <div id="prescriptions-list">Loading...</div>
     `;
     await loadPrescriptions();
 }
 
 async function loadPrescriptions() {
+    const listDiv = document.getElementById('prescriptions-list');
+    showLoading(listDiv);
+    
     try {
         const result = await PrescriptionAPI.getAll();
         displayPrescriptions(result.prescriptions);
     } catch (error) {
-        document.getElementById('prescriptions-list').innerHTML = 
-            '<p style="color: red;">Error loading prescriptions: ' + error.message + '</p>';
+        listDiv.innerHTML = 
+            `<div class="alert alert-error">❌ Error loading prescriptions: ${error.message}</div>`;
     }
 }
 
@@ -70,24 +79,25 @@ function displayPrescriptions(prescriptions) {
     const listDiv = document.getElementById('prescriptions-list');
     
     if (!prescriptions || prescriptions.length === 0) {
-        listDiv.innerHTML = '<p>No prescriptions found.</p>';
+        listDiv.innerHTML = '<div class="empty-state">No prescriptions found. Create your first prescription to get started.</div>';
         return;
     }
 
     let html = `
-        <table>
-            <thead>
-                <tr>
-                    <th>Prescription ID</th>
-                    <th>Patient Name</th>
-                    <th>Doctor Name</th>
-                    <th>Date</th>
-                    <th>Diagnosis</th>
-                    <th>Medicines</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Prescription ID</th>
+                        <th>Patient Name</th>
+                        <th>Doctor Name</th>
+                        <th>Date</th>
+                        <th>Diagnosis</th>
+                        <th>Medicines</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
     `;
 
     prescriptions.forEach(prescription => {
@@ -95,23 +105,24 @@ function displayPrescriptions(prescriptions) {
         
         html += `
             <tr>
-                <td>${prescription.prescription_id || ''}</td>
+                <td><strong>${prescription.prescription_id || ''}</strong></td>
                 <td>${prescription.patient_name || 'N/A'}</td>
                 <td>${prescription.doctor_name || 'N/A'}</td>
                 <td>${prescription.prescription_date || ''}</td>
                 <td>${prescription.diagnosis || 'N/A'}</td>
-                <td>${itemCount} medicine(s)</td>
+                <td><span class="badge badge-primary">${itemCount} medicine(s)</span></td>
                 <td>
-                    <button onclick="viewPrescriptionDetails('${prescription.prescription_id}')">View</button>
-                    <button onclick="editPrescription('${prescription.prescription_id}')">Edit</button>
+                    <button onclick="viewPrescriptionDetails('${prescription.prescription_id}')" class="btn btn-primary" style="padding: 4px 12px; font-size: 12px; margin-right: 4px;">View</button>
+                    <button onclick="editPrescription('${prescription.prescription_id}')" class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px;">Edit</button>
                 </td>
             </tr>
         `;
     });
 
     html += `
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
     `;
 
     listDiv.innerHTML = html;
@@ -412,10 +423,18 @@ async function savePrescription(event) {
 
     try {
         await PrescriptionAPI.create(prescriptionData);
-        alert('Prescription created successfully!');
+        if (typeof showNotification === 'function') {
+            showNotification('✅ Prescription created successfully!', 'success');
+        } else {
+            alert('Prescription created successfully!');
+        }
         showPrescriptions();
     } catch (error) {
-        alert('Error creating prescription: ' + error.message);
+        if (typeof showNotification === 'function') {
+            showNotification('❌ Error creating prescription: ' + error.message, 'error');
+        } else {
+            alert('Error creating prescription: ' + error.message);
+        }
     }
 }
 

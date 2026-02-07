@@ -6,39 +6,48 @@
 async function showBilling() {
     const content = document.getElementById('content');
     content.innerHTML = `
-        <h2>Billing Management</h2>
-        <div style="display: flex; justify-content: space-between; margin: 20px 0; flex-wrap: wrap; gap: 10px;">
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <input type="text" id="bill-search" placeholder="Search by patient name..." 
-                       style="padding: 10px; width: 250px; border: 1px solid #ddd; border-radius: 5px;"
+        <div class="card">
+            <div class="card-header">
+                <h2>💰 Billing Management</h2>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="bill-search" class="search-input" 
+                       placeholder="🔍 Search by patient name..." 
                        onkeyup="searchBills()">
-                <input type="date" id="bill-date-filter" 
-                       style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;"
+                <input type="date" id="bill-date-filter" class="search-input" 
+                       style="width: auto; min-width: 180px;"
                        onchange="filterBillsByDate()">
-                <select id="bill-status-filter" 
-                        style="padding: 10px; border: 1px solid #ddd; border-radius: 5px;"
+                <select id="bill-status-filter" class="search-input" 
+                        style="width: auto; min-width: 150px;"
                         onchange="filterBillsByStatus()">
                     <option value="">All Status</option>
                     <option value="Pending">Pending</option>
                     <option value="Paid">Paid</option>
                     <option value="Cancelled">Cancelled</option>
                 </select>
-                <button onclick="loadBills()" style="padding: 10px 15px;">Reset Filters</button>
+                <button onclick="loadBills()" class="btn btn-secondary">Reset Filters</button>
+                <button onclick="showAddBillForm()" class="btn btn-success">+ New Bill</button>
             </div>
-            <button onclick="showAddBillForm()" class="btn-success">+ New Bill</button>
+            <div id="bills-list">
+                <div class="loading">
+                    <div class="spinner"></div>
+                </div>
+            </div>
         </div>
-        <div id="bills-list">Loading...</div>
     `;
     await loadBills();
 }
 
 async function loadBills() {
+    const listDiv = document.getElementById('bills-list');
+    showLoading(listDiv);
+    
     try {
         const result = await BillAPI.getAll();
         displayBills(result.bills);
     } catch (error) {
-        document.getElementById('bills-list').innerHTML = 
-            '<p style="color: red;">Error loading bills: ' + error.message + '</p>';
+        listDiv.innerHTML = 
+            `<div class="alert alert-error">❌ Error loading bills: ${error.message}</div>`;
     }
 }
 
@@ -82,7 +91,7 @@ function displayBills(bills) {
     const listDiv = document.getElementById('bills-list');
     
     if (!bills || bills.length === 0) {
-        listDiv.innerHTML = '<p>No bills found.</p>';
+        listDiv.innerHTML = '<div class="empty-state">No bills found. Create your first bill to get started.</div>';
         return;
     }
 
@@ -96,18 +105,22 @@ function displayBills(bills) {
         .reduce((sum, bill) => sum + (parseFloat(bill.total_amount) || 0), 0);
 
     let html = `
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px;">
-            <div style="background: #e3f2fd; padding: 15px; border-radius: 5px;">
-                <strong>Total Amount:</strong> ₹${totalAmount.toFixed(2)}
+        <div class="stats-grid" style="margin-bottom: var(--spacing-lg);">
+            <div class="stat-card">
+                <h3>Total Amount</h3>
+                <div class="value">₹${totalAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
             </div>
-            <div style="background: #e8f5e9; padding: 15px; border-radius: 5px;">
-                <strong>Paid:</strong> ₹${paidAmount.toFixed(2)}
+            <div class="stat-card">
+                <h3>Paid</h3>
+                <div class="value">₹${paidAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
             </div>
-            <div style="background: #fff3e0; padding: 15px; border-radius: 5px;">
-                <strong>Pending:</strong> ₹${pendingAmount.toFixed(2)}
+            <div class="stat-card">
+                <h3>Pending</h3>
+                <div class="value">₹${pendingAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
             </div>
         </div>
-        <table>
+        <div class="table-container">
+            <table>
             <thead>
                 <tr>
                     <th>Bill ID</th>
@@ -126,36 +139,37 @@ function displayBills(bills) {
     `;
 
     bills.forEach(bill => {
-        const statusColor = bill.payment_status === 'Paid' ? '#4caf50' : 
-                           bill.payment_status === 'Cancelled' ? '#f44336' : '#ff9800';
+        const statusClass = bill.payment_status === 'Paid' ? 'badge-success' : 
+                           bill.payment_status === 'Cancelled' ? 'badge-cancelled' : 'badge-pending';
         
         html += `
             <tr>
-                <td>${bill.bill_id || ''}</td>
+                <td><strong>${bill.bill_id || ''}</strong></td>
                 <td>${bill.patient_name || 'N/A'}</td>
                 <td>${bill.bill_date || ''}</td>
-                <td>₹${parseFloat(bill.consultation_fee || 0).toFixed(2)}</td>
-                <td>₹${parseFloat(bill.medicine_cost || 0).toFixed(2)}</td>
-                <td>₹${parseFloat(bill.other_charges || 0).toFixed(2)}</td>
-                <td><strong>₹${parseFloat(bill.total_amount || 0).toFixed(2)}</strong></td>
+                <td>₹${parseFloat(bill.consultation_fee || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td>₹${parseFloat(bill.medicine_cost || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td>₹${parseFloat(bill.other_charges || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td><strong>₹${parseFloat(bill.total_amount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
                 <td>
-                    <span style="padding: 5px 10px; border-radius: 3px; background: ${statusColor}; color: white; font-size: 12px;">
+                    <span class="badge ${statusClass}">
                         ${bill.payment_status || 'Pending'}
                     </span>
                 </td>
                 <td>${bill.payment_method || '-'}</td>
                 <td>
-                    <button onclick="viewBillDetails('${bill.bill_id}')">View</button>
-                    <button onclick="editBill('${bill.bill_id}')">Edit</button>
-                    <button onclick="deleteBill('${bill.bill_id}')" class="btn-danger">Delete</button>
+                    <button onclick="viewBillDetails('${bill.bill_id}')" class="btn btn-primary" style="padding: 4px 12px; font-size: 12px; margin-right: 4px;">View</button>
+                    <button onclick="editBill('${bill.bill_id}')" class="btn btn-secondary" style="padding: 4px 12px; font-size: 12px; margin-right: 4px;">Edit</button>
+                    <button onclick="deleteBill('${bill.bill_id}')" class="btn btn-danger" style="padding: 4px 12px; font-size: 12px;">Delete</button>
                 </td>
             </tr>
         `;
     });
 
     html += `
-            </tbody>
-        </table>
+                </tbody>
+            </table>
+        </div>
     `;
 
     listDiv.innerHTML = html;
@@ -332,10 +346,18 @@ async function saveBill(event) {
 
     try {
         await BillAPI.create(billData);
-        alert('Bill created successfully!');
+        if (typeof showNotification === 'function') {
+            showNotification('✅ Bill created successfully!', 'success');
+        } else {
+            alert('Bill created successfully!');
+        }
         showBilling();
     } catch (error) {
-        alert('Error creating bill: ' + error.message);
+        if (typeof showNotification === 'function') {
+            showNotification('❌ Error creating bill: ' + error.message, 'error');
+        } else {
+            alert('Error creating bill: ' + error.message);
+        }
     }
 }
 
@@ -520,10 +542,18 @@ async function updateBill(event, billId) {
 
     try {
         await BillAPI.update(billId, billData);
-        alert('Bill updated successfully!');
+        if (typeof showNotification === 'function') {
+            showNotification('✅ Bill updated successfully!', 'success');
+        } else {
+            alert('Bill updated successfully!');
+        }
         showBilling();
     } catch (error) {
-        alert('Error updating bill: ' + error.message);
+        if (typeof showNotification === 'function') {
+            showNotification('❌ Error updating bill: ' + error.message, 'error');
+        } else {
+            alert('Error updating bill: ' + error.message);
+        }
     }
 }
 
@@ -534,10 +564,18 @@ async function deleteBill(billId) {
     
     try {
         await BillAPI.delete(billId);
-        alert('Bill deleted successfully!');
+        if (typeof showNotification === 'function') {
+            showNotification('✅ Bill deleted successfully!', 'success');
+        } else {
+            alert('Bill deleted successfully!');
+        }
         loadBills();
     } catch (error) {
-        alert('Error deleting bill: ' + error.message);
+        if (typeof showNotification === 'function') {
+            showNotification('❌ Error deleting bill: ' + error.message, 'error');
+        } else {
+            alert('Error deleting bill: ' + error.message);
+        }
     }
 }
 

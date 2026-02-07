@@ -4,108 +4,36 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hospital Management System</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #f5f7fa;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #1a237e;
-            margin-bottom: 30px;
-        }
-        .nav {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 30px;
-            flex-wrap: wrap;
-        }
-        .nav button {
-            padding: 10px 20px;
-            background: #1a237e;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .nav button:hover {
-            background: #283593;
-        }
-        .content {
-            min-height: 400px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background: #1a237e;
-            color: white;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input, select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 14px;
-        }
-        button {
-            padding: 10px 20px;
-            background: #1a237e;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            margin-right: 10px;
-        }
-        button:hover {
-            background: #283593;
-        }
-        .btn-success { background: #4caf50; }
-        .btn-danger { background: #f44336; }
-        .hidden { display: none; }
-    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>🏥 Hospital Management System</h1>
+        <div class="header">
+            <div>
+                <h1>Hospital Management System</h1>
+                <div class="subtitle">Comprehensive Healthcare Management Solution</div>
+            </div>
+        </div>
         
         <div class="nav">
-            <button onclick="showPatients()">Patients</button>
-            <button onclick="showDoctors()">Doctors</button>
-            <button onclick="showAppointments()">Appointments</button>
-            <button onclick="showPrescriptions()">Prescriptions</button>
-            <button onclick="showBilling()">Billing</button>
-            <button onclick="showStatistics()">Statistics</button>
+            <button onclick="showPatients()" id="nav-patients">👥 Patients</button>
+            <button onclick="showDoctors()" id="nav-doctors">👨‍⚕️ Doctors</button>
+            <button onclick="showAppointments()" id="nav-appointments">📅 Appointments</button>
+            <button onclick="showPrescriptions()" id="nav-prescriptions">💊 Prescriptions</button>
+            <button onclick="showBilling()" id="nav-billing">💰 Billing</button>
+            <button onclick="showStatistics()" id="nav-statistics">📊 Statistics</button>
         </div>
 
         <div class="content" id="content">
-            <h2>Welcome to Hospital Management System</h2>
-            <p>Select a module from the navigation above.</p>
+            <div class="card">
+                <h2>Welcome to Hospital Management System</h2>
+                <p style="color: var(--gray-600); font-size: var(--font-size-lg);">
+                    Select a module from the navigation above to get started.
+                </p>
+            </div>
         </div>
     </div>
 
@@ -116,6 +44,32 @@
     <script src="js/prescriptions.js"></script>
     <script src="js/billing.js"></script>
     <script src="js/app.js"></script>
+    
+    <script>
+        // Navigation active state management
+        function setActiveNav(module) {
+            document.querySelectorAll('.nav button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const navBtn = document.getElementById(`nav-${module}`);
+            if (navBtn) navBtn.classList.add('active');
+        }
+        
+        // Override navigation functions to set active state
+        const originalShowPatients = window.showPatients;
+        const originalShowDoctors = window.showDoctors;
+        const originalShowAppointments = window.showAppointments;
+        const originalShowPrescriptions = window.showPrescriptions;
+        const originalShowBilling = window.showBilling;
+        const originalShowStatistics = window.showStatistics;
+        
+        window.showPatients = function() { setActiveNav('patients'); if (originalShowPatients) originalShowPatients(); };
+        window.showDoctors = function() { setActiveNav('doctors'); if (originalShowDoctors) originalShowDoctors(); };
+        window.showAppointments = function() { setActiveNav('appointments'); if (originalShowAppointments) originalShowAppointments(); };
+        window.showPrescriptions = function() { setActiveNav('prescriptions'); if (originalShowPrescriptions) originalShowPrescriptions(); };
+        window.showBilling = function() { setActiveNav('billing'); if (originalShowBilling) originalShowBilling(); };
+        window.showStatistics = function() { setActiveNav('statistics'); if (originalShowStatistics) originalShowStatistics(); };
+    </script>
 </body>
 </html>
 
