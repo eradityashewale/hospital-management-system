@@ -1,9 +1,8 @@
 # Hospital Management System - Offline Software
 # Python 3.7+ required
 
-# This project uses only built-in Python libraries:
-tkinter == 1.0.0
-# - sqlite3 (database)
+# Standard library (no pip install): tkinter (desktop UI), sqlite3, etc.
+# Do NOT add tkinter to this file - it is not on PyPI and breaks deploy (e.g. Render).
 # - datetime, uuid, os, sys, typing (standard library)
 #
 # No external dependencies are required to run this application.
