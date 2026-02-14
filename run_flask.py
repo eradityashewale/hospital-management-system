@@ -17,18 +17,21 @@ from backend.api import app
 from utils.logger import log_info
 
 # Render (and similar hosts) set PORT. No display on cloud → run Flask only.
+# Set FORCE_DESKTOP=1 (e.g. on Replit) to run Flask + Tkinter even when PORT is set.
 DEPLOY_PORT = os.environ.get("PORT")
-IS_DEPLOYED = DEPLOY_PORT is not None
+FORCE_DESKTOP = os.environ.get("FORCE_DESKTOP", "").lower() in ("1", "true", "yes")
+IS_DEPLOYED = DEPLOY_PORT is not None and not FORCE_DESKTOP
 
 
 def run_flask():
-    """Run Flask server (host/port from env on Render)."""
-    host = "0.0.0.0" if IS_DEPLOYED else "127.0.0.1"
+    """Run Flask server (host/port from env on Render/Replit)."""
+    # Use 0.0.0.0 when deployed or when PORT is set (e.g. Replit webview)
+    host = "0.0.0.0" if (IS_DEPLOYED or (FORCE_DESKTOP and DEPLOY_PORT)) else "127.0.0.1"
     port = int(DEPLOY_PORT) if DEPLOY_PORT else 5000
     app.run(host=host, port=port, debug=not IS_DEPLOYED, use_reloader=False)
 
 
-if __name__ == "__main__":
+def main():
     if IS_DEPLOYED:
         log_info("=" * 60)
         log_info("Hospital Management System - Flask Server (deployed)")
@@ -45,6 +48,10 @@ if __name__ == "__main__":
         flask_thread = threading.Thread(target=run_flask, daemon=True)
         flask_thread.start()
         time.sleep(1)
-        from frontend.main import main
-        main()
+        from frontend.main import main as run_desktop
+        run_desktop()
+
+
+if __name__ == "__main__":
+    main()
 

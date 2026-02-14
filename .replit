@@ -1,2 +1,2 @@
-run = "python run_flask.py"
+run = "python run_replit_desktop.py"
 language = "python3"
