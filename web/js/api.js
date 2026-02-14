@@ -3,7 +3,10 @@
  * Simple wrapper around Fetch API for calling Flask backend
  */
 
-const API_URL = 'http://127.0.0.1:5000/api';
+// Use relative URL so it works locally and when deployed (e.g. Render)
+const API_URL = (typeof window !== 'undefined' && window.location && window.location.origin
+    ? window.location.origin + '/api'
+    : 'http://127.0.0.1:5000/api');
 
 /**
  * Generic API call function

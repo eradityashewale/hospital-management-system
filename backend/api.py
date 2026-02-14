@@ -75,6 +75,11 @@ def serve_js(filename):
     """Serve JavaScript files"""
     return send_from_directory(os.path.join(project_root, 'web', 'js'), filename)
 
+@app.route('/css/<path:filename>')
+def serve_css(filename):
+    """Serve CSS files (so web UI has styles when deployed e.g. Render)"""
+    return send_from_directory(os.path.join(project_root, 'web', 'css'), filename)
+
 # ============================================================================
 # Health Check
 # ============================================================================

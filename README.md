@@ -74,6 +74,10 @@ python3 run_flask.py
 
 **For detailed instructions, see [HOW_TO_RUN.md](docs/HOW_TO_RUN.md)**
 
+### Deploy on Render (Web + API)
+
+To host the web UI and API in the cloud, see **[README-DEPLOY-RENDER.md](README-DEPLOY-RENDER.md)** for step-by-step Render deployment.
+
 ## 📚 Documentation
 
 See the `docs/` folder for detailed documentation:
