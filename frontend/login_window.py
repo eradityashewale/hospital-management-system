@@ -7,7 +7,7 @@ from tkinter import ttk, messagebox
 import sys
 import os
 
-# Backend imports
+from frontend.theme import BG_DEEP, BG_BASE, BG_CARD, TEXT_PRIMARY, TEXT_SECONDARY, ACCENT_BLUE, ACCENT_TEAL, FONT_FALLBACK
 from backend.database import Database
 
 # Utils imports
@@ -30,10 +30,9 @@ class LoginWindow:
         self.db = Database()
         self.authenticated_user = None
         
-        # Configure window
         self.root.title("MediFlow - Login")
         self.root.geometry("450x700")
-        self.root.configure(bg='#f5f7fa')
+        self.root.configure(bg=BG_DEEP)
         self.root.resizable(False, False)
         self.root.minsize(450, 700)
         
@@ -146,17 +145,14 @@ class LoginWindow:
         self.root.geometry(f'{width}x{height}+{x}+{y}')
     
     def create_login_ui(self):
-        """Create login UI elements"""
-        # Main container
-        main_frame = tk.Frame(self.root, bg='#f5f7fa')
+        """Create login UI elements - Premium dark theme"""
+        main_frame = tk.Frame(self.root, bg=BG_DEEP)
         main_frame.pack(fill=tk.BOTH, expand=True, padx=0, pady=0)
         
-        # Header with logo
-        header_frame = tk.Frame(main_frame, bg='#1e3a8a', relief=tk.FLAT, bd=0)
+        header_frame = tk.Frame(main_frame, bg=BG_BASE, relief=tk.FLAT, bd=0)
         header_frame.pack(fill=tk.X, pady=0, padx=0)
         
-        # Logo container
-        logo_container = tk.Frame(header_frame, bg='#1e3a8a')
+        logo_container = tk.Frame(header_frame, bg=BG_BASE)
         logo_container.pack(pady=25)
         
         # Try to load actual logo image (PNG or ICO), fallback to text
@@ -228,182 +224,78 @@ class LoginWindow:
         
         # Display logo (image or text fallback)
         if logo_image:
-            logo_icon_label = tk.Label(
-                logo_container,
-                image=logo_image,
-                bg='#1e3a8a'
-            )
+            logo_icon_label = tk.Label(logo_container, image=logo_image, bg=BG_BASE)
             logo_icon_label.image = logo_image  # Keep a reference
             logo_icon_label.pack(pady=(0, 10))
         else:
             # Fallback to styled medical cross
-            logo_icon = tk.Label(
-                logo_container,
-                text="✚",
-                font=('Segoe UI', 48, 'bold'),
-                bg='#1e3a8a',
-                fg='white'
-            )
+            logo_icon = tk.Label(logo_container, text="⚕", font=(FONT_FALLBACK, 48, 'bold'), bg=BG_BASE, fg=ACCENT_TEAL)
             logo_icon.pack(pady=(0, 10))
         
-        # Product name
-        product_label = tk.Label(
-            logo_container,
-            text="MediFlow",
-            font=('Segoe UI', 32, 'bold'),
-            bg='#1e3a8a',
-            fg='white'
-        )
+        product_label = tk.Label(logo_container, text="MediFlow", font=(FONT_FALLBACK, 32, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY)
         product_label.pack(pady=(0, 5))
-        
-        # Tagline
-        tagline_label = tk.Label(
-            logo_container,
-            text="HOSPITAL MANAGEMENT SYSTEM",
-            font=('Segoe UI', 9, 'bold'),
-            bg='#1e3a8a',
-            fg='#93c5fd'
-        )
+        tagline_label = tk.Label(logo_container, text="HOSPITAL MANAGEMENT SYSTEM", font=(FONT_FALLBACK, 9, 'bold'), bg=BG_BASE, fg=TEXT_SECONDARY)
         tagline_label.pack(pady=(0, 0))
         
-        # Company name below header
-        company_frame = tk.Frame(main_frame, bg='#f5f7fa')
+        company_frame = tk.Frame(main_frame, bg=BG_DEEP)
         company_frame.pack(fill=tk.X, pady=(15, 5))
-        
-        company_label = tk.Label(
-            company_frame,
-            text="Powered by Nexvora Solutions",
-            font=('Segoe UI', 10, 'italic'),
-            bg='#f5f7fa',
-            fg='#6366f1'
-        )
+        company_label = tk.Label(company_frame, text="Powered by Nexvora Solutions", font=(FONT_FALLBACK, 10, 'italic'), bg=BG_DEEP, fg=ACCENT_TEAL)
         company_label.pack()
-        
-        # Subtitle
-        subtitle_label = tk.Label(
-            company_frame,
-            text="Please login to continue",
-            font=('Segoe UI', 11),
-            bg='#f5f7fa',
-            fg='#6b7280'
-        )
+        subtitle_label = tk.Label(company_frame, text="Please login to continue", font=(FONT_FALLBACK, 11), bg=BG_DEEP, fg=TEXT_SECONDARY)
         subtitle_label.pack(pady=(5, 20))
         
-        # Login form container - make it visible and properly sized
-        form_frame = tk.Frame(main_frame, bg='white', relief=tk.FLAT, bd=1, highlightbackground='#e5e7eb', highlightthickness=1)
+        form_frame = tk.Frame(main_frame, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
         form_frame.pack(fill=tk.X, padx=40, pady=(0, 30), ipady=10)
-        
-        # Add padding inside form
-        form_inner = tk.Frame(form_frame, bg='white')
+        form_inner = tk.Frame(form_frame, bg=BG_CARD)
         form_inner.pack(fill=tk.X, padx=30, pady=25)
-        
-        # Username field
-        username_label = tk.Label(
-            form_inner,
-            text="Username",
-            font=('Segoe UI', 11, 'bold'),
-            bg='white',
-            fg='#374151',
-            anchor='w'
-        )
+        username_label = tk.Label(form_inner, text="Username", font=(FONT_FALLBACK, 11, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY, anchor='w')
         username_label.pack(fill=tk.X, pady=(0, 8))
-        
-        username_container = tk.Frame(form_inner, bg='white')
+        username_container = tk.Frame(form_inner, bg=BG_CARD)
         username_container.pack(fill=tk.X, pady=(0, 20))
         
         self.username_entry = tk.Entry(
-            username_container,
-            font=('Segoe UI', 11),
-            relief=tk.SOLID,
-            bd=1,
-            highlightthickness=1,
-            highlightcolor='#3b82f6',
-            highlightbackground='#d1d5db',
-            insertbackground='#374151'
+            username_container, font=(FONT_FALLBACK, 11),
+            relief=tk.SOLID, bd=1, highlightthickness=1,
+            highlightcolor=ACCENT_BLUE, highlightbackground='#2d3748',
+            bg='#1e2732', fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY
         )
         self.username_entry.pack(fill=tk.X, ipady=10, padx=1, pady=1)
         
-        # Password field
-        password_label = tk.Label(
-            form_inner,
-            text="Password",
-            font=('Segoe UI', 11, 'bold'),
-            bg='white',
-            fg='#374151',
-            anchor='w'
-        )
+        password_label = tk.Label(form_inner, text="Password", font=(FONT_FALLBACK, 11, 'bold'),
+                                 bg=BG_CARD, fg=TEXT_PRIMARY, anchor='w')
         password_label.pack(fill=tk.X, pady=(0, 8))
-        
-        password_container = tk.Frame(form_inner, bg='white')
+        password_container = tk.Frame(form_inner, bg=BG_CARD)
         password_container.pack(fill=tk.X, pady=(0, 25))
-        
         self.password_entry = tk.Entry(
-            password_container,
-            font=('Segoe UI', 11),
-            relief=tk.SOLID,
-            bd=1,
-            show='*',
-            highlightthickness=1,
-            highlightcolor='#3b82f6',
-            highlightbackground='#d1d5db',
-            insertbackground='#374151',
-            width=30
+            password_container, font=(FONT_FALLBACK, 11), relief=tk.SOLID, bd=1, show='*',
+            highlightthickness=1, highlightcolor=ACCENT_BLUE, highlightbackground='#2d3748',
+            bg='#1e2732', fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY, width=30
         )
         self.password_entry.pack(fill=tk.X, ipady=10, padx=1, pady=1)
         
-        # Login button - make it clearly visible
-        button_container = tk.Frame(form_inner, bg='white')
+        button_container = tk.Frame(form_inner, bg=BG_CARD)
         button_container.pack(fill=tk.X, pady=(15, 10))
-        
         login_button = tk.Button(
-            button_container,
-            text="LOGIN",
-            font=('Segoe UI', 13, 'bold'),
-            bg='#1a237e',
-            fg='white',
-            activebackground='#3949ab',
-            activeforeground='white',
-            relief=tk.FLAT,
-            bd=0,
-            cursor='hand2',
-            padx=30,
-            pady=15,
-            command=self.attempt_login,
-            width=25,
-            height=2
+            button_container, text="LOGIN", font=(FONT_FALLBACK, 13, 'bold'),
+            bg=ACCENT_BLUE, fg='white', activebackground='#2563eb', activeforeground='white',
+            relief=tk.FLAT, bd=0, cursor='hand2', padx=30, pady=15,
+            command=self.attempt_login, width=25, height=2
         )
         login_button.pack(fill=tk.X, pady=(0, 10))
-        login_button.bind('<Enter>', lambda e: login_button.config(bg='#3949ab'))
-        login_button.bind('<Leave>', lambda e: login_button.config(bg='#1a237e'))
+        login_button.bind('<Enter>', lambda e: login_button.config(bg='#2563eb'))
+        login_button.bind('<Leave>', lambda e: login_button.config(bg=ACCENT_BLUE))
         
         # Make sure button is on top and visible
         login_button.lift()
         login_button.update_idletasks()
         
-        # Error message label (initially hidden) - place before info
-        self.error_label = tk.Label(
-            form_inner,
-            text="",
-            font=('Segoe UI', 10, 'bold'),
-            bg='white',
-            fg='#ef4444',
-            wraplength=350,
-            justify=tk.CENTER
-        )
+        self.error_label = tk.Label(form_inner, text="", font=(FONT_FALLBACK, 10, 'bold'),
+                                   bg=BG_CARD, fg='#ef4444', wraplength=350, justify=tk.CENTER)
         self.error_label.pack(fill=tk.X, pady=(5, 10))
-        
-        # Default credentials info (for initial setup)
-        info_frame = tk.Frame(form_inner, bg='white')
+        info_frame = tk.Frame(form_inner, bg=BG_CARD)
         info_frame.pack(fill=tk.X, pady=(5, 0))
-        
-        info_label = tk.Label(
-            info_frame,
-            text="Default: admin / admin",
-            font=('Segoe UI', 9),
-            bg='white',
-            fg='#9ca3af',
-            cursor='hand2'
-        )
+        info_label = tk.Label(info_frame, text="Default: admin / admin", font=(FONT_FALLBACK, 9),
+                             bg=BG_CARD, fg=TEXT_SECONDARY, cursor='hand2')
         info_label.pack()
         
         # Force update to ensure everything is visible

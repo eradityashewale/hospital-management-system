@@ -15,6 +15,11 @@ from backend.database import Database
 from utils.logger import log_button_click, log_navigation, log_error, log_info, log_debug, log_warning
 
 # Frontend module imports
+from frontend.theme import (
+    BG_BASE, BG_DEEP, BG_CARD, TEXT_PRIMARY, TEXT_SECONDARY, SIDEBAR_BG,
+    ACCENT_BLUE, ACCENT_TEAL, FONT_FALLBACK,
+)
+from frontend.ui_components import ModernCard, ModernSidebar, ModernPillButton
 from frontend.modules.patient_module import PatientModule
 from frontend.modules.doctor_module import DoctorModule
 from frontend.modules.appointment_module import AppointmentModule
@@ -53,8 +58,8 @@ class HospitalManagementSystem:
                 # Fallback: use full screen dimensions
                 self.root.geometry(f"{screen_width}x{screen_height}+0+0")
         
-        # Modern gradient-like background
-        self.root.configure(bg='#f5f7fa')
+        # Dark mode premium background
+        self.root.configure(bg=BG_DEEP)
         
         # Set window icon for branding
         self.set_window_icon()
@@ -77,9 +82,13 @@ class HospitalManagementSystem:
         # Set up focus and event processing handlers
         self._setup_focus_handlers()
         
-        # Ensure all navigation buttons are enabled immediately
+        # Ensure all navigation buttons are enabled immediately (sidebar uses None for nav_buttons)
         for button_name, btn in self.nav_buttons.items():
-            btn.config(state=tk.NORMAL)
+            if btn is not None and hasattr(btn, 'config'):
+                try:
+                    btn.config(state=tk.NORMAL)
+                except (tk.TclError, AttributeError):
+                    pass
         
         # Show window and process events immediately so buttons work RIGHT AWAY
         self.root.update_idletasks()
@@ -219,7 +228,11 @@ class HospitalManagementSystem:
                 self.update_nav_button_colors("Dashboard")
             # Ensure buttons remain enabled after dashboard loads
             for button_name, btn in self.nav_buttons.items():
-                btn.config(state=tk.NORMAL)
+                if btn is not None and hasattr(btn, 'config'):
+                    try:
+                        btn.config(state=tk.NORMAL)
+                    except (tk.TclError, AttributeError, TypeError):
+                        pass
             self.root.update_idletasks()
             log_info("Dashboard loaded successfully")
         except Exception as e:
@@ -234,8 +247,12 @@ class HospitalManagementSystem:
             self.root.update_idletasks()
             # Ensure all buttons are enabled
             for button_name, btn in self.nav_buttons.items():
-                if btn['state'] != tk.NORMAL:
-                    btn.config(state=tk.NORMAL)
+                if btn is not None and hasattr(btn, 'config'):
+                    try:
+                        if btn['state'] != tk.NORMAL:
+                            btn.config(state=tk.NORMAL)
+                    except (tk.TclError, AttributeError, TypeError):
+                        pass
             # Process events again
             self.root.update_idletasks()
             return True
@@ -250,8 +267,12 @@ class HospitalManagementSystem:
             log_debug("Window mapped - ensuring buttons are ready")
             # Ensure all buttons are enabled when window becomes visible
             for button_name, btn in self.nav_buttons.items():
-                if btn['state'] != tk.NORMAL:
-                    btn.config(state=tk.NORMAL)
+                if btn is not None and hasattr(btn, 'config'):
+                    try:
+                        if btn['state'] != tk.NORMAL:
+                            btn.config(state=tk.NORMAL)
+                    except (tk.TclError, AttributeError, TypeError):
+                        pass
             # Process events to ensure buttons are interactive
             self.root.update_idletasks()
             return True
@@ -279,11 +300,14 @@ class HospitalManagementSystem:
                 # Ensure all buttons are enabled
                 if hasattr(self, 'nav_buttons'):
                     for button_name, btn in self.nav_buttons.items():
+                        if btn is None:
+                            continue
                         try:
-                            if btn.winfo_exists() and btn['state'] != tk.NORMAL:
-                                btn.config(state=tk.NORMAL)
-                        except:
-                            pass  # Button may have been destroyed
+                            if hasattr(btn, 'winfo_exists') and btn.winfo_exists() and hasattr(btn, 'config'):
+                                if btn['state'] != tk.NORMAL:
+                                    btn.config(state=tk.NORMAL)
+                        except (tk.TclError, AttributeError, TypeError):
+                            pass
                 
                 # Schedule next processing (every 500ms - frequent enough but not too heavy)
                 if self.root.winfo_exists():
@@ -317,214 +341,140 @@ class HospitalManagementSystem:
             pass
     
     def create_main_layout(self):
-        """Create main application layout"""
-        # Modern top menu bar with gradient effect
-        menu_frame = tk.Frame(self.root, bg='#1a237e', height=70)
-        menu_frame.pack(fill=tk.X, padx=0, pady=0)
-        menu_frame.pack_propagate(False)
+        """Create main application layout - Premium dark sidebar + content"""
+        from frontend.theme import SIDEBAR_WIDTH, SIDEBAR_BG, SIDEBAR_TEXT, ACCENT_BLUE
         
-        # Logo and product name container
-        logo_title_container = tk.Frame(menu_frame, bg='#1a237e')
-        logo_title_container.pack(side=tk.LEFT, padx=15, pady=10)
+        # Main horizontal split: Sidebar | Content area
+        main_container = tk.Frame(self.root, bg=BG_DEEP)
+        main_container.pack(fill=tk.BOTH, expand=True)
         
-        # Top row - Logo and Product name
-        logo_title_frame = tk.Frame(logo_title_container, bg='#1a237e')
-        logo_title_frame.pack(side=tk.TOP, anchor='w')
+        # === LEFT SIDEBAR ===
+        sidebar_container = tk.Frame(main_container, bg=SIDEBAR_BG, width=SIDEBAR_WIDTH)
+        sidebar_container.pack(side=tk.LEFT, fill=tk.Y)
+        sidebar_container.pack_propagate(False)
         
-        # Logo icon - try to load actual logo image, fallback to text
-        logo_image = self.load_logo_image(size=(40, 40))
+        # Logo and brand
+        logo_frame = tk.Frame(sidebar_container, bg=SIDEBAR_BG)
+        logo_frame.pack(fill=tk.X, padx=16, pady=24)
+        
+        logo_image = self.load_logo_image(size=(36, 36))
         if logo_image:
-            logo_icon_label = tk.Label(
-                logo_title_frame,
-                image=logo_image,
-                bg='#1a237e'
-            )
-            logo_icon_label.image = logo_image  # Keep a reference
-            logo_icon_label.pack(side=tk.LEFT, padx=(0, 8))
+            logo_lbl = tk.Label(logo_frame, image=logo_image, bg=SIDEBAR_BG)
+            logo_lbl.image = logo_image
+            logo_lbl.pack(side=tk.LEFT, padx=(0, 10))
         else:
-            # Fallback to text logo
-            logo_icon_label = tk.Label(
-                logo_title_frame,
-                text="╔═╗\n║╬║\n╚═╝",
-                font=('Courier', 8, 'bold'),
-                bg='#1a237e',
-                fg='#60a5fa',
-                justify=tk.LEFT
-            )
-            logo_icon_label.pack(side=tk.LEFT, padx=(0, 8))
+            logo_lbl = tk.Label(logo_frame, text="⚕", font=(FONT_FALLBACK, 20), 
+                               bg=SIDEBAR_BG, fg=ACCENT_TEAL)
+            logo_lbl.pack(side=tk.LEFT, padx=(0, 10))
         
-        # Product name
-        title_label = tk.Label(
-            logo_title_frame,
-            text="MediFlow",
-            font=('Segoe UI', 18, 'bold'),
-            bg='#1a237e',
-            fg='white'
-        )
-        title_label.pack(side=tk.LEFT)
+        brand_frame = tk.Frame(logo_frame, bg=SIDEBAR_BG)
+        brand_frame.pack(side=tk.LEFT)
+        tk.Label(brand_frame, text="MediFlow", font=(FONT_FALLBACK, 16, 'bold'),
+                bg=SIDEBAR_BG, fg=TEXT_PRIMARY).pack(anchor='w')
+        tk.Label(brand_frame, text="by Nexvora Solutions", font=(FONT_FALLBACK, 9),
+                bg=SIDEBAR_BG, fg=SIDEBAR_TEXT).pack(anchor='w')
         
-        # Bottom row - Company name
-        company_label = tk.Label(
-            logo_title_container,
-            text="by Nexvora Solutions",
-            font=('Segoe UI', 8, 'italic'),
-            bg='#1a237e',
-            fg='#93c5fd'
-        )
-        company_label.pack(side=tk.TOP, anchor='w', padx=(30, 0))
-        
-        # Navigation buttons - place in the middle area with proper spacing
-        nav_frame = tk.Frame(menu_frame, bg='#1a237e')
-        nav_frame.pack(side=tk.LEFT, padx=(10, 10), fill=tk.X, expand=True)
-        
-        # User info and logout button frame
-        user_frame = tk.Frame(menu_frame, bg='#1a237e')
-        user_frame.pack(side=tk.RIGHT, padx=10)
-        
-        # User info label (will be updated with actual user info)
-        self.user_info_label = tk.Label(
-            user_frame,
-            text="",
-            font=('Segoe UI', 9),
-            bg='#1a237e',
-            fg='#e0e0e0'
-        )
-        self.user_info_label.pack(side=tk.RIGHT, padx=(0, 10))
-        
-        # Logout button
-        logout_btn = tk.Button(
-            user_frame,
-            text="🚪 Logout",
-            font=('Segoe UI', 9, 'bold'),
-            bg='#d32f2f',
-            fg='white',
-            activebackground='#c62828',
-            activeforeground='white',
-            relief=tk.FLAT,
-            bd=0,
-            padx=12,
-            pady=8,
-            cursor='hand2',
-            command=self.logout
-        )
-        logout_btn.pack(side=tk.RIGHT)
+        # Navigation sidebar
+        self.sidebar = ModernSidebar(sidebar_container, width=SIDEBAR_WIDTH)
+        self.sidebar.pack(fill=tk.BOTH, expand=True, pady=(8, 0))
         
         buttons = [
-            ("Dashboard", self.show_dashboard),
-            ("Patients", self.show_patients),
-            ("Doctors", self.show_doctors),
-            ("Appointments", self.show_appointments),
-            ("Prescriptions", self.show_prescriptions),
-            ("IPD", self.show_ipd),
-            ("Billing", self.show_billing),
-            ("Reports", self.show_reports)
+            ("Dashboard", "📊", self.show_dashboard),
+            ("Patients", "👥", self.show_patients),
+            ("Doctors", "👨‍⚕️", self.show_doctors),
+            ("Appointments", "📅", self.show_appointments),
+            ("Prescriptions", "💊", self.show_prescriptions),
+            ("IPD", "🏥", self.show_ipd),
+            ("Billing", "💰", self.show_billing),
+            ("Reports", "📈", self.show_reports)
         ]
         
-        # Filter buttons based on user permissions
-        # Only show modules that the user has permission to access
         filtered_buttons = []
-        for text, command in buttons:
-            # Check permissions for each module
+        for text, icon, command in buttons:
             if text == "Dashboard" and self.has_permission('dashboard'):
-                filtered_buttons.append((text, command))
+                filtered_buttons.append((text, icon, command))
             elif text == "Patients" and self.has_permission('patient'):
-                filtered_buttons.append((text, command))
+                filtered_buttons.append((text, icon, command))
             elif text == "Doctors" and self.has_permission('doctor'):
-                filtered_buttons.append((text, command))
+                filtered_buttons.append((text, icon, command))
             elif text == "Appointments" and self.has_permission('appointments'):
-                filtered_buttons.append((text, command))
+                filtered_buttons.append((text, icon, command))
             elif text == "Prescriptions" and self.has_permission('prescription'):
-                filtered_buttons.append((text, command))
+                filtered_buttons.append((text, icon, command))
             elif text == "IPD" and self.has_permission('ipd'):
-                filtered_buttons.append((text, command))
+                filtered_buttons.append((text, icon, command))
             elif text == "Billing" and self.has_permission('billing'):
-                filtered_buttons.append((text, command))
+                filtered_buttons.append((text, icon, command))
             elif text == "Reports" and self.has_permission('report'):
-                filtered_buttons.append((text, command))
+                filtered_buttons.append((text, icon, command))
         
-        # Add User Management and Backup buttons only for admin users
         try:
             if self.is_admin():
-                filtered_buttons.append(("User Management", self.show_roles))
-                filtered_buttons.append(("Backup", self.show_backup))
+                filtered_buttons.append(("User Management", "👤", self.show_roles))
+                filtered_buttons.append(("Backup", "☁️", self.show_backup))
         except Exception as e:
             log_error("Error checking admin status for User Management button", e)
         
-        buttons = filtered_buttons
-        
-        # Store button references
         self.nav_buttons = {}
-        
-        # Create buttons with direct method binding and logging
-        self.current_module = "Dashboard"
-        # Store button commands mapping
         self.button_commands = {}
-        for text, command in buttons:
+        self.current_module = "Dashboard"
+        
+        for text, icon, command in filtered_buttons:
             self.button_commands[text] = command
-            
-            # Create a closure that properly captures the button name
             def make_handler(btn_name):
                 def handler():
                     self._handle_navigation(btn_name)
                 return handler
-            
-            # Modern button styling with hover effects - reduced padding to fit all buttons
-            btn = tk.Button(
-                nav_frame,
-                text=text,
-                command=make_handler(text),
-                font=('Segoe UI', 10, 'bold'),
-                bg='#3949ab',
-                fg='white',
-                activebackground='#5c6bc0',
-                activeforeground='white',
-                relief=tk.FLAT,
-                bd=0,
-                padx=12,
-                pady=10,
-                cursor='hand2',
-                highlightthickness=0,
-                state=tk.NORMAL,
-                takefocus=0
-            )
-            btn.pack(side=tk.LEFT, padx=2)
-            self.nav_buttons[text] = btn
-            # Ensure button is immediately enabled and ready
-            btn.config(state=tk.NORMAL)
-            # Force button widget to process its configuration immediately
-            try:
-                btn.update_idletasks()
-            except:
-                pass  # Ignore errors during initialization
-            log_debug(f"Navigation button '{text}' created and bound to {command.__name__}")
+            self.sidebar.add_item(text, icon, text, make_handler(text))
+            self.nav_buttons[text] = None  # Sidebar handles visual state
+            log_debug(f"Navigation '{text}' created and bound to {command.__name__}")
+        
+        def update_nav_button_colors(active_button_name):
+            if hasattr(self, 'sidebar'):
+                self.sidebar.set_active(active_button_name)
+        
+        self.update_nav_button_colors = update_nav_button_colors
+        self.sidebar.set_active("Dashboard")
         
         log_info("Main layout created successfully")
         
-        # Method to update navigation button colors
-        def update_nav_button_colors(active_button_name):
-            """Update navigation button colors - highlight active button"""
-            for btn_name, btn in self.nav_buttons.items():
-                if btn_name == active_button_name:
-                    # Active button - different color (lighter blue)
-                    btn.config(bg='#5c6bc0', activebackground='#7986cb')
-                else:
-                    # Inactive buttons - default color
-                    btn.config(bg='#3949ab', activebackground='#5c6bc0')
+        # === RIGHT: Header + Content ===
+        right_panel = tk.Frame(main_container, bg=BG_DEEP)
+        right_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=0, pady=0)
         
-        self.update_nav_button_colors = update_nav_button_colors
+        # Slim top header
+        header_frame = tk.Frame(right_panel, bg=BG_BASE, height=56)
+        header_frame.pack(fill=tk.X)
+        header_frame.pack_propagate(False)
         
-        # Update user info label if user is authenticated
+        header_inner = tk.Frame(header_frame, bg=BG_BASE)
+        header_inner.pack(fill=tk.BOTH, expand=True, padx=20, pady=8)
+        
+        self.user_info_label = tk.Label(
+            header_inner, text="", font=(FONT_FALLBACK, 10),
+            bg=BG_BASE, fg=TEXT_SECONDARY
+        )
+        self.user_info_label.pack(side=tk.RIGHT, padx=(0, 12))
+        
+        logout_btn = tk.Button(
+            header_inner, text="Logout", command=self.logout,
+            font=(FONT_FALLBACK, 10, 'bold'),
+            bg='#ef4444', fg='white', activebackground='#dc2626', activeforeground='white',
+            relief=tk.FLAT, bd=0, padx=16, pady=6, cursor='hand2', highlightthickness=0
+        )
+        logout_btn.pack(side=tk.RIGHT)
+        
         if hasattr(self, 'authenticated_user') and self.authenticated_user:
             username = self.authenticated_user.get('username', 'User')
             full_name = self.authenticated_user.get('full_name', '')
             if full_name:
-                self.user_info_label.config(text=f"👤 {full_name} ({username})")
+                self.user_info_label.config(text=f"{full_name} ({username})")
             else:
-                self.user_info_label.config(text=f"👤 {username}")
+                self.user_info_label.config(text=f"{username}")
         
-        # Main content area with modern background
-        self.content_frame = tk.Frame(self.root, bg='#f5f7fa')
-        self.content_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
+        # Main content area
+        self.content_frame = tk.Frame(right_panel, bg=BG_DEEP)
+        self.content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
     
     def _handle_navigation(self, button_name):
         """Handle navigation button clicks"""
@@ -550,12 +500,16 @@ class HospitalManagementSystem:
         # Check if button is disabled and re-enable it
         if button_name in self.nav_buttons:
             btn = self.nav_buttons[button_name]
-            if btn['state'] != tk.NORMAL:
-                log_warning(f"Button '{button_name}' is disabled, state: {btn['state']}")
-                # Re-enable the button
-                btn.config(state=tk.NORMAL)
-                self.root.update_idletasks()
-                self.root.update()
+            if btn is not None and hasattr(btn, 'config'):
+                try:
+                    if btn['state'] != tk.NORMAL:
+                        log_warning(f"Button '{button_name}' is disabled, state: {btn['state']}")
+                        # Re-enable the button
+                        btn.config(state=tk.NORMAL)
+                        self.root.update_idletasks()
+                        self.root.update()
+                except (tk.TclError, AttributeError, TypeError):
+                    pass
             
         try:
             log_info(f"Loading {button_name} module...")
@@ -573,8 +527,12 @@ class HospitalManagementSystem:
             
             # Ensure all navigation buttons remain enabled and responsive
             for btn_name, btn in self.nav_buttons.items():
-                if btn['state'] != tk.NORMAL:
-                    btn.config(state=tk.NORMAL)
+                if btn is not None and hasattr(btn, 'config'):
+                    try:
+                        if btn['state'] != tk.NORMAL:
+                            btn.config(state=tk.NORMAL)
+                    except (tk.TclError, AttributeError, TypeError):
+                        pass
             
             # Final update to ensure buttons are ready
             self.root.update_idletasks()
@@ -585,7 +543,12 @@ class HospitalManagementSystem:
             messagebox.showerror("Error", f"Error executing {button_name}: {str(e)}")
             # Ensure buttons remain enabled after error
             if button_name in self.nav_buttons:
-                self.nav_buttons[button_name].config(state=tk.NORMAL)
+                btn = self.nav_buttons[button_name]
+                if btn is not None and hasattr(btn, 'config'):
+                    try:
+                        btn.config(state=tk.NORMAL)
+                    except (tk.TclError, AttributeError, TypeError):
+                        pass
             # Process events after error
             self.root.update_idletasks()
             self.root.update()
@@ -609,6 +572,36 @@ class HospitalManagementSystem:
         self.root.update_idletasks()
         self.root.update()
     
+    def _create_scrollable_content(self):
+        """Create a scrollable canvas+frame in content_frame for module content. Returns the inner frame."""
+        canvas = tk.Canvas(self.content_frame, bg=BG_DEEP, highlightthickness=0)
+        scrollbar = tk.Scrollbar(self.content_frame, orient="vertical", command=canvas.yview)
+        inner = tk.Frame(canvas, bg=BG_DEEP)
+        inner.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas_window = canvas.create_window((0, 0), window=inner, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.current_canvas = canvas
+
+        def on_canvas_configure(event):
+            canvas.itemconfig(canvas_window, width=event.width)
+            canvas.update_idletasks()
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        canvas.bind("<Configure>", on_canvas_configure)
+
+        def on_mousewheel(event):
+            try:
+                if canvas.winfo_exists():
+                    canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+            except (tk.TclError, AttributeError):
+                try:
+                    self.root.unbind_all("<MouseWheel>")
+                except Exception:
+                    pass
+        self.root.bind_all("<MouseWheel>", on_mousewheel)
+        return inner
+    
     def show_dashboard(self):
         """Show dashboard with statistics"""
         if not self.has_permission('dashboard'):
@@ -623,10 +616,9 @@ class HospitalManagementSystem:
             self.root.update_idletasks()
             
             # Create scrollable frame for dashboard
-            # Create a canvas and scrollbar for scrolling
-            canvas = tk.Canvas(self.content_frame, bg='#f5f7fa', highlightthickness=0)
+            canvas = tk.Canvas(self.content_frame, bg=BG_DEEP, highlightthickness=0)
             scrollbar = tk.Scrollbar(self.content_frame, orient="vertical", command=canvas.yview)
-            scrollable_frame = tk.Frame(canvas, bg='#f5f7fa')
+            scrollable_frame = tk.Frame(canvas, bg=BG_DEEP)
             
             # Configure scrollable frame
             scrollable_frame.bind(
@@ -684,16 +676,12 @@ class HospitalManagementSystem:
             self.root.bind_all("<MouseWheel>", on_mousewheel)
             
             # Filter frame
-            filter_frame = tk.Frame(scrollable_frame, bg='#f5f7fa')
+            filter_frame = tk.Frame(scrollable_frame, bg=BG_DEEP)
             filter_frame.pack(fill=tk.X, padx=25, pady=(10, 20))
             
-            # Filter label
             filter_label = tk.Label(
-                filter_frame,
-                text="Filter by:",
-                font=('Segoe UI', 11, 'bold'),
-                bg='#f5f7fa',
-                fg='#374151'
+                filter_frame, text="Filter by:",
+                font=(FONT_FALLBACK, 11, 'bold'), bg=BG_DEEP, fg=TEXT_PRIMARY
             )
             filter_label.pack(side=tk.LEFT, padx=(0, 10))
             
@@ -701,20 +689,15 @@ class HospitalManagementSystem:
             self.current_filter = {'type': 'all', 'date': None}
             self.stat_value_labels = []  # Store references to value labels for updating
             
-            # Filter buttons
-            filter_buttons_frame = tk.Frame(filter_frame, bg='#f5f7fa')
+            filter_buttons_frame = tk.Frame(filter_frame, bg=BG_DEEP)
             filter_buttons_frame.pack(side=tk.LEFT, padx=5)
             
-            # Date input frame (initially hidden)
-            date_input_frame = tk.Frame(filter_frame, bg='#f5f7fa')
+            date_input_frame = tk.Frame(filter_frame, bg=BG_DEEP)
             date_input_frame.pack(side=tk.LEFT, padx=10)
             
             date_label = tk.Label(
-                date_input_frame,
-                text="Date:",
-                font=('Segoe UI', 10),
-                bg='#f5f7fa',
-                fg='#6b7280'
+                date_input_frame, text="Date:",
+                font=(FONT_FALLBACK, 10), bg=BG_DEEP, fg=TEXT_SECONDARY
             )
             date_label.pack(side=tk.LEFT, padx=(0, 5))
             
@@ -1012,7 +995,7 @@ class HospitalManagementSystem:
             date_cal_btn.pack(side=tk.LEFT, padx=2)
             
             # Month input frame (initially hidden)
-            month_input_frame = tk.Frame(filter_frame, bg='#f5f7fa')
+            month_input_frame = tk.Frame(filter_frame, bg=BG_DEEP)
             month_input_frame.pack(side=tk.LEFT, padx=10)
             
             month_label = tk.Label(
@@ -1462,7 +1445,7 @@ class HospitalManagementSystem:
             month_cal_btn.pack(side=tk.LEFT, padx=2)
             
             # Year input frame (initially hidden)
-            year_input_frame = tk.Frame(filter_frame, bg='#f5f7fa')
+            year_input_frame = tk.Frame(filter_frame, bg=BG_DEEP)
             year_input_frame.pack(side=tk.LEFT, padx=10)
             
             year_label = tk.Label(
@@ -1502,7 +1485,7 @@ class HospitalManagementSystem:
             year_cal_btn.pack(side=tk.LEFT, padx=2)
             
             # Date range input frame (initially hidden)
-            date_range_frame = tk.Frame(filter_frame, bg='#f5f7fa')
+            date_range_frame = tk.Frame(filter_frame, bg=BG_DEEP)
             date_range_frame.pack(side=tk.LEFT, padx=10)
             
             from_label = tk.Label(
@@ -1663,92 +1646,37 @@ class HospitalManagementSystem:
                         f"${stats['total_revenue']:.2f}"
                     ]
                     
-                    for i, label in enumerate(self.stat_value_labels):
+                    for i, card in enumerate(self.stat_value_labels):
                         if i < len(values):
-                            label.config(text=str(values[i]))
+                            card.set_value(str(values[i]))
                     
                 except Exception as e:
                     log_error("Failed to refresh statistics", e)
                     messagebox.showerror("Error", f"Failed to refresh statistics: {str(e)}")
             
-            # Create filter buttons
-            all_btn = tk.Button(
-                filter_buttons_frame,
-                text="All",
-                command=lambda: apply_filter('all'),
-                font=('Segoe UI', 10, 'bold'),
-                bg='#10b981',
-                fg='white',
-                padx=20,
-                pady=8,
-                cursor='hand2',
-                relief=tk.FLAT,
-                activebackground='#059669'
-            )
+            # Modern pill filter buttons
+            all_btn = ModernPillButton(filter_buttons_frame, "All", active=True)
+            all_btn.config(command=lambda: apply_filter('all'))
             all_btn.pack(side=tk.LEFT, padx=3)
             filter_btns.append(all_btn)
             
-            daily_btn = tk.Button(
-                filter_buttons_frame,
-                text="Daily",
-                command=lambda: apply_filter('daily'),
-                font=('Segoe UI', 10, 'bold'),
-                bg='#6b7280',
-                fg='white',
-                padx=20,
-                pady=8,
-                cursor='hand2',
-                relief=tk.FLAT,
-                activebackground='#4b5563'
-            )
+            daily_btn = ModernPillButton(filter_buttons_frame, "Daily", active=False)
+            daily_btn.config(command=lambda: apply_filter('daily'))
             daily_btn.pack(side=tk.LEFT, padx=3)
             filter_btns.append(daily_btn)
             
-            monthly_btn = tk.Button(
-                filter_buttons_frame,
-                text="Monthly",
-                command=lambda: apply_filter('monthly'),
-                font=('Segoe UI', 10, 'bold'),
-                bg='#6b7280',
-                fg='white',
-                padx=20,
-                pady=8,
-                cursor='hand2',
-                relief=tk.FLAT,
-                activebackground='#4b5563'
-            )
+            monthly_btn = ModernPillButton(filter_buttons_frame, "Monthly", active=False)
+            monthly_btn.config(command=lambda: apply_filter('monthly'))
             monthly_btn.pack(side=tk.LEFT, padx=3)
             filter_btns.append(monthly_btn)
             
-            yearly_btn = tk.Button(
-                filter_buttons_frame,
-                text="Yearly",
-                command=lambda: apply_filter('yearly'),
-                font=('Segoe UI', 10, 'bold'),
-                bg='#6b7280',
-                fg='white',
-                padx=20,
-                pady=8,
-                cursor='hand2',
-                relief=tk.FLAT,
-                activebackground='#4b5563'
-            )
+            yearly_btn = ModernPillButton(filter_buttons_frame, "Yearly", active=False)
+            yearly_btn.config(command=lambda: apply_filter('yearly'))
             yearly_btn.pack(side=tk.LEFT, padx=3)
             filter_btns.append(yearly_btn)
             
-            date_range_btn = tk.Button(
-                filter_buttons_frame,
-                text="Date Range",
-                command=lambda: apply_filter('daterange'),
-                font=('Segoe UI', 10, 'bold'),
-                bg='#6b7280',
-                fg='white',
-                padx=20,
-                pady=8,
-                cursor='hand2',
-                relief=tk.FLAT,
-                activebackground='#4b5563'
-            )
+            date_range_btn = ModernPillButton(filter_buttons_frame, "Date Range", active=False)
+            date_range_btn.config(command=lambda: apply_filter('daterange'))
             date_range_btn.pack(side=tk.LEFT, padx=3)
             filter_btns.append(date_range_btn)
             
@@ -1793,16 +1721,9 @@ class HospitalManagementSystem:
                     month_input_frame.pack_forget()
                     year_input_frame.pack_forget()
                 
-                # Update button styles - reset all buttons
-                for btn in filter_btns:
-                    btn_text = btn['text'].replace('✓ ', '')
-                    btn.config(bg='#6b7280', fg='white', text=btn_text)
-                
-                # Highlight selected button
-                if filter_type in button_map:
-                    selected_btn = button_map[filter_type]
-                    selected_btn.config(bg='#10b981', fg='white')
-                    selected_btn['text'] = '✓ ' + selected_btn['text'].replace('✓ ', '')
+                # Update button styles - use set_active for ModernPillButton
+                for ftype, btn in button_map.items():
+                    btn.set_active(ftype == filter_type)
                 
                 # Refresh statistics
                 refresh_statistics()
@@ -1842,8 +1763,7 @@ class HospitalManagementSystem:
             self.filter_from_date_var.trace('w', auto_apply_daterange)
             self.filter_to_date_var.trace('w', auto_apply_daterange)
             
-            # Statistics frame
-            stats_frame = tk.Frame(scrollable_frame, bg='#f5f7fa')
+            stats_frame = tk.Frame(scrollable_frame, bg=BG_DEEP)
             stats_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
             
             try:
@@ -1868,106 +1788,46 @@ class HospitalManagementSystem:
             if 'discharged_admissions' not in stats:
                 stats['discharged_admissions'] = 0
             
-            # Modern KPI Cards with icons - now includes admissions
-            stat_cards = [
-                ("👥", "Total Patients", stats['total_patients'], "+12%", '#3b82f6'),
-                ("👨‍⚕️", "Active Doctors", stats['total_doctors'], "", '#8b5cf6'),
-                ("📅", "Today's Appointments", stats['scheduled_appointments'], "", '#ec4899'),
-                ("✅", "Completed Appointments", stats['completed_appointments'], "", '#f59e0b'),
-                ("🏥", "Active Admissions", stats['active_admissions'], "", '#ef4444'),
-                ("📋", "Total Admissions", stats['total_admissions'], "", '#06b6d4'),
-                ("💰", "Total Revenue", f"${stats['total_revenue']:.2f}", "", '#10b981')
+            # Modern KPI Cards - glassmorphism style
+            stat_cards_data = [
+                ("👥", "Total Patients", stats['total_patients'], "+12%", 0),
+                ("👨‍⚕️", "Active Doctors", stats['total_doctors'], "", 1),
+                ("📅", "Today's Appointments", stats['scheduled_appointments'], "", 2),
+                ("✅", "Completed Appointments", stats['completed_appointments'], "", 3),
+                ("🏥", "Active Admissions", stats['active_admissions'], "", 4),
+                ("📋", "Total Admissions", stats['total_admissions'], "", 5),
+                ("💰", "Total Revenue", f"${stats['total_revenue']:.2f}", "", 6)
             ]
             
-            cards_frame = tk.Frame(stats_frame, bg='#f5f7fa')
+            cards_frame = tk.Frame(stats_frame, bg=BG_DEEP)
             cards_frame.pack(fill=tk.X, pady=(0, 20))
             
-            # Arrange cards in 2 rows: 4 cards in first row, 3 in second row
-            for i, (icon, label, value, trend, color) in enumerate(stat_cards):
-                card = tk.Frame(
-                    cards_frame,
-                    bg=color,
-                    relief=tk.FLAT,
-                    bd=0
-                )
-                # First 4 cards in row 0, remaining in row 1
+            for i, (icon, label, value, trend, color_idx) in enumerate(stat_cards_data):
+                card = ModernCard(cards_frame, icon, label, str(value), trend, color_index=color_idx)
                 row = 0 if i < 4 else 1
                 col = i if i < 4 else (i - 4)
                 card.grid(row=row, column=col, padx=12, pady=12, sticky='nsew')
                 cards_frame.grid_columnconfigure(col, weight=1)
-                
-                # Icon and label frame
-                top_frame = tk.Frame(card, bg=color)
-                top_frame.pack(fill=tk.X, padx=20, pady=(20, 10))
-                
-                icon_label = tk.Label(
-                    top_frame,
-                    text=icon,
-                    font=('Segoe UI', 24),
-                    bg=color,
-                    fg='white'
-                )
-                icon_label.pack(side=tk.LEFT, padx=(0, 10))
-                
-                label_frame = tk.Frame(top_frame, bg=color)
-                label_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
-                
-                label_text = tk.Label(
-                    label_frame,
-                    text=label,
-                    font=('Segoe UI', 11),
-                    bg=color,
-                    fg='white',
-                    anchor='w'
-                )
-                label_text.pack(anchor='w')
-                
-                if trend:
-                    trend_label = tk.Label(
-                        label_frame,
-                        text=f"↑ {trend}",
-                        font=('Segoe UI', 9),
-                        bg=color,
-                        fg='white',
-                        anchor='w'
-                    )
-                    trend_label.pack(anchor='w')
-                
-                # Value
-                value_label = tk.Label(
-                    card,
-                    text=str(value),
-                    font=('Segoe UI', 28, 'bold'),
-                    bg=color,
-                    fg='white'
-                )
-                value_label.pack(pady=(0, 20))
-                self.stat_value_labels.append(value_label)  # Store reference
+                self.stat_value_labels.append(card)
             
-            # Company Branding Section
-            branding_frame = tk.Frame(stats_frame, bg='#ffffff', relief=tk.FLAT, bd=1, highlightbackground='#e5e7eb', highlightthickness=1)
+            # Branding Section - dark elevated panel
+            branding_frame = tk.Frame(stats_frame, bg=BG_CARD, highlightbackground='#2d3748', highlightthickness=1)
             branding_frame.pack(fill=tk.X, pady=(0, 20))
             
-            branding_inner = tk.Frame(branding_frame, bg='#ffffff')
+            branding_inner = tk.Frame(branding_frame, bg=BG_CARD)
             branding_inner.pack(fill=tk.X, padx=25, pady=20)
             
-            # Left side - Logo and Product Info
-            logo_info_frame = tk.Frame(branding_inner, bg='#ffffff')
+            logo_info_frame = tk.Frame(branding_inner, bg=BG_CARD)
             logo_info_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
             
-            # Logo representation - try to load actual logo image, fallback to text
-            # Create a frame with blue background to match original design
-            logo_bg_frame = tk.Frame(logo_info_frame, bg='#1e3a8a', relief=tk.FLAT)
+            logo_bg_frame = tk.Frame(logo_info_frame, bg=ACCENT_BLUE, relief=tk.FLAT)
             logo_bg_frame.pack(side=tk.LEFT, padx=(0, 20))
             
             # Try to load actual logo image
             dashboard_logo_image = self.load_logo_image(size=(80, 80))
             if dashboard_logo_image:
-                # Display actual logo image on blue background
                 logo_icon = tk.Label(
-                    logo_bg_frame,
-                    image=dashboard_logo_image,
-                    bg='#1e3a8a'
+                    logo_bg_frame, image=dashboard_logo_image, bg=ACCENT_BLUE
                 )
                 logo_icon.image = dashboard_logo_image  # Keep a reference
                 logo_icon.pack(padx=15, pady=15)
@@ -1975,58 +1835,39 @@ class HospitalManagementSystem:
             else:
                 # Fallback to styled text logo on blue background
                 logo_icon = tk.Label(
-                    logo_bg_frame,
-                    text="╔═══╗\n║ ╬ ║\n╚═══╝",
-                    font=('Courier', 12, 'bold'),
-                    bg='#1e3a8a',
-                    fg='#60a5fa',
-                    padx=15,
-                    pady=10
+                    logo_bg_frame, text="⚕", font=(FONT_FALLBACK, 24, 'bold'),
+                    bg=ACCENT_BLUE, fg='white', padx=15, pady=10
                 )
                 logo_icon.pack()
                 log_debug("Dashboard logo displayed as text (image not found)")
             
-            # Product and Company Info
-            product_info = tk.Frame(logo_info_frame, bg='#ffffff')
+            product_info = tk.Frame(logo_info_frame, bg=BG_CARD)
             product_info.pack(side=tk.LEFT, fill=tk.X, expand=True)
             
             product_name_label = tk.Label(
-                product_info,
-                text="MediFlow",
-                font=('Segoe UI', 22, 'bold'),
-                bg='#ffffff',
-                fg='#1e3a8a'
+                product_info, text="MediFlow",
+                font=(FONT_FALLBACK, 22, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY
             )
             product_name_label.pack(anchor='w', pady=(0, 5))
             
             tagline_label = tk.Label(
-                product_info,
-                text="Streamlining Healthcare Management",
-                font=('Segoe UI', 12),
-                bg='#ffffff',
-                fg='#6b7280'
+                product_info, text="Streamlining Healthcare Management",
+                font=(FONT_FALLBACK, 12), bg=BG_CARD, fg=TEXT_SECONDARY
             )
             tagline_label.pack(anchor='w', pady=(0, 8))
             
             company_label = tk.Label(
-                product_info,
-                text="Powered by Nexvora Solutions",
-                font=('Segoe UI', 10, 'italic'),
-                bg='#ffffff',
-                fg='#6366f1'
+                product_info, text="Powered by Nexvora Solutions",
+                font=(FONT_FALLBACK, 10, 'italic'), bg=BG_CARD, fg=ACCENT_TEAL
             )
             company_label.pack(anchor='w')
             
-            # Right side - Marketing Features
-            features_frame = tk.Frame(branding_inner, bg='#ffffff')
+            features_frame = tk.Frame(branding_inner, bg=BG_CARD)
             features_frame.pack(side=tk.RIGHT, padx=(20, 0))
             
             features_title = tk.Label(
-                features_frame,
-                text="Key Features",
-                font=('Segoe UI', 12, 'bold'),
-                bg='#ffffff',
-                fg='#1e3a8a'
+                features_frame, text="Key Features",
+                font=(FONT_FALLBACK, 12, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY
             )
             features_title.pack(anchor='e', pady=(0, 8))
             
@@ -2038,49 +1879,31 @@ class HospitalManagementSystem:
             ]
             
             for feature in features_list:
-                feature_label = tk.Label(
-                    features_frame,
-                    text=feature,
-                    font=('Segoe UI', 9),
-                    bg='#ffffff',
-                    fg='#374151',
-                    anchor='e'
-                )
-                feature_label.pack(anchor='e', pady=2)
+                tk.Label(features_frame, text=feature, font=(FONT_FALLBACK, 9),
+                       bg=BG_CARD, fg=TEXT_SECONDARY, anchor='e').pack(anchor='e', pady=2)
             
-            # Main content area with three columns
-            main_content = tk.Frame(scrollable_frame, bg='#f5f7fa')
+            main_content = tk.Frame(scrollable_frame, bg=BG_DEEP)
             main_content.pack(fill=tk.BOTH, expand=True, padx=25, pady=(0, 25))
             
-            # Left column (charts)
-            left_column = tk.Frame(main_content, bg='#f5f7fa', width=400)
+            left_column = tk.Frame(main_content, bg=BG_DEEP, width=400)
             left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 15))
             
-            # Middle column (status chart and activities)
-            middle_column = tk.Frame(main_content, bg='#f5f7fa', width=300)
+            middle_column = tk.Frame(main_content, bg=BG_DEEP, width=300)
             middle_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 15))
             
-            # Right column (quick actions and today's appointments)
-            right_column = tk.Frame(main_content, bg='#f5f7fa', width=300)
+            right_column = tk.Frame(main_content, bg=BG_DEEP, width=300)
             right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
             
-            # Appointments Overview Chart (Left Column)
-            appointments_chart_frame = tk.Frame(left_column, bg='white', relief=tk.FLAT, bd=1)
+            appointments_chart_frame = tk.Frame(left_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
             appointments_chart_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
             
-            chart_header = tk.Frame(appointments_chart_frame, bg='white')
+            chart_header = tk.Frame(appointments_chart_frame, bg=BG_CARD)
             chart_header.pack(fill=tk.X, padx=20, pady=(15, 10))
             
-            tk.Label(
-                chart_header,
-                text="Appointments Overview",
-                font=('Segoe UI', 14, 'bold'),
-                bg='white',
-                fg='#1f2937'
-            ).pack(side=tk.LEFT)
+            tk.Label(chart_header, text="Appointments Overview",
+                    font=(FONT_FALLBACK, 14, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(side=tk.LEFT)
             
-            # Toggle buttons
-            toggle_frame = tk.Frame(chart_header, bg='white')
+            toggle_frame = tk.Frame(chart_header, bg=BG_CARD)
             toggle_frame.pack(side=tk.RIGHT)
             
             daily_toggle = tk.Button(
@@ -2109,8 +1932,7 @@ class HospitalManagementSystem:
             )
             monthly_toggle.pack(side=tk.LEFT, padx=2)
             
-            # Chart canvas for appointments overview - larger for better visibility
-            chart_canvas = tk.Canvas(appointments_chart_frame, bg='white', height=280, highlightthickness=0)
+            chart_canvas = tk.Canvas(appointments_chart_frame, bg=BG_CARD, height=280, highlightthickness=0)
             chart_canvas.pack(fill=tk.BOTH, expand=True, padx=25, pady=(0, 25))
             
             # Store chart mode
@@ -2285,59 +2107,38 @@ class HospitalManagementSystem:
             
             chart_canvas.bind('<Configure>', on_canvas_configure)
             
-            # Legend with better spacing
-            legend_frame = tk.Frame(appointments_chart_frame, bg='white')
+            legend_frame = tk.Frame(appointments_chart_frame, bg=BG_CARD)
             legend_frame.pack(fill=tk.X, padx=25, pady=(0, 20))
             
             legend_items = [("Scheduled", "#3b82f6"), ("Completed", "#10b981"), ("Cancelled", "#ec4899")]
             for i, (label, color) in enumerate(legend_items):
-                legend_item = tk.Frame(legend_frame, bg='white')
+                legend_item = tk.Frame(legend_frame, bg=BG_CARD)
                 legend_item.pack(side=tk.LEFT, padx=15)
-                tk.Label(legend_item, text="●", font=('Segoe UI', 14), bg='white', fg=color).pack(side=tk.LEFT, padx=(0, 8))
-                tk.Label(legend_item, text=label, font=('Segoe UI', 10, 'bold'), bg='white', fg='#374151').pack(side=tk.LEFT)
+                tk.Label(legend_item, text="●", font=(FONT_FALLBACK, 14), bg=BG_CARD, fg=color).pack(side=tk.LEFT, padx=(0, 8))
+                tk.Label(legend_item, text=label, font=(FONT_FALLBACK, 10, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(side=tk.LEFT)
             
-            # Revenue Insights Chart
-            revenue_chart_frame = tk.Frame(left_column, bg='white', relief=tk.FLAT, bd=1)
+            revenue_chart_frame = tk.Frame(left_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
             revenue_chart_frame.pack(fill=tk.BOTH, expand=True)
             
-            revenue_header = tk.Frame(revenue_chart_frame, bg='white')
+            revenue_header = tk.Frame(revenue_chart_frame, bg=BG_CARD)
             revenue_header.pack(fill=tk.X, padx=20, pady=(15, 10))
             
-            tk.Label(
-                revenue_header,
-                text="Revenue Insights",
-                font=('Segoe UI', 14, 'bold'),
-                bg='white',
-                fg='#1f2937'
-            ).pack(side=tk.LEFT)
-            
-            tk.Label(
-                revenue_header,
-                text="87% $100k >",
-                font=('Segoe UI', 10),
-                bg='white',
-                fg='#6b7280'
-            ).pack(side=tk.RIGHT)
-            
-            revenue_canvas = tk.Canvas(revenue_chart_frame, bg='white', height=200, highlightthickness=0)
+            tk.Label(revenue_header, text="Revenue Insights",
+                    font=(FONT_FALLBACK, 14, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(side=tk.LEFT)
+            tk.Label(revenue_header, text="87% $100k >",
+                    font=(FONT_FALLBACK, 10), bg=BG_CARD, fg=TEXT_SECONDARY).pack(side=tk.RIGHT)
+            revenue_canvas = tk.Canvas(revenue_chart_frame, bg=BG_CARD, height=200, highlightthickness=0)
             revenue_canvas.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
             
             revenue_canvas.create_text(200, 100, text="📊 Bar chart visualization\n(Monthly revenue)", 
-                                      font=('Segoe UI', 11), fill='#9ca3af', justify=tk.CENTER)
+                                      font=(FONT_FALLBACK, 11), fill=TEXT_SECONDARY, justify=tk.CENTER)
             
-            # Appointment Status Donut Chart (Middle Column)
-            status_chart_frame = tk.Frame(middle_column, bg='white', relief=tk.FLAT, bd=1)
+            status_chart_frame = tk.Frame(middle_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
             status_chart_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
             
-            tk.Label(
-                status_chart_frame,
-                text="Appointment Status",
-                font=('Segoe UI', 14, 'bold'),
-                bg='white',
-                fg='#1f2937'
-            ).pack(pady=(15, 10))
-            
-            status_canvas = tk.Canvas(status_chart_frame, bg='white', height=250, highlightthickness=0)
+            tk.Label(status_chart_frame, text="Appointment Status",
+                    font=(FONT_FALLBACK, 14, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(pady=(15, 10))
+            status_canvas = tk.Canvas(status_chart_frame, bg=BG_CARD, height=250, highlightthickness=0)
             status_canvas.pack(fill=tk.BOTH, expand=True, padx=25, pady=(0, 15))
             
             # Get real appointment status data
@@ -2426,7 +2227,7 @@ class HospitalManagementSystem:
             status_canvas.bind('<Configure>', on_status_canvas_configure)
             
             # Status legend with real data - better spacing
-            status_legend = tk.Frame(status_chart_frame, bg='white')
+            status_legend = tk.Frame(status_chart_frame, bg=BG_CARD)
             status_legend.pack(fill=tk.X, padx=25, pady=(0, 20))
             
             status_items = [
@@ -2435,26 +2236,21 @@ class HospitalManagementSystem:
                 ("Cancelled", "#ec4899", f"{cancelled_pct:.1f}%", cancelled_count)
             ]
             for label, color, percent, count in status_items:
-                item_frame = tk.Frame(status_legend, bg='white')
+                item_frame = tk.Frame(status_legend, bg=BG_CARD)
                 item_frame.pack(fill=tk.X, pady=8, padx=10)
-                tk.Label(item_frame, text="●", font=('Segoe UI', 14), bg='white', fg=color).pack(side=tk.LEFT, padx=(0, 12))
-                tk.Label(item_frame, text=label, font=('Segoe UI', 11), bg='white', fg='#374151').pack(side=tk.LEFT)
-                tk.Label(item_frame, text=f"{percent} ({count})", font=('Segoe UI', 11, 'bold'), bg='white', fg='#6b7280').pack(side=tk.RIGHT)
+                tk.Label(item_frame, text="●", font=(FONT_FALLBACK, 14), bg=BG_CARD, fg=color).pack(side=tk.LEFT, padx=(0, 12))
+                tk.Label(item_frame, text=label, font=(FONT_FALLBACK, 11), bg=BG_CARD, fg=TEXT_PRIMARY).pack(side=tk.LEFT)
+                tk.Label(item_frame, text=f"{percent} ({count})", font=(FONT_FALLBACK, 11, 'bold'), bg=BG_CARD, fg=TEXT_SECONDARY).pack(side=tk.RIGHT)
             
             # Active Admissions (Middle Column)
-            active_admissions_frame = tk.Frame(middle_column, bg='white', relief=tk.FLAT, bd=1)
+            active_admissions_frame = tk.Frame(middle_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
             active_admissions_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
             
-            admissions_header = tk.Frame(active_admissions_frame, bg='white')
+            admissions_header = tk.Frame(active_admissions_frame, bg=BG_CARD)
             admissions_header.pack(fill=tk.X, padx=20, pady=(15, 10))
             
-            tk.Label(
-                admissions_header,
-                text="Active Admissions",
-                font=('Segoe UI', 14, 'bold'),
-                bg='white',
-                fg='#1f2937'
-            ).pack(side=tk.LEFT)
+            tk.Label(admissions_header, text="Active Admissions",
+                    font=(FONT_FALLBACK, 14, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(side=tk.LEFT)
             
             # Get active admissions
             try:
@@ -2464,9 +2260,9 @@ class HospitalManagementSystem:
                 active_admissions = []
             
             # Create scrollable frame for admissions list
-            admissions_canvas = tk.Canvas(active_admissions_frame, bg='white', highlightthickness=0, height=200)
+            admissions_canvas = tk.Canvas(active_admissions_frame, bg=BG_CARD, highlightthickness=0, height=200)
             admissions_scrollbar = tk.Scrollbar(active_admissions_frame, orient="vertical", command=admissions_canvas.yview)
-            admissions_scrollable = tk.Frame(admissions_canvas, bg='white')
+            admissions_scrollable = tk.Frame(admissions_canvas, bg=BG_CARD)
             
             admissions_scrollable.bind(
                 "<Configure>",
@@ -2478,7 +2274,7 @@ class HospitalManagementSystem:
             
             if active_admissions:
                 for idx, admission in enumerate(active_admissions):
-                    adm_frame = tk.Frame(admissions_scrollable, bg='#f9fafb' if idx % 2 == 0 else 'white', relief=tk.FLAT)
+                    adm_frame = tk.Frame(admissions_scrollable, bg='#1e2732' if idx % 2 == 0 else BG_CARD, relief=tk.FLAT)
                     adm_frame.pack(fill=tk.X, padx=15, pady=8)
                     
                     # Patient name and admission ID
@@ -2487,23 +2283,10 @@ class HospitalManagementSystem:
                     
                     patient_name = admission.get('patient_name', 'Unknown')
                     admission_id = admission.get('admission_id', 'N/A')
-                    tk.Label(
-                        name_frame,
-                        text=f"👤 {patient_name}",
-                        font=('Segoe UI', 10, 'bold'),
-                        bg=adm_frame['bg'],
-                        fg='#1f2937',
-                        anchor='w'
-                    ).pack(side=tk.LEFT, fill=tk.X)
-                    
-                    tk.Label(
-                        name_frame,
-                        text=f"ID: {admission_id}",
-                        font=('Segoe UI', 8),
-                        bg=adm_frame['bg'],
-                        fg='#6b7280',
-                        anchor='e'
-                    ).pack(side=tk.RIGHT)
+                    tk.Label(name_frame, text=f"👤 {patient_name}",
+                            font=(FONT_FALLBACK, 10, 'bold'), bg=adm_frame['bg'], fg=TEXT_PRIMARY, anchor='w').pack(side=tk.LEFT, fill=tk.X)
+                    tk.Label(name_frame, text=f"ID: {admission_id}",
+                            font=(FONT_FALLBACK, 8), bg=adm_frame['bg'], fg=TEXT_SECONDARY, anchor='e').pack(side=tk.RIGHT)
                     
                     # Admission details
                     details_text = []
@@ -2517,15 +2300,9 @@ class HospitalManagementSystem:
                         details_text.append(f"👨‍⚕️ Dr. {admission['doctor_name']}")
                     
                     if details_text:
-                        tk.Label(
-                            adm_frame,
-                            text=" | ".join(details_text),
-                            font=('Segoe UI', 8),
-                            bg=adm_frame['bg'],
-                            fg='#6b7280',
-                            anchor='w',
-                            wraplength=250
-                        ).pack(fill=tk.X, pady=(0, 2))
+                        tk.Label(adm_frame, text=" | ".join(details_text),
+                                font=(FONT_FALLBACK, 8), bg=adm_frame['bg'], fg=TEXT_SECONDARY,
+                                anchor='w', wraplength=250).pack(fill=tk.X, pady=(0, 2))
                     
                     # Days admitted
                     if admission.get('admission_date'):
@@ -2545,31 +2322,20 @@ class HospitalManagementSystem:
                         except:
                             pass
             else:
-                no_adm_label = tk.Label(
-                    admissions_scrollable,
-                    text="No active admissions",
-                    font=('Segoe UI', 10),
-                    bg='white',
-                    fg='#9ca3af'
-                )
+                no_adm_label = tk.Label(admissions_scrollable, text="No active admissions",
+                                        font=(FONT_FALLBACK, 10), bg=BG_CARD, fg=TEXT_SECONDARY)
                 no_adm_label.pack(pady=20)
             
             admissions_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
             admissions_scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=(0, 15))
             
             # Recent Activities (Middle Column)
-            activities_frame = tk.Frame(middle_column, bg='white', relief=tk.FLAT, bd=1)
+            activities_frame = tk.Frame(middle_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
             activities_frame.pack(fill=tk.BOTH, expand=True)
             
-            tk.Label(
-                activities_frame,
-                text="Recent Activities",
-                font=('Segoe UI', 14, 'bold'),
-                bg='white',
-                fg='#1f2937'
-            ).pack(pady=(15, 10))
-            
-            activities_list = tk.Frame(activities_frame, bg='white')
+            tk.Label(activities_frame, text="Recent Activities",
+                    font=(FONT_FALLBACK, 14, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(pady=(15, 10))
+            activities_list = tk.Frame(activities_frame, bg=BG_CARD)
             activities_list.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 15))
             
             # Get recent activities
@@ -2583,41 +2349,23 @@ class HospitalManagementSystem:
                     activity_text = f"{action.capitalize()} {name}"
                     time_text = "5m ago"  # Simplified
                     
-                    activity_item = tk.Frame(activities_list, bg='white')
+                    activity_item = tk.Frame(activities_list, bg=BG_CARD)
                     activity_item.pack(fill=tk.X, pady=8)
-                    
-                    tk.Label(
-                        activity_item,
-                        text=activity_text,
-                        font=('Segoe UI', 10),
-                        bg='white',
-                        fg='#374151'
-                    ).pack(anchor='w')
-                    
-                    tk.Label(
-                        activity_item,
-                        text=time_text,
-                        font=('Segoe UI', 9),
-                        bg='white',
-                        fg='#9ca3af'
-                    ).pack(anchor='w')
+                    tk.Label(activity_item, text=activity_text, font=(FONT_FALLBACK, 10),
+                            bg=BG_CARD, fg=TEXT_PRIMARY).pack(anchor='w')
+                    tk.Label(activity_item, text=time_text, font=(FONT_FALLBACK, 9),
+                            bg=BG_CARD, fg=TEXT_SECONDARY).pack(anchor='w')
             except:
-                tk.Label(activities_list, text="No recent activities", font=('Segoe UI', 10), 
-                        bg='white', fg='#9ca3af').pack(pady=10)
+                tk.Label(activities_list, text="No recent activities", font=(FONT_FALLBACK, 10), 
+                        bg=BG_CARD, fg=TEXT_SECONDARY).pack(pady=10)
             
             # Quick Actions (Right Column)
-            quick_actions_frame = tk.Frame(right_column, bg='white', relief=tk.FLAT, bd=1)
+            quick_actions_frame = tk.Frame(right_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
             quick_actions_frame.pack(fill=tk.X, pady=(0, 15))
             
-            tk.Label(
-                quick_actions_frame,
-                text="Quick Actions",
-                font=('Segoe UI', 14, 'bold'),
-                bg='white',
-                fg='#1f2937'
-            ).pack(pady=(15, 10))
-            
-            actions_list = tk.Frame(quick_actions_frame, bg='white')
+            tk.Label(quick_actions_frame, text="Quick Actions",
+                    font=(FONT_FALLBACK, 14, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(pady=(15, 10))
+            actions_list = tk.Frame(quick_actions_frame, bg=BG_CARD)
             actions_list.pack(fill=tk.X, padx=15, pady=(0, 15))
             
             action_buttons = [
@@ -2645,29 +2393,29 @@ class HospitalManagementSystem:
                 btn.pack(fill=tk.X, pady=5)
             
             # Today's Appointments (Right Column)
-            today_appts_frame = tk.Frame(right_column, bg='white', relief=tk.FLAT, bd=1)
+            today_appts_frame = tk.Frame(right_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
             today_appts_frame.pack(fill=tk.BOTH, expand=True)
             
-            header_frame = tk.Frame(today_appts_frame, bg='white')
-            header_frame.pack(fill=tk.X, padx=15, pady=(15, 10))
+            today_header = tk.Frame(today_appts_frame, bg=BG_CARD)
+            today_header.pack(fill=tk.X, padx=15, pady=(15, 10))
             
             tk.Label(
-                header_frame,
+                today_header,
                 text="Today's Appointments",
                 font=('Segoe UI', 14, 'bold'),
-                bg='white',
-                fg='#1f2937'
+                bg=BG_CARD,
+                fg=TEXT_PRIMARY
             ).pack(side=tk.LEFT)
             
             tk.Label(
-                header_frame,
+                today_header,
                 text="UPCOMING 3 HOURS",
-                font=('Segoe UI', 9, 'bold'),
-                bg='white',
-                fg='#6b7280'
+                font=(FONT_FALLBACK, 9, 'bold'),
+                bg=BG_CARD,
+                fg=TEXT_SECONDARY
             ).pack(side=tk.RIGHT)
             
-            appointments_list = tk.Frame(today_appts_frame, bg='white')
+            appointments_list = tk.Frame(today_appts_frame, bg=BG_CARD)
             appointments_list.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
             
             # Get today's appointments
@@ -2680,39 +2428,18 @@ class HospitalManagementSystem:
                     doctor_name = apt.get('doctor_name', '')
                     specialization = apt.get('specialization', '')
                     
-                    apt_item = tk.Frame(appointments_list, bg='white')
+                    apt_item = tk.Frame(appointments_list, bg=BG_CARD)
                     apt_item.pack(fill=tk.X, pady=8)
-                    
-                    time_label = tk.Label(
-                        apt_item,
-                        text=apt_time,
-                        font=('Segoe UI', 10, 'bold'),
-                        bg='white',
-                        fg='#1f2937'
-                    )
-                    time_label.pack(anchor='w')
-                    
-                    name_label = tk.Label(
-                        apt_item,
-                        text=f"{patient_name} - {doctor_name}",
-                        font=('Segoe UI', 10),
-                        bg='white',
-                        fg='#374151'
-                    )
-                    name_label.pack(anchor='w')
-                    
+                    tk.Label(apt_item, text=apt_time, font=(FONT_FALLBACK, 10, 'bold'),
+                            bg=BG_CARD, fg=TEXT_PRIMARY).pack(anchor='w')
+                    tk.Label(apt_item, text=f"{patient_name} - {doctor_name}",
+                            font=(FONT_FALLBACK, 10), bg=BG_CARD, fg=TEXT_SECONDARY).pack(anchor='w')
                     if specialization:
-                        spec_label = tk.Label(
-                            apt_item,
-                            text=specialization,
-                            font=('Segoe UI', 9),
-                            bg='white',
-                            fg='#6b7280'
-                        )
-                        spec_label.pack(anchor='w')
+                        tk.Label(apt_item, text=specialization, font=(FONT_FALLBACK, 9),
+                                bg=BG_CARD, fg=TEXT_SECONDARY).pack(anchor='w')
             except Exception as e:
-                tk.Label(appointments_list, text="No appointments today", font=('Segoe UI', 10), 
-                        bg='white', fg='#9ca3af').pack(pady=10)
+                tk.Label(appointments_list, text="No appointments today", font=(FONT_FALLBACK, 10), 
+                        bg=BG_CARD, fg=TEXT_SECONDARY).pack(pady=10)
             
             # Update scroll region after all content is loaded
             self.root.update_idletasks()
@@ -2780,7 +2507,8 @@ class HospitalManagementSystem:
             log_info("Loading Patients module...")
             self.clear_content()
             self.root.update_idletasks()
-            PatientModule(self.content_frame, self.db)
+            scrollable = self._create_scrollable_content()
+            PatientModule(scrollable, self.db)
             # Update UI after module creation
             self.root.update_idletasks()
             self.root.update()
@@ -2798,7 +2526,8 @@ class HospitalManagementSystem:
             log_info("Loading Doctors module...")
             self.clear_content()
             self.root.update_idletasks()
-            DoctorModule(self.content_frame, self.db)
+            scrollable = self._create_scrollable_content()
+            DoctorModule(scrollable, self.db)
             self.root.update_idletasks()
             self.root.update()
             log_info("Doctors module loaded successfully")
@@ -2815,7 +2544,8 @@ class HospitalManagementSystem:
             log_info("Loading Appointments module...")
             self.clear_content()
             self.root.update_idletasks()
-            AppointmentModule(self.content_frame, self.db)
+            scrollable = self._create_scrollable_content()
+            AppointmentModule(scrollable, self.db)
             self.root.update_idletasks()
             self.root.update()
             log_info("Appointments module loaded successfully")
@@ -2832,7 +2562,8 @@ class HospitalManagementSystem:
             log_info("Loading Prescriptions module...")
             self.clear_content()
             self.root.update_idletasks()
-            PrescriptionModule(self.content_frame, self.db)
+            scrollable = self._create_scrollable_content()
+            PrescriptionModule(scrollable, self.db)
             self.root.update_idletasks()
             self.root.update()
             log_info("Prescriptions module loaded successfully")
@@ -2849,7 +2580,8 @@ class HospitalManagementSystem:
             log_info("Loading IPD module...")
             self.clear_content()
             self.root.update_idletasks()
-            IPDModule(self.content_frame, self.db)
+            scrollable = self._create_scrollable_content()
+            IPDModule(scrollable, self.db)
             self.root.update_idletasks()
             self.root.update()
             log_info("IPD module loaded successfully")
@@ -2866,7 +2598,8 @@ class HospitalManagementSystem:
             log_info("Loading Billing module...")
             self.clear_content()
             self.root.update_idletasks()
-            BillingModule(self.content_frame, self.db)
+            scrollable = self._create_scrollable_content()
+            BillingModule(scrollable, self.db)
             self.root.update_idletasks()
             self.root.update()
             log_info("Billing module loaded successfully")
@@ -2883,7 +2616,8 @@ class HospitalManagementSystem:
             log_info("Loading Reports module...")
             self.clear_content()
             self.root.update_idletasks()
-            ReportsModule(self.content_frame, self.db)
+            scrollable = self._create_scrollable_content()
+            ReportsModule(scrollable, self.db)
             self.root.update_idletasks()
             self.root.update()
             log_info("Reports module loaded successfully")
@@ -2900,7 +2634,8 @@ class HospitalManagementSystem:
             log_info("Loading User Management module...")
             self.clear_content()
             self.root.update_idletasks()
-            RoleModule(self.content_frame, self.db)
+            scrollable = self._create_scrollable_content()
+            RoleModule(scrollable, self.db)
             self.root.update_idletasks()
             self.root.update()
             log_info("User Management module loaded successfully")
@@ -2917,7 +2652,8 @@ class HospitalManagementSystem:
             log_info("Loading Backup & Restore module...")
             self.clear_content()
             self.root.update_idletasks()
-            BackupModule(self.content_frame, self.db)
+            scrollable = self._create_scrollable_content()
+            BackupModule(scrollable, self.db)
             self.root.update_idletasks()
             self.root.update()
             log_info("Backup & Restore module loaded successfully")

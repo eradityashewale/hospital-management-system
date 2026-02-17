@@ -8,6 +8,14 @@ from datetime import datetime
 # Backend imports
 from backend.database import Database
 
+# Frontend theme
+from frontend.theme import (
+    BG_BASE, BG_CARD, BG_DEEP, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
+    ACCENT_BLUE, BORDER_DEFAULT, WARNING, ERROR, SUCCESS,
+    TABLE_HEADER_BG, BTN_SUCCESS_BG, BTN_SUCCESS_HOVER, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
+    BTN_DANGER_BG, BTN_DANGER_HOVER, BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
+)
+
 # Utils imports
 from utils.helpers import generate_id, get_current_date, get_current_datetime
 
@@ -25,37 +33,37 @@ class AppointmentModule:
     
     def create_ui(self):
         """Create user interface"""
-        # Header with modern styling
+        # Header with modern styling (dark theme)
         header = tk.Label(
             self.parent,
             text="Appointment Management",
             font=('Segoe UI', 24, 'bold'),
-            bg='#f5f7fa',
-            fg='#1a237e'
+            bg=BG_DEEP,
+            fg=TEXT_PRIMARY
         )
         header.pack(pady=20)
         
         # Top frame
-        top_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        top_frame = tk.Frame(self.parent, bg=BG_DEEP)
         top_frame.pack(fill=tk.X, padx=25, pady=15)
         
         # Filter frame
-        filter_frame = tk.Frame(top_frame, bg='#f5f7fa')
+        filter_frame = tk.Frame(top_frame, bg=BG_DEEP)
         filter_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
         # Search by patient name
-        tk.Label(filter_frame, text="Search by Patient Name:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=5)
+        tk.Label(filter_frame, text="Search by Patient Name:", font=('Segoe UI', 11, 'bold'), bg=BG_DEEP, fg=TEXT_SECONDARY).pack(side=tk.LEFT, padx=5)
         self.patient_name_var = tk.StringVar()
         self.patient_name_var.trace('w', lambda *args: self.apply_filters())
-        patient_name_entry = tk.Entry(filter_frame, textvariable=self.patient_name_var, font=('Segoe UI', 10), width=20, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
+        patient_name_entry = tk.Entry(filter_frame, textvariable=self.patient_name_var, font=('Segoe UI', 10), width=20, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=BORDER_DEFAULT, highlightcolor=ACCENT_BLUE, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
         patient_name_entry.pack(side=tk.LEFT, padx=5)
         
         # Date filter with calendar button
-        tk.Label(filter_frame, text="Filter by Date:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=(15, 5))
-        date_filter_frame = tk.Frame(filter_frame, bg='#f5f7fa')
+        tk.Label(filter_frame, text="Filter by Date:", font=('Segoe UI', 11, 'bold'), bg=BG_DEEP, fg=TEXT_SECONDARY).pack(side=tk.LEFT, padx=(15, 5))
+        date_filter_frame = tk.Frame(filter_frame, bg=BG_DEEP)
         date_filter_frame.pack(side=tk.LEFT, padx=5)
         self.date_var = tk.StringVar(value="")
-        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_var, font=('Segoe UI', 10), width=15, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
+        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_var, font=('Segoe UI', 10), width=15, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=BORDER_DEFAULT, highlightcolor=ACCENT_BLUE, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
         date_entry.pack(side=tk.LEFT)
         # Auto-filter when date changes
         self.date_var.trace('w', lambda *args: self.apply_filters())
@@ -321,7 +329,7 @@ class AppointmentModule:
             text="📅",
             command=open_calendar_for_filter,
             font=('Segoe UI', 12),
-            bg='#3b82f6',
+            bg=ACCENT_BLUE,
             fg='white',
             width=3,
             relief=tk.FLAT,
@@ -331,7 +339,7 @@ class AppointmentModule:
         date_cal_btn.pack(side=tk.LEFT, padx=(5, 0))
         
         # Status filter
-        tk.Label(filter_frame, text="Status:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=(10, 5))
+        tk.Label(filter_frame, text="Status:", font=('Segoe UI', 11, 'bold'), bg=BG_DEEP, fg=TEXT_SECONDARY).pack(side=tk.LEFT, padx=(10, 5))
         self.status_var = tk.StringVar(value="All")
         status_combo = ttk.Combobox(
             filter_frame,
@@ -351,20 +359,20 @@ class AppointmentModule:
             text="+ Schedule Appointment",
             command=self.add_appointment,
             font=('Segoe UI', 11, 'bold'),
-            bg='#10b981',
+            bg=BTN_SUCCESS_BG,
             fg='white',
             padx=25,
             pady=10,
             cursor='hand2',
             relief=tk.FLAT,
             bd=0,
-            activebackground='#059669',
+            activebackground=BTN_SUCCESS_HOVER,
             activeforeground='white'
         )
         add_btn.pack(side=tk.RIGHT, padx=10)
         
         # Action buttons with modern styling - Doctor-friendly (BEFORE list so they're visible)
-        action_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        action_frame = tk.Frame(self.parent, bg=BG_DEEP)
         action_frame.pack(fill=tk.X, padx=25, pady=15)
         
         # Label for quick actions
@@ -372,8 +380,8 @@ class AppointmentModule:
             action_frame,
             text="Quick Actions:",
             font=('Segoe UI', 11, 'bold'),
-            bg='#f5f7fa',
-            fg='#374151'
+            bg=BG_DEEP,
+            fg=TEXT_SECONDARY
         ).pack(side=tk.LEFT, padx=(0, 15))
         
         tk.Button(
@@ -381,14 +389,14 @@ class AppointmentModule:
             text="View Details",
             command=self.view_appointment,
             font=('Segoe UI', 10, 'bold'),
-            bg='#3b82f6',
+            bg=BTN_PRIMARY_BG,
             fg='white',
             padx=20,
             pady=8,
             cursor='hand2',
             relief=tk.FLAT,
             bd=0,
-            activebackground='#2563eb',
+            activebackground=BTN_PRIMARY_HOVER,
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
         
@@ -397,7 +405,7 @@ class AppointmentModule:
             text="✏️ Edit Appointment",
             command=self.edit_appointment,
             font=('Segoe UI', 10, 'bold'),
-            bg='#f59e0b',
+            bg=WARNING,
             fg='white',
             padx=20,
             pady=8,
@@ -413,14 +421,14 @@ class AppointmentModule:
             text="Delete",
             command=self.delete_appointment,
             font=('Segoe UI', 10, 'bold'),
-            bg='#ef4444',
+            bg=BTN_DANGER_BG,
             fg='white',
             padx=20,
             pady=8,
             cursor='hand2',
             relief=tk.FLAT,
             bd=0,
-            activebackground='#dc2626',
+            activebackground=BTN_DANGER_HOVER,
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
         
@@ -429,14 +437,14 @@ class AppointmentModule:
             text="✅ Mark Complete",
             command=self.mark_complete,
             font=('Segoe UI', 10, 'bold'),
-            bg='#10b981',
+            bg=BTN_SUCCESS_BG,
             fg='white',
             padx=20,
             pady=8,
             cursor='hand2',
             relief=tk.FLAT,
             bd=0,
-            activebackground='#059669',
+            activebackground=BTN_SUCCESS_HOVER,
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
         
@@ -457,7 +465,7 @@ class AppointmentModule:
         ).pack(side=tk.LEFT, padx=6)
         
         # List frame (AFTER action buttons)
-        list_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        list_frame = tk.Frame(self.parent, bg=BG_DEEP)
         list_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
         # Treeview
@@ -473,46 +481,46 @@ class AppointmentModule:
         style.configure("Treeview", 
                        font=('Segoe UI', 10), 
                        rowheight=30, 
-                       background='white', 
-                       foreground='#374151',
-                       fieldbackground='white')
+                       background=BG_CARD, 
+                       foreground=TEXT_PRIMARY,
+                       fieldbackground=BG_CARD)
         style.configure("Treeview.Heading", 
                        font=('Segoe UI', 11, 'bold'), 
-                       background='#6366f1', 
-                       foreground='white',
+                       background=TABLE_HEADER_BG, 
+                       foreground=TEXT_PRIMARY,
                        relief='flat')
         style.map("Treeview.Heading", 
-                 background=[('active', '#4f46e5'), ('pressed', '#4f46e5')])
+                 background=[('active', ACCENT_BLUE), ('pressed', ACCENT_BLUE)])
         style.map("Treeview",
-                 background=[('selected', '#6366f1')],
+                 background=[('selected', ACCENT_BLUE)],
                  foreground=[('selected', 'white')])
         
         # Create treeview AFTER style is configured
         self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
         
-        # Style scrollbars to match theme
+        # Style scrollbars to match dark theme
         style.configure("Vertical.TScrollbar", 
-                       background='#d1d5db',
-                       troughcolor='#f5f7fa',
+                       background=TEXT_MUTED,
+                       troughcolor=BG_BASE,
                        borderwidth=0,
-                       arrowcolor='#6366f1',
-                       darkcolor='#d1d5db',
-                       lightcolor='#d1d5db')
+                       arrowcolor=ACCENT_BLUE,
+                       darkcolor=TEXT_MUTED,
+                       lightcolor=TEXT_MUTED)
         style.map("Vertical.TScrollbar",
-                 background=[('active', '#9ca3af')],
-                 arrowcolor=[('active', '#4f46e5')])
+                 background=[('active', TEXT_SECONDARY)],
+                 arrowcolor=[('active', ACCENT_BLUE)])
         
         style.configure("Horizontal.TScrollbar",
-                       background='#9ca3af',
-                       troughcolor='#e5e7eb',
+                       background=TEXT_MUTED,
+                       troughcolor=BG_BASE,
                        borderwidth=1,
-                       arrowcolor='#6366f1',
-                       darkcolor='#9ca3af',
-                       lightcolor='#9ca3af',
+                       arrowcolor=ACCENT_BLUE,
+                       darkcolor=TEXT_MUTED,
+                       lightcolor=TEXT_MUTED,
                        relief=tk.FLAT)
         style.map("Horizontal.TScrollbar",
-                 background=[('active', '#6b7280'), ('pressed', '#4b5563')],
-                 arrowcolor=[('active', '#4f46e5')])
+                 background=[('active', TEXT_SECONDARY), ('pressed', BORDER_DEFAULT)],
+                 arrowcolor=[('active', ACCENT_BLUE)])
         
         # Configure column widths based on content
         column_widths = {

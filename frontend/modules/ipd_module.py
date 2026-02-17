@@ -8,6 +8,14 @@ from datetime import datetime
 # Backend imports
 from backend.database import Database
 
+# Frontend theme
+from frontend.theme import (
+    BG_BASE, BG_CARD, BG_DEEP, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
+    ACCENT_BLUE, ACCENT_PURPLE, BORDER_DEFAULT, TABLE_HEADER_BG, BTN_SUCCESS_BG, BTN_SUCCESS_HOVER,
+    BTN_PRIMARY_BG, BTN_PRIMARY_HOVER, BTN_DANGER_BG, BTN_DANGER_HOVER,
+    BTN_SECONDARY_BG, BTN_SECONDARY_HOVER, WARNING,
+)
+
 # Utils imports
 from utils.helpers import generate_id, get_current_date
 from utils.logger import (log_button_click, log_dialog_open, log_dialog_close, 
@@ -32,62 +40,62 @@ class IPDModule:
     
     def create_ui(self):
         """Create user interface"""
-        # Header with modern styling
+        # Header with modern styling (dark theme)
         header = tk.Label(
             self.parent,
             text="IPD Management",
             font=('Segoe UI', 24, 'bold'),
-            bg='#f5f7fa',
-            fg='#1a237e'
+            bg=BG_DEEP,
+            fg=TEXT_PRIMARY
         )
         header.pack(pady=20)
         
         # Top frame for search and add button
-        top_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        top_frame = tk.Frame(self.parent, bg=BG_DEEP)
         top_frame.pack(fill=tk.X, padx=25, pady=15)
         
         # Search frame
-        search_frame = tk.Frame(top_frame, bg='#f5f7fa')
+        search_frame = tk.Frame(top_frame, bg=BG_DEEP)
         search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        tk.Label(search_frame, text="Search:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=5)
+        tk.Label(search_frame, text="Search:", font=('Segoe UI', 11, 'bold'), bg=BG_DEEP, fg=TEXT_SECONDARY).pack(side=tk.LEFT, padx=5)
         self.search_var = tk.StringVar()
         self.search_var.trace('w', lambda *args: self.search_admissions())
-        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
+        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=BORDER_DEFAULT, highlightcolor=ACCENT_BLUE, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
         search_entry.pack(side=tk.LEFT, padx=8)
         
         # Filter by status
-        filter_frame = tk.Frame(top_frame, bg='#f5f7fa')
+        filter_frame = tk.Frame(top_frame, bg=BG_DEEP)
         filter_frame.pack(side=tk.LEFT, padx=10)
         
-        tk.Label(filter_frame, text="Status:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=5)
+        tk.Label(filter_frame, text="Status:", font=('Segoe UI', 11, 'bold'), bg=BG_DEEP, fg=TEXT_SECONDARY).pack(side=tk.LEFT, padx=5)
         self.status_filter = tk.StringVar(value="All")
         status_combo = ttk.Combobox(filter_frame, textvariable=self.status_filter, values=["All", "Admitted", "Discharged"], state="readonly", width=12)
         status_combo.pack(side=tk.LEFT, padx=5)
         status_combo.bind("<<ComboboxSelected>>", lambda e: self.refresh_list())
         
         # Filter by date
-        date_filter_frame = tk.Frame(top_frame, bg='#f5f7fa')
+        date_filter_frame = tk.Frame(top_frame, bg=BG_DEEP)
         date_filter_frame.pack(side=tk.LEFT, padx=10)
         
-        tk.Label(date_filter_frame, text="Date:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=5)
+        tk.Label(date_filter_frame, text="Date:", font=('Segoe UI', 11, 'bold'), bg=BG_DEEP, fg=TEXT_SECONDARY).pack(side=tk.LEFT, padx=5)
         self.date_filter = tk.StringVar()
-        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_filter, font=('Segoe UI', 11), width=12, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
+        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_filter, font=('Segoe UI', 11), width=12, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=BORDER_DEFAULT, highlightcolor=ACCENT_BLUE, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
         date_entry.pack(side=tk.LEFT, padx=5)
         date_entry.bind('<KeyRelease>', lambda e: self.refresh_list())
         # Add placeholder text
         date_entry.insert(0, "YYYY-MM-DD")
-        date_entry.config(fg='#9ca3af')
+        date_entry.config(fg=TEXT_MUTED)
         
         def on_date_focus_in(event):
             if date_entry.get() == "YYYY-MM-DD":
                 date_entry.delete(0, tk.END)
-                date_entry.config(fg='#000000')
+                date_entry.config(fg=TEXT_PRIMARY)
         
         def on_date_focus_out(event):
             if not date_entry.get().strip():
                 date_entry.insert(0, "YYYY-MM-DD")
-                date_entry.config(fg='#9ca3af')
+                date_entry.config(fg=TEXT_MUTED)
                 self.refresh_list()  # Refresh to show all when cleared
         
         date_entry.bind('<FocusIn>', on_date_focus_in)
@@ -361,7 +369,7 @@ class IPDModule:
             text="📅",
             command=open_calendar_for_filter,
             font=('Segoe UI', 12),
-            bg='#3b82f6',
+            bg=ACCENT_BLUE,
             fg='white',
             width=3,
             relief=tk.FLAT,
@@ -376,20 +384,20 @@ class IPDModule:
             text="+ Admit Patient",
             command=self.admit_patient,
             font=('Segoe UI', 11, 'bold'),
-            bg='#10b981',
+            bg=BTN_SUCCESS_BG,
             fg='white',
             padx=25,
             pady=10,
             cursor='hand2',
             relief=tk.FLAT,
             bd=0,
-            activebackground='#059669',
+            activebackground=BTN_SUCCESS_HOVER,
             activeforeground='white'
         )
         add_btn.pack(side=tk.RIGHT, padx=10)
         
         # Container for list and buttons to ensure both are visible
-        content_container = tk.Frame(self.parent, bg='#f5f7fa')
+        content_container = tk.Frame(self.parent, bg=BG_DEEP)
         content_container.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
         # Use grid layout to ensure buttons are always visible
@@ -398,7 +406,7 @@ class IPDModule:
         content_container.grid_columnconfigure(0, weight=1)
         
         # List frame - use grid to control space better
-        list_frame = tk.Frame(content_container, bg='#f5f7fa')
+        list_frame = tk.Frame(content_container, bg=BG_DEEP)
         list_frame.grid(row=0, column=0, sticky='nsew', pady=(0, 10))
         
         # Treeview for admissions list
@@ -414,46 +422,46 @@ class IPDModule:
         style.configure("Treeview", 
                        font=('Segoe UI', 10), 
                        rowheight=30, 
-                       background='white', 
-                       foreground='#374151',
-                       fieldbackground='white')
+                       background=BG_CARD, 
+                       foreground=TEXT_PRIMARY,
+                       fieldbackground=BG_CARD)
         style.configure("Treeview.Heading", 
                        font=('Segoe UI', 11, 'bold'), 
-                       background='#6366f1', 
-                       foreground='white',
+                       background=TABLE_HEADER_BG, 
+                       foreground=TEXT_PRIMARY,
                        relief='flat')
         style.map("Treeview.Heading", 
-                 background=[('active', '#4f46e5'), ('pressed', '#4f46e5')])
+                 background=[('active', ACCENT_BLUE), ('pressed', ACCENT_BLUE)])
         style.map("Treeview",
-                 background=[('selected', '#6366f1')],
+                 background=[('selected', ACCENT_BLUE)],
                  foreground=[('selected', 'white')])
         
         # Create treeview AFTER style is configured
         self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
         
-        # Style scrollbars to match theme
+        # Style scrollbars to match dark theme
         style.configure("Vertical.TScrollbar", 
-                       background='#d1d5db',
-                       troughcolor='#f5f7fa',
+                       background=TEXT_MUTED,
+                       troughcolor=BG_BASE,
                        borderwidth=0,
-                       arrowcolor='#6366f1',
-                       darkcolor='#d1d5db',
-                       lightcolor='#d1d5db')
+                       arrowcolor=ACCENT_BLUE,
+                       darkcolor=TEXT_MUTED,
+                       lightcolor=TEXT_MUTED)
         style.map("Vertical.TScrollbar",
-                 background=[('active', '#9ca3af')],
-                 arrowcolor=[('active', '#4f46e5')])
+                 background=[('active', TEXT_SECONDARY)],
+                 arrowcolor=[('active', ACCENT_BLUE)])
         
         style.configure("Horizontal.TScrollbar",
-                       background='#9ca3af',
-                       troughcolor='#e5e7eb',
+                       background=TEXT_MUTED,
+                       troughcolor=BG_BASE,
                        borderwidth=1,
-                       arrowcolor='#6366f1',
-                       darkcolor='#9ca3af',
-                       lightcolor='#9ca3af',
+                       arrowcolor=ACCENT_BLUE,
+                       darkcolor=TEXT_MUTED,
+                       lightcolor=TEXT_MUTED,
                        relief=tk.FLAT)
         style.map("Horizontal.TScrollbar",
-                 background=[('active', '#6b7280'), ('pressed', '#4b5563')],
-                 arrowcolor=[('active', '#4f46e5')])
+                 background=[('active', TEXT_SECONDARY), ('pressed', BORDER_DEFAULT)],
+                 arrowcolor=[('active', ACCENT_BLUE)])
         
         # Configure column widths
         column_widths = {
@@ -487,16 +495,16 @@ class IPDModule:
         
         # Action buttons frame - ensure it's always visible at the bottom
         # Create a separator frame first
-        separator = tk.Frame(content_container, bg='#d1d5db', height=2)
+        separator = tk.Frame(content_container, bg=BORDER_DEFAULT, height=2)
         separator.grid(row=1, column=0, sticky='ew', pady=(5, 10))
         
-        action_frame = tk.Frame(content_container, bg='#ffffff', relief=tk.RAISED, bd=2)
+        action_frame = tk.Frame(content_container, bg=BG_DEEP, relief=tk.RAISED, bd=2)
         action_frame.grid(row=2, column=0, sticky='ew', pady=(0, 0))
         action_frame.grid_columnconfigure(0, weight=1)
         action_frame.grid_columnconfigure(1, weight=0)
         
         # Left side buttons
-        left_buttons = tk.Frame(action_frame, bg='#ffffff')
+        left_buttons = tk.Frame(action_frame, bg=BG_DEEP)
         left_buttons.grid(row=0, column=0, sticky='w', padx=10, pady=10)
         
         tk.Button(
@@ -504,14 +512,14 @@ class IPDModule:
             text="View Details",
             command=self.view_admission,
             font=('Segoe UI', 10, 'bold'),
-            bg='#3b82f6',
+            bg=BTN_PRIMARY_BG,
             fg='white',
             padx=20,
             pady=8,
             cursor='hand2',
             relief=tk.FLAT,
             bd=0,
-            activebackground='#2563eb',
+            activebackground=BTN_PRIMARY_HOVER,
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
         
@@ -520,7 +528,7 @@ class IPDModule:
             text="📋 Daily Notes",
             command=self.open_daily_notes,
             font=('Segoe UI', 10, 'bold'),
-            bg='#8b5cf6',
+            bg=ACCENT_PURPLE,
             fg='white',
             padx=20,
             pady=8,
@@ -532,7 +540,7 @@ class IPDModule:
         ).pack(side=tk.LEFT, padx=6)
         
         # Right side buttons (Discharge and Refresh) - ensure they're visible
-        right_buttons = tk.Frame(action_frame, bg='#ffffff')
+        right_buttons = tk.Frame(action_frame, bg=BG_DEEP)
         right_buttons.grid(row=0, column=1, sticky='e', padx=10, pady=10)
         
         # Store discharge button reference for enabling/disabling
@@ -541,14 +549,14 @@ class IPDModule:
             text="🚪 Discharge Patient",
             command=self.discharge_admission,
             font=('Segoe UI', 12, 'bold'),
-            bg='#ef4444',
+            bg=BTN_DANGER_BG,
             fg='white',
             padx=30,
             pady=12,
             cursor='hand2',
             relief=tk.RAISED,
             bd=2,
-            activebackground='#dc2626',
+            activebackground=BTN_DANGER_HOVER,
             activeforeground='white'
         )
         self.discharge_btn.pack(side=tk.LEFT, padx=10)
@@ -558,14 +566,14 @@ class IPDModule:
             text="Refresh",
             command=self.refresh_list,
             font=('Segoe UI', 10, 'bold'),
-            bg='#6b7280',
+            bg=BTN_SECONDARY_BG,
             fg='white',
             padx=20,
             pady=8,
             cursor='hand2',
             relief=tk.FLAT,
             bd=0,
-            activebackground='#4b5563',
+            activebackground=BTN_SECONDARY_HOVER,
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
         

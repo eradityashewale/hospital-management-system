@@ -7,6 +7,14 @@ from tkinter import ttk, messagebox
 # Backend imports
 from backend.database import Database
 
+# Frontend theme
+from frontend.theme import (
+    BG_BASE, BG_CARD, BG_DEEP, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
+    ACCENT_BLUE, BORDER_DEFAULT, WARNING, ERROR, SUCCESS,
+    TABLE_HEADER_BG, BTN_SUCCESS_BG, BTN_SUCCESS_HOVER, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
+    BTN_DANGER_BG, BTN_DANGER_HOVER, BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
+)
+
 # Utils imports
 from utils.helpers import generate_id
 
@@ -24,28 +32,28 @@ class DoctorModule:
     
     def create_ui(self):
         """Create user interface"""
-        # Header with modern styling
+        # Header with modern styling (dark theme)
         header = tk.Label(
             self.parent,
             text="Doctor Management",
             font=('Segoe UI', 24, 'bold'),
-            bg='#f5f7fa',
-            fg='#1a237e'
+            bg=BG_DEEP,
+            fg=TEXT_PRIMARY
         )
         header.pack(pady=20)
         
         # Top frame for search and add button
-        top_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        top_frame = tk.Frame(self.parent, bg=BG_DEEP)
         top_frame.pack(fill=tk.X, padx=25, pady=15)
         
         # Search frame
-        search_frame = tk.Frame(top_frame, bg='#f5f7fa')
+        search_frame = tk.Frame(top_frame, bg=BG_DEEP)
         search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        tk.Label(search_frame, text="Search:", font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#374151').pack(side=tk.LEFT, padx=5)
+        tk.Label(search_frame, text="Search:", font=('Segoe UI', 11, 'bold'), bg=BG_DEEP, fg=TEXT_SECONDARY).pack(side=tk.LEFT, padx=5)
         self.search_var = tk.StringVar()
         self.search_var.trace('w', lambda *args: self.search_doctors())
-        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
+        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=BORDER_DEFAULT, highlightcolor=ACCENT_BLUE, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
         search_entry.pack(side=tk.LEFT, padx=8)
         
         # Add doctor button with modern styling
@@ -54,24 +62,24 @@ class DoctorModule:
             text="+ Add New Doctor",
             command=self.add_doctor,
             font=('Segoe UI', 11, 'bold'),
-            bg='#10b981',
+            bg=BTN_SUCCESS_BG,
             fg='white',
             padx=25,
             pady=10,
             cursor='hand2',
             relief=tk.FLAT,
             bd=0,
-            activebackground='#059669',
+            activebackground=BTN_SUCCESS_HOVER,
             activeforeground='white'
         )
         add_btn.pack(side=tk.RIGHT, padx=10)
         
         # Container for list and buttons to ensure both are visible
-        content_container = tk.Frame(self.parent, bg='#f5f7fa')
+        content_container = tk.Frame(self.parent, bg=BG_DEEP)
         content_container.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
         # List frame - fixed height to ensure buttons are visible
-        list_frame = tk.Frame(content_container, bg='#f5f7fa')
+        list_frame = tk.Frame(content_container, bg=BG_DEEP)
         list_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
         # Treeview
@@ -87,46 +95,46 @@ class DoctorModule:
         style.configure("Treeview", 
                        font=('Segoe UI', 10), 
                        rowheight=30, 
-                       background='white', 
-                       foreground='#374151',
-                       fieldbackground='white')
+                       background=BG_CARD, 
+                       foreground=TEXT_PRIMARY,
+                       fieldbackground=BG_CARD)
         style.configure("Treeview.Heading", 
                        font=('Segoe UI', 11, 'bold'), 
-                       background='#6366f1', 
-                       foreground='white',
+                       background=TABLE_HEADER_BG, 
+                       foreground=TEXT_PRIMARY,
                        relief='flat')
         style.map("Treeview.Heading", 
-                 background=[('active', '#4f46e5'), ('pressed', '#4f46e5')])
+                 background=[('active', ACCENT_BLUE), ('pressed', ACCENT_BLUE)])
         style.map("Treeview",
-                 background=[('selected', '#6366f1')],
+                 background=[('selected', ACCENT_BLUE)],
                  foreground=[('selected', 'white')])
         
         # Create treeview AFTER style is configured
         self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=12)
         
-        # Style scrollbars to match theme
+        # Style scrollbars to match dark theme
         style.configure("Vertical.TScrollbar", 
-                       background='#d1d5db',
-                       troughcolor='#f5f7fa',
+                       background=TEXT_MUTED,
+                       troughcolor=BG_BASE,
                        borderwidth=0,
-                       arrowcolor='#6366f1',
-                       darkcolor='#d1d5db',
-                       lightcolor='#d1d5db')
+                       arrowcolor=ACCENT_BLUE,
+                       darkcolor=TEXT_MUTED,
+                       lightcolor=TEXT_MUTED)
         style.map("Vertical.TScrollbar",
-                 background=[('active', '#9ca3af')],
-                 arrowcolor=[('active', '#4f46e5')])
+                 background=[('active', TEXT_SECONDARY)],
+                 arrowcolor=[('active', ACCENT_BLUE)])
         
         style.configure("Horizontal.TScrollbar",
-                       background='#9ca3af',
-                       troughcolor='#e5e7eb',
+                       background=TEXT_MUTED,
+                       troughcolor=BG_BASE,
                        borderwidth=1,
-                       arrowcolor='#6366f1',
-                       darkcolor='#9ca3af',
-                       lightcolor='#9ca3af',
+                       arrowcolor=ACCENT_BLUE,
+                       darkcolor=TEXT_MUTED,
+                       lightcolor=TEXT_MUTED,
                        relief=tk.FLAT)
         style.map("Horizontal.TScrollbar",
-                 background=[('active', '#6b7280'), ('pressed', '#4b5563')],
-                 arrowcolor=[('active', '#4f46e5')])
+                 background=[('active', TEXT_SECONDARY), ('pressed', BORDER_DEFAULT)],
+                 arrowcolor=[('active', ACCENT_BLUE)])
         
         # Configure column widths based on content - wider sizes for readability
         column_widths = {
@@ -192,7 +200,7 @@ class DoctorModule:
         self.tree.bind('<Button-2>', show_context_menu)  # Right-click on Mac/Linux
         
         # Action buttons with modern styling - placed in container AFTER list frame so always visible
-        action_frame = tk.Frame(content_container, bg='#f5f7fa')
+        action_frame = tk.Frame(content_container, bg=BG_DEEP)
         action_frame.pack(fill=tk.X, pady=(10, 0))
         
         tk.Button(
@@ -200,14 +208,14 @@ class DoctorModule:
             text="View Details",
             command=self.view_doctor,
             font=('Segoe UI', 10, 'bold'),
-            bg='#3b82f6',
+            bg=BTN_PRIMARY_BG,
             fg='white',
             padx=20,
             pady=8,
             cursor='hand2',
             relief=tk.FLAT,
             bd=0,
-            activebackground='#2563eb',
+            activebackground=BTN_PRIMARY_HOVER,
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
         
@@ -216,7 +224,7 @@ class DoctorModule:
             text="✏️ Edit Doctor",
             command=self.edit_doctor,
             font=('Segoe UI', 10, 'bold'),
-            bg='#f59e0b',
+            bg=WARNING,
             fg='white',
             padx=20,
             pady=8,
@@ -235,14 +243,14 @@ class DoctorModule:
             text="Delete",
             command=self.delete_doctor,
             font=('Segoe UI', 10, 'bold'),
-            bg='#ef4444',
+            bg=BTN_DANGER_BG,
             fg='white',
             padx=20,
             pady=8,
             cursor='hand2',
             relief=tk.FLAT,
             bd=0,
-            activebackground='#dc2626',
+            activebackground=BTN_DANGER_HOVER,
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
     
@@ -369,7 +377,7 @@ class DoctorModule:
         else:
             dialog.title("Add New Doctor")
         dialog.geometry("600x700")
-        dialog.configure(bg='#f5f7fa')
+        dialog.configure(bg=BG_BASE)
         dialog.transient(self.parent)
         
         # Get root window for focus management
@@ -385,11 +393,11 @@ class DoctorModule:
             dialog.grab_set()  # Fallback for older tkinter versions
         
         # Main container for all content
-        main_container = tk.Frame(dialog, bg='#f5f7fa')
+        main_container = tk.Frame(dialog, bg=BG_BASE)
         main_container.pack(fill=tk.BOTH, expand=True)
         
         # Fields frame - will expand but leave room for buttons at bottom
-        fields_frame = tk.Frame(main_container, bg='#f5f7fa')
+        fields_frame = tk.Frame(main_container, bg=BG_BASE)
         fields_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=(25, 0))
         
         entries = {}
@@ -397,19 +405,19 @@ class DoctorModule:
         # Add mode indicator
         if view_only:
             mode_label = tk.Label(fields_frame, text="📖 VIEW MODE (Read Only)", 
-                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#ef4444')
+                                 font=('Segoe UI', 11, 'bold'), bg=BG_BASE, fg=ERROR)
             mode_label.pack(pady=5)
         elif doctor:
             mode_label = tk.Label(fields_frame, text="✏️ EDIT MODE (Editable)", 
-                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#10b981')
+                                 font=('Segoe UI', 11, 'bold'), bg=BG_BASE, fg=SUCCESS)
             mode_label.pack(pady=5)
         
         if doctor:
             doctor_id = doctor['doctor_id']
-            tk.Label(fields_frame, text=f"Doctor ID: {doctor_id}", font=('Segoe UI', 13, 'bold'), bg='#f5f7fa', fg='#1a237e').pack(pady=8)
+            tk.Label(fields_frame, text=f"Doctor ID: {doctor_id}", font=('Segoe UI', 13, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY).pack(pady=8)
         else:
             doctor_id = generate_id('DOC')
-            tk.Label(fields_frame, text=f"Doctor ID: {doctor_id}", font=('Segoe UI', 13, 'bold'), bg='#f5f7fa', fg='#1a237e').pack(pady=8)
+            tk.Label(fields_frame, text=f"Doctor ID: {doctor_id}", font=('Segoe UI', 13, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY).pack(pady=8)
         
         field_configs = [
             ('first_name', 'First Name', True),
@@ -425,15 +433,15 @@ class DoctorModule:
         ]
         
         for field, label, required in field_configs:
-            frame = tk.Frame(fields_frame, bg='#f5f7fa')
+            frame = tk.Frame(fields_frame, bg=BG_BASE)
             frame.pack(fill=tk.X, pady=10)
             
-            tk.Label(frame, text=f"{label}{' *' if required else ''}:", font=('Segoe UI', 10, 'bold'), bg='#f5f7fa', fg='#374151', width=20, anchor='w').pack(side=tk.LEFT)
+            tk.Label(frame, text=f"{label}{' *' if required else ''}:", font=('Segoe UI', 10, 'bold'), bg=BG_BASE, fg=TEXT_SECONDARY, width=20, anchor='w').pack(side=tk.LEFT)
             
             # Entry fields should be 'normal' (editable) when not in view_only mode
             entry_state = 'readonly' if view_only else 'normal'
             entry = tk.Entry(frame, font=('Segoe UI', 10), width=35, 
-                           state=entry_state, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground='#d1d5db', highlightcolor='#6366f1')
+                           state=entry_state, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=BORDER_DEFAULT, highlightcolor=ACCENT_BLUE, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
             
             # Insert doctor data BEFORE packing
             if doctor and field in doctor:
@@ -458,7 +466,7 @@ class DoctorModule:
         
         if not view_only:
             # Button frame at bottom - always visible
-            button_frame = tk.Frame(main_container, bg='#f5f7fa')
+            button_frame = tk.Frame(main_container, bg=BG_BASE)
             button_frame.pack(fill=tk.X, side=tk.BOTTOM, padx=25, pady=(0, 25))
             
             def save_doctor():
@@ -546,14 +554,14 @@ class DoctorModule:
                 text="Save",
                 command=save_doctor,
                 font=('Segoe UI', 11, 'bold'),
-                bg='#10b981',
+                bg=BTN_SUCCESS_BG,
                 fg='white',
                 padx=35,
                 pady=10,
                 cursor='hand2',
                 relief=tk.FLAT,
                 bd=0,
-                activebackground='#059669',
+                activebackground=BTN_SUCCESS_HOVER,
                 activeforeground='white'
             ).pack(side=tk.LEFT, padx=10)
             
@@ -584,14 +592,14 @@ class DoctorModule:
                 text="Close",
                 command=close_dialog,
                 font=('Segoe UI', 11, 'bold'),
-                bg='#6b7280',
+                bg=BTN_SECONDARY_BG,
                 fg='white',
                 padx=35,
                 pady=10,
                 cursor='hand2',
                 relief=tk.FLAT,
                 bd=0,
-                activebackground='#4b5563',
+                activebackground=BTN_SECONDARY_HOVER,
                 activeforeground='white'
             ).pack(side=tk.LEFT, padx=10)
         else:
@@ -619,14 +627,14 @@ class DoctorModule:
                 text="Close",
                 command=close_dialog,
                 font=('Segoe UI', 11, 'bold'),
-                bg='#6b7280',
+                bg=BTN_SECONDARY_BG,
                 fg='white',
                 padx=35,
                 pady=10,
                 cursor='hand2',
                 relief=tk.FLAT,
                 bd=0,
-                activebackground='#4b5563',
+                activebackground=BTN_SECONDARY_HOVER,
                 activeforeground='white'
             ).pack(pady=10)
         

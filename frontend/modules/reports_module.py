@@ -12,6 +12,13 @@ from typing import Dict, List, Optional
 # Backend imports
 from backend.database import Database
 
+# Frontend theme
+from frontend.theme import (
+    BG_BASE, BG_CARD, BG_DEEP, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
+    ACCENT_BLUE, BORDER_DEFAULT, TABLE_HEADER_BG, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
+    BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
+)
+
 # Try to import reportlab for PDF export
 try:
     from reportlab.lib.pagesizes import letter, A4
@@ -47,18 +54,18 @@ class ReportsModule:
     
     def create_ui(self):
         """Create enhanced user interface"""
-        # Header with modern styling
+        # Header with modern styling (dark theme)
         header = tk.Label(
             self.parent,
             text="Reports & Analytics Dashboard",
             font=('Segoe UI', 24, 'bold'),
-            bg='#f5f7fa',
-            fg='#1a237e'
+            bg=BG_DEEP,
+            fg=TEXT_PRIMARY
         )
         header.pack(pady=15)
         
         # Main content frame
-        content_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        content_frame = tk.Frame(self.parent, bg=BG_DEEP)
         content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
         
         # Filter frame
@@ -66,23 +73,23 @@ class ReportsModule:
             content_frame,
             text="Report Filters",
             font=('Segoe UI', 12, 'bold'),
-            bg='white',
-            fg='#1a237e',
+            bg=BG_CARD,
+            fg=TEXT_PRIMARY,
             relief=tk.FLAT,
             bd=0
         )
         filter_frame.pack(fill=tk.X, pady=(0, 10))
         
         # Date range selection
-        date_frame = tk.Frame(filter_frame, bg='white')
+        date_frame = tk.Frame(filter_frame, bg=BG_CARD)
         date_frame.pack(fill=tk.X, padx=15, pady=10)
         
         tk.Label(
             date_frame,
             text="From Date:",
             font=('Segoe UI', 10),
-            bg='white',
-            fg='#374151'
+            bg=BG_CARD,
+            fg=TEXT_SECONDARY
         ).pack(side=tk.LEFT, padx=5)
         
         if CALENDAR_AVAILABLE:
@@ -106,8 +113,8 @@ class ReportsModule:
                 date_frame,
                 text="To Date:",
                 font=('Segoe UI', 10),
-                bg='white',
-                fg='#374151'
+                bg=BG_CARD,
+                fg=TEXT_SECONDARY
             ).pack(side=tk.LEFT, padx=5)
             
             default_to_date = datetime.now()
@@ -138,8 +145,8 @@ class ReportsModule:
                 date_frame,
                 text="To Date:",
                 font=('Segoe UI', 10),
-                bg='white',
-                fg='#374151'
+                bg=BG_CARD,
+                fg=TEXT_SECONDARY
             ).pack(side=tk.LEFT, padx=5)
             
             self.to_date_entry = tk.Entry(
@@ -155,13 +162,13 @@ class ReportsModule:
             text="Apply Filters",
             command=self.apply_filters,
             font=('Segoe UI', 9, 'bold'),
-            bg='#3b82f6',
+            bg=BTN_PRIMARY_BG,
             fg='white',
             padx=15,
             pady=5,
             cursor='hand2',
             relief=tk.FLAT,
-            activebackground='#2563eb'
+            activebackground=BTN_PRIMARY_HOVER
         ).pack(side=tk.LEFT, padx=10)
         
         tk.Button(
@@ -169,13 +176,13 @@ class ReportsModule:
             text="Reset",
             command=self.reset_filters,
             font=('Segoe UI', 9),
-            bg='#6b7280',
+            bg=BTN_SECONDARY_BG,
             fg='white',
             padx=15,
             pady=5,
             cursor='hand2',
             relief=tk.FLAT,
-            activebackground='#4b5563'
+            activebackground=BTN_SECONDARY_HOVER
         ).pack(side=tk.LEFT, padx=5)
         
         # Report type selection

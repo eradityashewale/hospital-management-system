@@ -8,6 +8,13 @@ from tkinter import ttk, messagebox
 # Backend imports
 from backend.database import Database
 
+# Frontend theme
+from frontend.theme import (
+    BG_BASE, BG_CARD, BG_DEEP, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
+    ACCENT_BLUE, BORDER_DEFAULT, TABLE_HEADER_BG, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
+    BTN_DANGER_BG, BTN_DANGER_HOVER, BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
+)
+
 # Utils imports
 from utils.logger import (log_button_click, log_dialog_open, log_dialog_close, 
                    log_database_operation, log_error, log_info, log_warning, log_debug)
@@ -28,13 +35,13 @@ class RoleModule:
     
     def create_ui(self):
         """Create user interface"""
-        # Header with modern styling
+        # Header with modern styling (dark theme)
         header = tk.Label(
             self.parent,
             text="User Management",
             font=('Segoe UI', 24, 'bold'),
-            bg='#f5f7fa',
-            fg='#1a237e'
+            bg=BG_DEEP,
+            fg=TEXT_PRIMARY
         )
         header.pack(pady=20)
         
@@ -43,13 +50,13 @@ class RoleModule:
             self.parent,
             text="Create and manage users with direct module access permissions",
             font=('Segoe UI', 11),
-            bg='#f5f7fa',
-            fg='#6b7280'
+            bg=BG_DEEP,
+            fg=TEXT_MUTED
         )
         desc_label.pack(pady=(0, 20))
         
         # Top frame for add button
-        top_frame = tk.Frame(self.parent, bg='#f5f7fa')
+        top_frame = tk.Frame(self.parent, bg=BG_DEEP)
         top_frame.pack(fill=tk.X, padx=25, pady=15)
         
         # Add user button
@@ -58,24 +65,24 @@ class RoleModule:
             text="+ Create New User",
             command=self.add_user,
             font=('Segoe UI', 11, 'bold'),
-            bg='#3b82f6',
+            bg=BTN_PRIMARY_BG,
             fg='white',
             padx=25,
             pady=10,
             cursor='hand2',
             relief=tk.FLAT,
             bd=0,
-            activebackground='#2563eb',
+            activebackground=BTN_PRIMARY_HOVER,
             activeforeground='white'
         )
         add_user_btn.pack(side=tk.RIGHT, padx=10)
         
         # Container for list
-        content_container = tk.Frame(self.parent, bg='#f5f7fa')
+        content_container = tk.Frame(self.parent, bg=BG_DEEP)
         content_container.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
         # List frame
-        list_frame = tk.Frame(content_container, bg='#f5f7fa')
+        list_frame = tk.Frame(content_container, bg=BG_DEEP)
         list_frame.pack(fill=tk.BOTH, expand=True)
         
         # Treeview for user list
@@ -91,16 +98,17 @@ class RoleModule:
         style.configure("Treeview", 
                        font=('Segoe UI', 10), 
                        rowheight=35, 
-                       background='white', 
-                       foreground='#374151',
-                       fieldbackground='white')
+                       background=BG_CARD, 
+                       foreground=TEXT_PRIMARY,
+                       fieldbackground=BG_CARD)
         style.configure("Treeview.Heading", 
                        font=('Segoe UI', 11, 'bold'), 
-                       background='#6366f1', 
-                       foreground='white',
+                       background=TABLE_HEADER_BG, 
+                       foreground=TEXT_PRIMARY,
                        relief=tk.FLAT)
         style.map("Treeview.Heading",
-                 background=[('active', '#4f46e5')])
+                 background=[('active', ACCENT_BLUE)])
+        style.map("Treeview", background=[('selected', ACCENT_BLUE)], foreground=[('selected', 'white')])
         
         # Scrollbar
         scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL)
@@ -144,7 +152,7 @@ class RoleModule:
         self.tree.bind('<Button-3>', self.show_context_menu)
         
         # Action buttons frame
-        button_frame = tk.Frame(content_container, bg='#f5f7fa')
+        button_frame = tk.Frame(content_container, bg=BG_DEEP)
         button_frame.pack(fill=tk.X, pady=(15, 0))
         
         edit_btn = tk.Button(
@@ -152,13 +160,13 @@ class RoleModule:
             text="Edit User",
             command=self.edit_user,
             font=('Segoe UI', 10, 'bold'),
-            bg='#6366f1',
+            bg=BTN_PRIMARY_BG,
             fg='white',
             padx=20,
             pady=8,
             cursor='hand2',
             relief=tk.FLAT,
-            activebackground='#4f46e5',
+            activebackground=BTN_PRIMARY_HOVER,
             activeforeground='white'
         )
         edit_btn.pack(side=tk.LEFT, padx=5)
@@ -168,13 +176,13 @@ class RoleModule:
             text="Delete User",
             command=self.delete_user,
             font=('Segoe UI', 10, 'bold'),
-            bg='#ef4444',
+            bg=BTN_DANGER_BG,
             fg='white',
             padx=20,
             pady=8,
             cursor='hand2',
             relief=tk.FLAT,
-            activebackground='#dc2626',
+            activebackground=BTN_DANGER_HOVER,
             activeforeground='white'
         )
         delete_btn.pack(side=tk.LEFT, padx=5)
