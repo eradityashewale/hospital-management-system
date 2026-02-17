@@ -2454,4 +2454,36 @@ class Database:
         except Exception as e:
             log_error(f"Error getting user: {user_id}", e)
             return None
-    
+
+    # ========================================================================
+    # Backup & Restore
+    # ========================================================================
+
+    def create_local_backup(self, dest_path: str) -> str:
+        """Create a copy of the database file at dest_path. Returns dest_path."""
+        import shutil
+        self.conn.commit()
+        self.close()
+        try:
+            shutil.copy2(self.db_name, dest_path)
+            log_info(f"Backup created: {dest_path}")
+            return dest_path
+        finally:
+            self.connect()
+
+    def restore_from_file(self, src_path: str) -> bool:
+        """Restore database from a backup file. Replaces current database."""
+        import shutil
+        if not os.path.isfile(src_path):
+            log_error("Restore failed: backup file not found", src_path)
+            return False
+        self.close()
+        try:
+            shutil.copy2(src_path, self.db_name)
+            log_info(f"Database restored from: {src_path}")
+            self.connect()
+            return True
+        except Exception as e:
+            log_error("Restore failed", e)
+            self.connect()
+            return False

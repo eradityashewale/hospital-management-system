@@ -24,3 +24,6 @@ flask-cors>=3.0.0         # CORS support for Flask API
 
 # Production server (for deploy e.g. Render):
 gunicorn>=21.0.0          # WSGI server for Render/Heroku
+
+# Optional - Google Cloud Storage backup:
+google-cloud-storage>=2.0.0   # For cloud database backup/restore

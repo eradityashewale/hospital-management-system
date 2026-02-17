@@ -25,6 +25,7 @@
             <button onclick="showPrescriptions()" id="nav-prescriptions">💊 Prescriptions</button>
             <button onclick="showBilling()" id="nav-billing">💰 Billing</button>
             <button onclick="showStatistics()" id="nav-statistics">📊 Statistics</button>
+            <button onclick="showBackup()" id="nav-backup">☁️ Backup</button>
         </div>
 
         <div class="content" id="content">
@@ -38,6 +39,7 @@
     </div>
 
     <script src="js/api.js"></script>
+    <script src="js/backup.js"></script>
     <script src="js/patients.js"></script>
     <script src="js/doctors.js"></script>
     <script src="js/appointments.js"></script>
@@ -62,6 +64,7 @@
         const originalShowPrescriptions = window.showPrescriptions;
         const originalShowBilling = window.showBilling;
         const originalShowStatistics = window.showStatistics;
+        const originalShowBackup = window.showBackup;
         
         window.showPatients = function() { setActiveNav('patients'); if (originalShowPatients) originalShowPatients(); };
         window.showDoctors = function() { setActiveNav('doctors'); if (originalShowDoctors) originalShowDoctors(); };
@@ -69,6 +72,7 @@
         window.showPrescriptions = function() { setActiveNav('prescriptions'); if (originalShowPrescriptions) originalShowPrescriptions(); };
         window.showBilling = function() { setActiveNav('billing'); if (originalShowBilling) originalShowBilling(); };
         window.showStatistics = function() { setActiveNav('statistics'); if (originalShowStatistics) originalShowStatistics(); };
+        window.showBackup = function() { setActiveNav('backup'); if (originalShowBackup) originalShowBackup(); };
     </script>
 </body>
 </html>

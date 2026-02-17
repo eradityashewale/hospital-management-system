@@ -23,6 +23,7 @@ from frontend.modules.billing_module import BillingModule
 from frontend.modules.reports_module import ReportsModule
 from frontend.modules.role_module import RoleModule
 from frontend.modules.ipd_module import IPDModule
+from frontend.modules.backup_module import BackupModule
 
 
 class HospitalManagementSystem:
@@ -441,10 +442,11 @@ class HospitalManagementSystem:
             elif text == "Reports" and self.has_permission('report'):
                 filtered_buttons.append((text, command))
         
-        # Add User Management button only for admin users
+        # Add User Management and Backup buttons only for admin users
         try:
             if self.is_admin():
                 filtered_buttons.append(("User Management", self.show_roles))
+                filtered_buttons.append(("Backup", self.show_backup))
         except Exception as e:
             log_error("Error checking admin status for User Management button", e)
         
@@ -2905,6 +2907,23 @@ class HospitalManagementSystem:
         except Exception as e:
             log_error("Failed to load User Management module", e)
             messagebox.showerror("Error", f"Failed to load User Management module: {str(e)}")
+
+    def show_backup(self):
+        """Show backup & restore module (admin only)"""
+        if not self.is_admin():
+            messagebox.showerror("Access Denied", "Only administrators can access Backup & Restore.")
+            return
+        try:
+            log_info("Loading Backup & Restore module...")
+            self.clear_content()
+            self.root.update_idletasks()
+            BackupModule(self.content_frame, self.db)
+            self.root.update_idletasks()
+            self.root.update()
+            log_info("Backup & Restore module loaded successfully")
+        except Exception as e:
+            log_error("Failed to load Backup & Restore module", e)
+            messagebox.showerror("Error", f"Failed to load Backup & Restore module: {str(e)}")
     
     def logout(self):
         """Handle user logout"""

@@ -12,14 +12,20 @@ except ImportError:
     cors_available = False
     print("Warning: flask-cors not installed. CORS support disabled.")
 from functools import wraps
-import sys
 import os
+import sys
+import tempfile
 
 # Add project root to path
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, project_root)
 
 from backend.database import Database
+from backend.cloud_backup import (
+    GCSBackupService,
+    create_backup_filename,
+    is_gcs_available,
+)
 from utils.logger import log_info, log_error
 
 # Initialize Flask app
@@ -1180,6 +1186,131 @@ def delete_user(user_id):
     except Exception as e:
         log_error(f"Delete user error: {user_id}", e)
         return jsonify({'error': str(e)}), 500
+
+# ============================================================================
+# Backup & Restore (Google Cloud Storage)
+# ============================================================================
+
+@app.route('/api/backup/gcs/status', methods=['GET'])
+def backup_gcs_status():
+    """Check if GCS backup is available (google-cloud-storage installed)."""
+    return jsonify({
+        'success': True,
+        'gcs_available': is_gcs_available(),
+    }), 200
+
+
+@app.route('/api/backup/gcs/upload', methods=['POST'])
+def backup_gcs_upload():
+    """Create local backup and upload to Google Cloud Storage."""
+    if not is_gcs_available():
+        return jsonify({
+            'error': 'Google Cloud Storage not available. Install: pip install google-cloud-storage'
+        }), 400
+    try:
+        data = request.get_json() or {}
+        bucket = data.get('bucket_name') or data.get('bucket')
+        credentials_json = data.get('credentials_json')
+        if not bucket:
+            return jsonify({'error': 'bucket_name is required'}), 400
+        if not credentials_json:
+            return jsonify({'error': 'credentials_json is required (service account JSON)'}), 400
+        service = GCSBackupService(bucket_name=bucket, credentials_json=credentials_json)
+        with tempfile.NamedTemporaryFile(
+            suffix='.db', delete=False
+        ) as tmp:
+            tmp_path = tmp.name
+        try:
+            db.create_local_backup(tmp_path)
+            backup_name = create_backup_filename()
+            remote_path = service.upload_backup(tmp_path, backup_name)
+            return jsonify({
+                'success': True,
+                'message': 'Backup uploaded to Google Cloud successfully',
+                'remote_path': remote_path,
+                'backup_name': backup_name,
+            }), 200
+        finally:
+            if os.path.isfile(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+    except Exception as e:
+        log_error('GCS backup upload error', e)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/backup/gcs/list', methods=['POST'])
+def backup_gcs_list():
+    """List backups in Google Cloud Storage bucket."""
+    if not is_gcs_available():
+        return jsonify({
+            'error': 'Google Cloud Storage not available. Install: pip install google-cloud-storage'
+        }), 400
+    try:
+        data = request.get_json() or {}
+        bucket = data.get('bucket_name') or data.get('bucket')
+        credentials_json = data.get('credentials_json')
+        if not bucket:
+            return jsonify({'error': 'bucket_name is required'}), 400
+        if not credentials_json:
+            return jsonify({'error': 'credentials_json is required (service account JSON)'}), 400
+        service = GCSBackupService(bucket_name=bucket, credentials_json=credentials_json)
+        backups = service.list_backups()
+        return jsonify({
+            'success': True,
+            'backups': backups,
+        }), 200
+    except Exception as e:
+        log_error('GCS backup list error', e)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/backup/gcs/restore', methods=['POST'])
+def backup_gcs_restore():
+    """Download backup from GCS and restore database."""
+    if not is_gcs_available():
+        return jsonify({
+            'error': 'Google Cloud Storage not available. Install: pip install google-cloud-storage'
+        }), 400
+    try:
+        data = request.get_json() or {}
+        bucket = data.get('bucket_name') or data.get('bucket')
+        backup_path = data.get('backup_path') or data.get('remote_path')
+        credentials_json = data.get('credentials_json')
+        if not bucket:
+            return jsonify({'error': 'bucket_name is required'}), 400
+        if not backup_path:
+            return jsonify({'error': 'backup_path is required (e.g. hospital-backups/hospital_backup_20250101_120000.db)'}), 400
+        if not credentials_json:
+            return jsonify({'error': 'credentials_json is required (service account JSON)'}), 400
+        service = GCSBackupService(bucket_name=bucket, credentials_json=credentials_json)
+        if not backup_path.startswith('hospital-backups/'):
+            backup_path = f"hospital-backups/{backup_path}"
+        with tempfile.NamedTemporaryFile(
+            suffix='.db', delete=False
+        ) as tmp:
+            tmp_path = tmp.name
+        try:
+            service.download_backup(backup_path, tmp_path)
+            success = db.restore_from_file(tmp_path)
+            if success:
+                return jsonify({
+                    'success': True,
+                    'message': 'Database restored successfully. Please refresh or restart the application.',
+                }), 200
+            return jsonify({'error': 'Restore failed'}), 500
+        finally:
+            if os.path.isfile(tmp_path):
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+    except Exception as e:
+        log_error('GCS backup restore error', e)
+        return jsonify({'error': str(e)}), 500
+
 
 # ============================================================================
 # Main Entry Point
