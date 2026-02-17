@@ -1242,10 +1242,10 @@ class PrescriptionModule:
                 heading_style = ParagraphStyle(
                     'CustomHeading',
                     parent=styles['Heading2'],
-                    fontSize=12,
+                    fontSize=10,
                     textColor=colors.HexColor('#1a237e'),
-                    spaceAfter=6,
-                    spaceBefore=12,
+                    spaceAfter=2,
+                    spaceBefore=4,
                     fontName='Helvetica-Bold'
                 )
                 
@@ -1305,35 +1305,22 @@ class PrescriptionModule:
                     ('TOPPADDING', (0, 0), (-1, -1), 6),
                 ]))
                 elements.append(header_table)
-                elements.append(Spacer(1, 8*mm))
+                elements.append(Spacer(1, 4*mm))
                 
-                # Patient Information
-                patient_info_data = [
-                    ['Name:', patient_name],
-                    ['Age/Gender:', f"{patient_age}/{patient_gender}" if patient_age else patient_gender],
-                    ['Patient ID:', prescription_data.get('patient_id')],
-                ]
+                # Patient Information (compact single line)
+                age_gender = f"{patient_age}/{patient_gender}" if patient_age else patient_gender
+                extra = []
                 if patient.get('phone'):
-                    patient_info_data.append(['Phone:', patient.get('phone')])
+                    extra.append(patient.get('phone'))
                 if patient.get('address'):
-                    patient_info_data.append(['Address:', patient.get('address')])
-                
-                patient_table = Table(patient_info_data, colWidths=[30*mm, 150*mm])
-                patient_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-                    ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-                    ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-                    ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                    ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                    ('TOPPADDING', (0, 0), (-1, -1), 6),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ]))
-                elements.append(Paragraph("<b>PATIENT INFORMATION</b>", heading_style))
-                elements.append(patient_table)
-                elements.append(Spacer(1, 6*mm))
+                    addr = str(patient.get('address') or '')
+                    extra.append(addr[:40] + ('...' if len(addr) > 40 else ''))
+                pt_text = f"<b>Patient:</b> {patient_name}  |  {age_gender}  |  ID: {prescription_data.get('patient_id')}"
+                if extra:
+                    pt_text += f"  |  {' | '.join(extra)}"
+                compact_style = ParagraphStyle('Compact', parent=styles['Normal'], fontSize=9, spaceAfter=2, spaceBefore=0)
+                elements.append(Paragraph(pt_text, compact_style))
+                elements.append(Spacer(1, 3*mm))
                 
                 # Vital Signs
                 weight = prescription_data.get('weight', '')
@@ -1345,44 +1332,28 @@ class PrescriptionModule:
                 ideal_body_weight = prescription_data.get('ideal_body_weight', '')
                 follow_up_date = prescription_data.get('follow_up_date', '')
                 
-                vitals_data = []
-                if weight or spo2 or hr or rr or bp or height or ideal_body_weight:
-                    vitals_data.append(['VITAL SIGNS & MEASUREMENTS', ''])
+                if weight or spo2 or hr or rr or bp or height or ideal_body_weight or follow_up_date:
+                    v_parts = []
                     if weight:
-                        vitals_data.append(['Weight:', f"{weight} Kgs"])
-                    if spo2:
-                        vitals_data.append(['SPO2:', f"{spo2}%"])
-                    if hr:
-                        vitals_data.append(['HR:', f"{hr}/min"])
-                    if rr:
-                        vitals_data.append(['RR:', f"{rr}/min"])
-                    if bp:
-                        vitals_data.append(['BP:', f"{bp} mmHg"])
+                        v_parts.append(f"Wt:{weight}kg")
                     if height:
-                        vitals_data.append(['Height:', f"{height} Mtrs"])
+                        v_parts.append(f"Ht:{height}m")
+                    if bp:
+                        v_parts.append(f"BP:{bp}")
+                    if hr:
+                        v_parts.append(f"HR:{hr}")
+                    if spo2:
+                        v_parts.append(f"SPO2:{spo2}%")
+                    if rr:
+                        v_parts.append(f"RR:{rr}")
                     if ideal_body_weight:
-                        vitals_data.append(['Ideal Body Weight:', f"{ideal_body_weight} Kgs"])
+                        v_parts.append(f"IBW:{ideal_body_weight}kg")
                     if follow_up_date:
-                        vitals_data.append(['Follow-up Date:', follow_up_date])
-                    
-                    vitals_table = Table(vitals_data, colWidths=[50*mm, 130*mm])
-                    vitals_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a237e')),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-                        ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#f0f0f0')),
-                        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-                        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-                        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                        ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
-                        ('FONTNAME', (1, 1), (1, -1), 'Helvetica'),
-                        ('FONTSIZE', (0, 0), (-1, -1), 10),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                        ('TOPPADDING', (0, 0), (-1, -1), 6),
-                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ]))
-                    elements.append(vitals_table)
-                    elements.append(Spacer(1, 6*mm))
+                        v_parts.append(f"FUP:{follow_up_date}")
+                    if v_parts:
+                        vitals_para = Paragraph(f"<b>Vitals:</b> {' | '.join(v_parts)}", compact_style)
+                        elements.append(vitals_para)
+                        elements.append(Spacer(1, 3*mm))
                 
                 # Diagnosis
                 diagnosis = prescription_data.get('diagnosis', '')
@@ -1393,7 +1364,7 @@ class PrescriptionModule:
                         elements.append(Paragraph(diagnosis.replace('\n', '<br/>'), normal_style))
                     if icd_codes:
                         elements.append(Paragraph(f"<b>ICD Codes:</b> {icd_codes}", normal_style))
-                    elements.append(Spacer(1, 6*mm))
+                    elements.append(Spacer(1, 3*mm))
                 
                 # Medicines
                 if items:
@@ -1426,7 +1397,7 @@ class PrescriptionModule:
                         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9f9f9')]),
                     ]))
                     elements.append(med_table)
-                    elements.append(Spacer(1, 8*mm))
+                    elements.append(Spacer(1, 4*mm))
                 
                 # Notes
                 notes = prescription_data.get('notes', '')
@@ -4523,10 +4494,10 @@ class PrescriptionModule:
                 heading_style = ParagraphStyle(
                     'CustomHeading',
                     parent=styles['Heading2'],
-                    fontSize=12,
+                    fontSize=10,
                     textColor=colors.HexColor('#1a237e'),
-                    spaceAfter=6,
-                    spaceBefore=12,
+                    spaceAfter=2,
+                    spaceBefore=4,
                     fontName='Helvetica-Bold'
                 )
                 
@@ -4599,76 +4570,45 @@ class PrescriptionModule:
                     ('TOPPADDING', (0, 0), (-1, -1), 6),
                 ]))
                 elements.append(header_table)
-                elements.append(Spacer(1, 8*mm))
+                elements.append(Spacer(1, 4*mm))
                 
-                # Patient Information
-                patient_info_data = [
-                    ['Name:', patient_name],
-                    ['Age/Gender:', f"{patient_age}/{patient_gender}" if patient_age else patient_gender],
-                    ['Patient ID:', patient_id],
-                ]
+                # Patient Information (compact single line)
+                compact_style = ParagraphStyle('Compact', parent=styles['Normal'], fontSize=9, spaceAfter=2, spaceBefore=0)
+                age_gender = f"{patient_age}/{patient_gender}" if patient_age else patient_gender
+                extra = []
                 if patient.get('phone'):
-                    patient_info_data.append(['Phone:', patient.get('phone')])
+                    extra.append(patient.get('phone'))
                 if patient.get('address'):
-                    patient_info_data.append(['Address:', patient.get('address')])
+                    addr = patient.get('address', '')
+                    extra.append(addr[:40] + ('...' if len(addr) > 40 else ''))
+                pt_text = f"<b>Patient:</b> {patient_name}  |  {age_gender}  |  ID: {patient_id}"
+                if extra:
+                    pt_text += f"  |  {' | '.join(extra)}"
+                elements.append(Paragraph(pt_text, compact_style))
+                elements.append(Spacer(1, 3*mm))
                 
-                patient_table = Table(patient_info_data, colWidths=[30*mm, 150*mm])
-                patient_table.setStyle(TableStyle([
-                    ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-                    ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-                    ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-                    ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-                    ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                    ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-                    ('FONTSIZE', (0, 0), (-1, -1), 10),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                    ('TOPPADDING', (0, 0), (-1, -1), 6),
-                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                ]))
-                elements.append(Paragraph("<b>PATIENT INFORMATION</b>", heading_style))
-                elements.append(patient_table)
-                elements.append(Spacer(1, 6*mm))
-                
-                # Vital Signs & Measurements
-                vitals_data = []
-                if weight or spo2 or hr or rr or bp or height or ideal_body_weight:
-                    vitals_data.append(['VITAL SIGNS & MEASUREMENTS', ''])
-                    
+                # Vital Signs (compact single line)
+                if weight or spo2 or hr or rr or bp or height or ideal_body_weight or follow_up_date:
+                    v_parts = []
                     if weight:
-                        vitals_data.append(['Weight:', f"{weight} Kgs"])
-                    if spo2:
-                        vitals_data.append(['SPO2:', f"{spo2}%"])
-                    if hr:
-                        vitals_data.append(['HR:', f"{hr}/min"])
-                    if rr:
-                        vitals_data.append(['RR:', f"{rr}/min"])
-                    if bp:
-                        vitals_data.append(['BP:', f"{bp} mmHg"])
+                        v_parts.append(f"Wt:{weight}kg")
                     if height:
-                        vitals_data.append(['Height:', f"{height} Mtrs"])
+                        v_parts.append(f"Ht:{height}m")
+                    if bp:
+                        v_parts.append(f"BP:{bp}")
+                    if hr:
+                        v_parts.append(f"HR:{hr}")
+                    if spo2:
+                        v_parts.append(f"SPO2:{spo2}%")
+                    if rr:
+                        v_parts.append(f"RR:{rr}")
                     if ideal_body_weight:
-                        vitals_data.append(['Ideal Body Weight:', f"{ideal_body_weight} Kgs"])
+                        v_parts.append(f"IBW:{ideal_body_weight}kg")
                     if follow_up_date:
-                        vitals_data.append(['Follow-up Date:', follow_up_date])
-                    
-                    vitals_table = Table(vitals_data, colWidths=[50*mm, 130*mm])
-                    vitals_table.setStyle(TableStyle([
-                        ('BACKGROUND', (0, 0), (-1, 0), colors.white),
-                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
-                        ('BACKGROUND', (0, 1), (0, -1), colors.HexColor('#f0f0f0')),
-                        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-                        ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-                        ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                        ('FONTNAME', (0, 1), (0, -1), 'Helvetica-Bold'),
-                        ('FONTNAME', (1, 1), (1, -1), 'Helvetica'),
-                        ('FONTSIZE', (0, 0), (-1, -1), 10),
-                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                        ('TOPPADDING', (0, 0), (-1, -1), 6),
-                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-                    ]))
-                    elements.append(vitals_table)
-                    elements.append(Spacer(1, 6*mm))
+                        v_parts.append(f"FUP:{follow_up_date}")
+                    if v_parts:
+                        elements.append(Paragraph(f"<b>Vitals:</b> {' | '.join(v_parts)}", compact_style))
+                        elements.append(Spacer(1, 3*mm))
                 
                 # Diagnosis
                 if diagnosis or icd_codes:
@@ -4677,7 +4617,7 @@ class PrescriptionModule:
                         elements.append(Paragraph(diagnosis.replace('\n', '<br/>'), normal_style))
                     if icd_codes:
                         elements.append(Paragraph(f"<b>ICD Codes:</b> {icd_codes}", normal_style))
-                    elements.append(Spacer(1, 6*mm))
+                    elements.append(Spacer(1, 3*mm))
                 
                 # Medicines
                 elements.append(Paragraph("<b>PRESCRIBED MEDICINES</b>", heading_style))

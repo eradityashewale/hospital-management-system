@@ -27,12 +27,16 @@ def _get_pdf_styles():
     return {
         'heading': ParagraphStyle(
             'CustomHeading', parent=styles['Heading2'],
-            fontSize=12, textColor=colors.HexColor('#1a237e'),
-            spaceAfter=6, spaceBefore=12, fontName='Helvetica-Bold'
+            fontSize=10, textColor=colors.HexColor('#1a237e'),
+            spaceAfter=2, spaceBefore=4, fontName='Helvetica-Bold'
         ),
         'normal': ParagraphStyle(
             'CustomNormal', parent=styles['Normal'],
             fontSize=10, textColor=colors.black, spaceAfter=6, fontName='Helvetica'
+        ),
+        'compact': ParagraphStyle(
+            'Compact', parent=styles['Normal'],
+            fontSize=9, textColor=colors.black, spaceAfter=2, spaceBefore=0, fontName='Helvetica'
         ),
     }
 
@@ -100,19 +104,12 @@ def _build_bill_elements(bill, patient, patient_name, doctor):
         ('FONTSIZE', (0, 0), (-1, -1), 10), ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
     ]))
     elements.append(header_table)
-    elements.append(Spacer(1, 8*mm))
+    elements.append(Spacer(1, 4*mm))
 
-    patient_info = [['Name:', patient_name.upper()], ['Age/Gender:', f"{patient_age}/{patient.get('gender','')}" if patient_age else patient.get('gender','')],
-                    ['Patient ID:', bill.get('patient_id','')]]
-    pt = Table(patient_info, colWidths=[30*mm, 150*mm])
-    pt.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'), ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey), ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-    ]))
-    elements.append(Paragraph("<b>PATIENT INFORMATION</b>", s['heading']))
-    elements.append(pt)
-    elements.append(Spacer(1, 6*mm))
+    age_gender = f"{patient_age}/{patient.get('gender','')}" if patient_age else (patient.get('gender','') or '-')
+    pt_text = f"<b>Patient:</b> {patient_name}  |  {age_gender}  |  ID: {bill.get('patient_id','')}"
+    elements.append(Paragraph(pt_text, s['compact']))
+    elements.append(Spacer(1, 3*mm))
 
     elements.append(Paragraph("<b>CHARGES</b>", s['heading']))
     charges_data = [['R', 'Description', 'Amount']]
@@ -180,7 +177,7 @@ def _build_prescription_elements(prescription, items, patient, doctor):
     header_table = Table(header_data, colWidths=[90*mm, 90*mm])
     header_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT'), ('FONTSIZE', (0, 0), (-1, -1), 10)]))
     elements.append(header_table)
-    elements.append(Spacer(1, 8*mm))
+    elements.append(Spacer(1, 4*mm))
 
     patient_age = ""
     if patient.get('date_of_birth'):
@@ -189,23 +186,16 @@ def _build_prescription_elements(prescription, items, patient, doctor):
             patient_age = str((datetime.now() - dob).days // 365)
         except (ValueError, TypeError):
             pass
-    pt_info = [['Name:', patient_name], ['Age/Gender:', f"{patient_age}/{patient.get('gender','')}" if patient_age else patient.get('gender','')],
-               ['Patient ID:', prescription.get('patient_id','')]]
-    pt = Table(pt_info, colWidths=[30*mm, 150*mm])
-    pt.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'), ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-    ]))
-    elements.append(Paragraph("<b>PATIENT INFORMATION</b>", s['heading']))
-    elements.append(pt)
-    elements.append(Spacer(1, 6*mm))
+    age_gender = f"{patient_age}/{patient.get('gender','')}" if patient_age else (patient.get('gender','') or '-')
+    pt_text = f"<b>Patient:</b> {patient_name}  |  {age_gender}  |  ID: {prescription.get('patient_id','')}"
+    elements.append(Paragraph(pt_text, s['compact']))
+    elements.append(Spacer(1, 3*mm))
 
     diagnosis = prescription.get('diagnosis', '')
     if diagnosis:
         elements.append(Paragraph("<b>DIAGNOSIS</b>", s['heading']))
         elements.append(Paragraph(diagnosis.replace('\n', '<br/>'), s['normal']))
-        elements.append(Spacer(1, 6*mm))
+        elements.append(Spacer(1, 3*mm))
 
     if items:
         elements.append(Paragraph("<b>PRESCRIBED MEDICINES</b>", s['heading']))
@@ -267,25 +257,18 @@ def _build_ipd_report_elements(admission, notes, patient):
     header_table = Table(header_data, colWidths=[90*mm, 90*mm])
     header_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT'), ('FONTSIZE', (0, 0), (-1, -1), 10)]))
     elements.append(header_table)
-    elements.append(Spacer(1, 8*mm))
+    elements.append(Spacer(1, 4*mm))
 
-    pt_info = [['Patient Name:', patient_name], ['Patient ID:', patient.get('patient_id','')],
-               ['Doctor:', f"Dr. {doctor_name}"], ['Ward/Bed:', f"{admission.get('ward','')} / {admission.get('bed','')}"]]
-    pt = Table(pt_info, colWidths=[35*mm, 145*mm])
-    pt.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'), ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-    ]))
-    elements.append(Paragraph("<b>PATIENT INFORMATION</b>", s['heading']))
-    elements.append(pt)
-    elements.append(Spacer(1, 6*mm))
+    ward_bed = f"{admission.get('ward','')} / {admission.get('bed','')}".strip(' /') or '-'
+    pt_text = f"<b>Patient:</b> {patient_name}  |  ID: {patient.get('patient_id','')}  |  Dr. {doctor_name}  |  Ward/Bed: {ward_bed}"
+    elements.append(Paragraph(pt_text, s['compact']))
+    elements.append(Spacer(1, 3*mm))
 
     reason = admission.get('reason', '')
     if reason:
         elements.append(Paragraph("<b>REASON / DIAGNOSIS</b>", s['heading']))
         elements.append(Paragraph(reason.replace('\n', '<br/>'), s['normal']))
-        elements.append(Spacer(1, 6*mm))
+        elements.append(Spacer(1, 3*mm))
 
     if notes:
         elements.append(Paragraph("<b>DAILY PROGRESS NOTES</b>", s['heading']))

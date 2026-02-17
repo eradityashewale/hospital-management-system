@@ -720,10 +720,10 @@ class BillingModule:
             heading_style = ParagraphStyle(
                 'CustomHeading',
                 parent=styles['Heading2'],
-                fontSize=12,
+                fontSize=10,
                 textColor=colors.HexColor('#1a237e'),
-                spaceAfter=6,
-                spaceBefore=12,
+                spaceAfter=2,
+                spaceBefore=4,
                 fontName='Helvetica-Bold'
             )
             
@@ -807,35 +807,22 @@ class BillingModule:
                 ('TOPPADDING', (0, 0), (-1, -1), 6),
             ]))
             elements.append(header_table)
-            elements.append(Spacer(1, 8*mm))
+            elements.append(Spacer(1, 4*mm))
             
-            # Patient Information (exactly like prescription)
-            patient_info_data = [
-                ['Name:', patient_name_upper],
-                ['Age/Gender:', f"{patient_age}/{patient_gender}" if patient_age else patient_gender],
-                ['Patient ID:', bill['patient_id']],
-            ]
+            # Patient Information (compact single line)
+            age_gender = f"{patient_age}/{patient_gender}" if patient_age else patient_gender
+            extra = []
             if patient.get('phone'):
-                patient_info_data.append(['Phone:', patient.get('phone')])
+                extra.append(patient.get('phone'))
             if patient.get('address'):
-                patient_info_data.append(['Address:', patient.get('address')])
-            
-            patient_table = Table(patient_info_data, colWidths=[30*mm, 150*mm])
-            patient_table.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
-                ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
-                ('ALIGN', (0, 0), (0, -1), 'LEFT'),
-                ('ALIGN', (1, 0), (1, -1), 'LEFT'),
-                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-                ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
-                ('FONTSIZE', (0, 0), (-1, -1), 10),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                ('TOPPADDING', (0, 0), (-1, -1), 6),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
-            ]))
-            elements.append(Paragraph("<b>PATIENT INFORMATION</b>", heading_style))
-            elements.append(patient_table)
-            elements.append(Spacer(1, 6*mm))
+                addr = patient.get('address', '')
+                extra.append(addr[:40] + ('...' if len(addr) > 40 else ''))
+            pt_text = f"<b>Patient:</b> {patient_name_upper}  |  {age_gender}  |  ID: {bill['patient_id']}"
+            if extra:
+                pt_text += f"  |  {' | '.join(extra)}"
+            compact_style = ParagraphStyle('Compact', parent=styles['Normal'], fontSize=9, spaceAfter=2, spaceBefore=0)
+            elements.append(Paragraph(pt_text, compact_style))
+            elements.append(Spacer(1, 3*mm))
             
             # Charges section (exactly like PRESCRIBED MEDICINES in prescription)
             elements.append(Paragraph("<b>CHARGES</b>", heading_style))
@@ -890,25 +877,25 @@ class BillingModule:
                 ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f9f9f9')]),
             ]))
             elements.append(charges_table)
-            elements.append(Spacer(1, 8*mm))
+            elements.append(Spacer(1, 4*mm))
             
             # Total Amount (displayed after table)
             total_para = Paragraph(f"<b>Total Amount: ${bill['total_amount']:,.2f}</b>", normal_style)
             elements.append(total_para)
-            elements.append(Spacer(1, 8*mm))
+            elements.append(Spacer(1, 4*mm))
             
             # Payment Information (like Doctor's Notes in prescription)
             payment_info_text = f"Payment Status: {bill.get('payment_status', 'Pending')}<br/>"
             payment_info_text += f"Payment Method: {bill.get('payment_method', 'N/A')}"
             elements.append(Paragraph("<b>PAYMENT INFORMATION</b>", heading_style))
             elements.append(Paragraph(payment_info_text, normal_style))
-            elements.append(Spacer(1, 8*mm))
+            elements.append(Spacer(1, 4*mm))
             
             # Notes if available (like Doctor's Notes in prescription)
             if bill.get('notes'):
                 elements.append(Paragraph("<b>NOTES</b>", heading_style))
                 elements.append(Paragraph(bill['notes'].replace('\n', '<br/>'), normal_style))
-                elements.append(Spacer(1, 8*mm))
+                elements.append(Spacer(1, 4*mm))
             
             # Footer (exactly like prescription)
             footer_data = [
