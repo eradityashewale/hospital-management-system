@@ -15,6 +15,9 @@ from utils.logger import (log_button_click, log_dialog_open, log_dialog_close,
 # IPD Admissions / Daily Notes
 from frontend.modules.admission_module import AdmissionNotesWindow
 
+# Patient documents PDF (bill, prescription, IPD report)
+from utils.patient_docs_pdf import print_all_patient_documents
+
 
 class PatientModule:
     """Patient management interface"""
@@ -184,6 +187,7 @@ class PatientModule:
         context_menu = tk.Menu(self.parent, tearoff=0)
         context_menu.add_command(label="View Details", command=self.view_patient)
         context_menu.add_command(label="✏️ Edit Patient", command=self.edit_patient)
+        context_menu.add_command(label="🖨️ Print All Documents", command=self.print_all_documents)
         context_menu.add_separator()
         context_menu.add_command(label="Delete Patient", command=self.delete_patient)
         
@@ -236,6 +240,22 @@ class PatientModule:
             activebackground='#7c3aed',
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
+
+        tk.Button(
+            action_frame,
+            text="🖨️ Print All Documents",
+            command=self.print_all_documents,
+            font=('Segoe UI', 10, 'bold'),
+            bg='#0ea5e9',
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#0284c7',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
         
         edit_btn = tk.Button(
             action_frame,
@@ -282,6 +302,17 @@ class PatientModule:
         except Exception as e:
             log_error("Failed to open IPD notes window", e)
             messagebox.showerror("Error", f"Failed to open IPD notes: {e}")
+
+    def print_all_documents(self):
+        """Print all patient-related PDFs (bills, prescriptions, IPD reports) in one click."""
+        patient_id = self.get_selected_patient_id()
+        if not patient_id:
+            return
+        try:
+            print_all_patient_documents(self.parent, self.db, patient_id)
+        except Exception as e:
+            log_error("Failed to print patient documents", e)
+            messagebox.showerror("Error", f"Failed to generate documents: {e}")
     
     def _focus_tree(self):
         """Ensure tree widget is immediately interactive for selection"""

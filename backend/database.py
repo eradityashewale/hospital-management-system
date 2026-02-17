@@ -1147,6 +1147,17 @@ class Database:
         """)
         return [dict(row) for row in self.cursor.fetchall()]
     
+    def get_bills_by_patient_id(self, patient_id: str) -> List[Dict]:
+        """Get bills by patient ID"""
+        self.cursor.execute("""
+            SELECT b.*, p.first_name || ' ' || p.last_name as patient_name
+            FROM billing b
+            LEFT JOIN patients p ON b.patient_id = p.patient_id
+            WHERE b.patient_id = ?
+            ORDER BY b.bill_date DESC
+        """, (patient_id,))
+        return [dict(row) for row in self.cursor.fetchall()]
+
     def get_bills_by_patient_name(self, patient_name: str) -> List[Dict]:
         """Get bills by patient name (searches first name and last name)"""
         self.cursor.execute("""
