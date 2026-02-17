@@ -2131,7 +2131,7 @@ class Database:
                 user_id = self.cursor.lastrowid
                 
                 # Grant all module permissions to admin user
-                all_modules = ['dashboard', 'patient', 'doctor', 'appointments', 'prescription', 'billing', 'report']
+                all_modules = ['dashboard', 'patient', 'doctor', 'appointments', 'prescription', 'ipd', 'billing', 'report']
                 for module in all_modules:
                     self.cursor.execute("""
                         INSERT INTO user_permissions (user_id, module_name)
@@ -2207,7 +2207,7 @@ class Database:
             user_row = self.cursor.fetchone()
             if user_row and user_row[0].lower() == 'admin':
                 # Admin always has all permissions
-                all_modules = ['dashboard', 'patient', 'doctor', 'appointments', 'prescription', 'billing', 'report']
+                all_modules = ['dashboard', 'patient', 'doctor', 'appointments', 'prescription', 'ipd', 'billing', 'report']
                 # Ensure admin has all permissions in database
                 current_perms = self.cursor.execute("""
                     SELECT module_name FROM user_permissions 
