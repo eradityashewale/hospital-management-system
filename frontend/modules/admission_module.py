@@ -8,6 +8,7 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 from backend.database import Database
+from frontend.theme import FONT_UI
 from utils.helpers import generate_id, get_current_date, get_current_time
 from utils.logger import log_info, log_error, log_button_click, log_dialog_open, log_dialog_close
 
@@ -48,7 +49,7 @@ class AdmissionNotesWindow:
         header = tk.Label(
             self.window,
             text=f"IPD / Daily Notes — {self.patient.get('first_name','')} {self.patient.get('last_name','')} ({self.patient_id})",
-            font=("Segoe UI", 18, "bold"),
+            font=(FONT_UI, 18, "bold"),
             bg="#f5f7fa",
             fg="#1a237e",
         )
@@ -57,13 +58,13 @@ class AdmissionNotesWindow:
         top = tk.Frame(self.window, bg="#f5f7fa")
         top.pack(fill=tk.X, padx=18, pady=(0, 12))
 
-        tk.Label(top, text="Admission:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").pack(side=tk.LEFT, padx=(0, 8))
+        tk.Label(top, text="Admission:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").pack(side=tk.LEFT, padx=(0, 8))
         self.admission_var = tk.StringVar()
         self.admission_combo = ttk.Combobox(top, textvariable=self.admission_var, state="readonly", width=60)
         self.admission_combo.pack(side=tk.LEFT, padx=(0, 10))
         self.admission_combo.bind("<<ComboboxSelected>>", lambda e: self._on_select_admission())
 
-        self.status_label = tk.Label(top, text="", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#10b981")
+        self.status_label = tk.Label(top, text="", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#10b981")
         self.status_label.pack(side=tk.LEFT, padx=(10, 10))
 
         main = tk.Frame(self.window, bg="#f5f7fa")
@@ -72,7 +73,7 @@ class AdmissionNotesWindow:
         left = tk.Frame(main, bg="#f5f7fa")
         left.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 10))
 
-        tk.Label(left, text="Daily Progress Notes", font=("Segoe UI", 12, "bold"), bg="#f5f7fa", fg="#374151").pack(anchor="w", pady=(0, 8))
+        tk.Label(left, text="Daily Progress Notes", font=(FONT_UI, 12, "bold"), bg="#f5f7fa", fg="#374151").pack(anchor="w", pady=(0, 8))
 
         cols = ("Day", "Date", "Time", "By", "Note")
         self.notes_tree = ttk.Treeview(left, columns=cols, show="headings", height=16)
@@ -92,20 +93,20 @@ class AdmissionNotesWindow:
         right = tk.Frame(main, bg="#f5f7fa")
         right.pack(side=tk.RIGHT, fill=tk.BOTH, expand=False)
 
-        tk.Label(right, text="Add / Update Today's Note", font=("Segoe UI", 12, "bold"), bg="#f5f7fa", fg="#374151").pack(anchor="w", pady=(0, 8))
+        tk.Label(right, text="Add / Update Today's Note", font=(FONT_UI, 12, "bold"), bg="#f5f7fa", fg="#374151").pack(anchor="w", pady=(0, 8))
 
         form = tk.Frame(right, bg="#f5f7fa")
         form.pack(fill=tk.X, pady=(0, 10))
 
-        tk.Label(form, text="Date:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=0, column=0, sticky="w", pady=6)
+        tk.Label(form, text="Date:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=0, column=0, sticky="w", pady=6)
         self.note_date_var = tk.StringVar(value=get_current_date())
         tk.Entry(form, textvariable=self.note_date_var, width=18).grid(row=0, column=1, sticky="w", padx=(8, 0), pady=6)
 
-        tk.Label(form, text="Written by:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=1, column=0, sticky="w", pady=6)
+        tk.Label(form, text="Written by:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=1, column=0, sticky="w", pady=6)
         self.created_by_var = tk.StringVar()
         tk.Entry(form, textvariable=self.created_by_var, width=28).grid(row=1, column=1, sticky="w", padx=(8, 0), pady=6)
 
-        tk.Label(right, text="Note (Day-wise):", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").pack(anchor="w", pady=(6, 4))
+        tk.Label(right, text="Note (Day-wise):", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").pack(anchor="w", pady=(6, 4))
         self.note_text = tk.Text(right, height=14, width=36, wrap="word")
         self.note_text.pack(fill=tk.BOTH, expand=True)
 
@@ -116,7 +117,7 @@ class AdmissionNotesWindow:
             btns,
             text="Save Note",
             command=self.save_note,
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg="#3b82f6",
             fg="white",
             padx=18,
@@ -133,7 +134,7 @@ class AdmissionNotesWindow:
             btns,
             text="Refresh",
             command=self.refresh,
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg="#6b7280",
             fg="white",
             padx=18,
@@ -252,7 +253,7 @@ class AdmissionNotesWindow:
         tk.Label(
             frm,
             text=f"Patient: {patient_name} ({self.patient_id})",
-            font=("Segoe UI", 11, "bold"),
+            font=(FONT_UI, 11, "bold"),
             bg="#f5f7fa",
             fg="#1a237e",
         ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 12))
@@ -260,28 +261,28 @@ class AdmissionNotesWindow:
         doctors = self.db.get_all_doctors()
         doctor_labels = ["(None)"] + [f"{d['doctor_id']} - Dr. {d['first_name']} {d['last_name']}" for d in doctors]
 
-        tk.Label(frm, text="Assigned Doctor (optional):", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=1, column=0, sticky="w", pady=8)
+        tk.Label(frm, text="Assigned Doctor (optional):", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=1, column=0, sticky="w", pady=8)
         doctor_var = tk.StringVar(value=doctor_labels[0])
         doctor_combo = ttk.Combobox(frm, textvariable=doctor_var, values=doctor_labels, state="readonly", width=34)
         doctor_combo.grid(row=1, column=1, sticky="w", pady=8)
 
-        tk.Label(frm, text="Admission Date:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=2, column=0, sticky="w", pady=8)
+        tk.Label(frm, text="Admission Date:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=2, column=0, sticky="w", pady=8)
         adm_date_var = tk.StringVar(value=get_current_date())
         tk.Entry(frm, textvariable=adm_date_var, width=18).grid(row=2, column=1, sticky="w", pady=8)
 
-        tk.Label(frm, text="Expected Days:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=3, column=0, sticky="w", pady=8)
+        tk.Label(frm, text="Expected Days:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=3, column=0, sticky="w", pady=8)
         exp_days_var = tk.StringVar(value="3")
         tk.Entry(frm, textvariable=exp_days_var, width=10).grid(row=3, column=1, sticky="w", pady=8)
 
-        tk.Label(frm, text="Ward:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=4, column=0, sticky="w", pady=8)
+        tk.Label(frm, text="Ward:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=4, column=0, sticky="w", pady=8)
         ward_var = tk.StringVar()
         tk.Entry(frm, textvariable=ward_var, width=22).grid(row=4, column=1, sticky="w", pady=8)
 
-        tk.Label(frm, text="Bed:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=5, column=0, sticky="w", pady=8)
+        tk.Label(frm, text="Bed:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=5, column=0, sticky="w", pady=8)
         bed_var = tk.StringVar()
         tk.Entry(frm, textvariable=bed_var, width=22).grid(row=5, column=1, sticky="w", pady=8)
 
-        tk.Label(frm, text="Reason / Diagnosis:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=6, column=0, sticky="nw", pady=8)
+        tk.Label(frm, text="Reason / Diagnosis:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=6, column=0, sticky="nw", pady=8)
         reason_txt = tk.Text(frm, height=5, width=34, wrap="word")
         reason_txt.grid(row=6, column=1, sticky="w", pady=8)
 
@@ -333,7 +334,7 @@ class AdmissionNotesWindow:
             btns,
             text="Save Admission",
             command=do_save,
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg="#10b981",
             fg="white",
             padx=16,
@@ -349,7 +350,7 @@ class AdmissionNotesWindow:
             btns,
             text="Cancel",
             command=lambda: (log_dialog_close("Admit Patient"), dialog.destroy()),
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg="#6b7280",
             fg="white",
             padx=16,
@@ -386,15 +387,15 @@ class AdmissionNotesWindow:
         frm = tk.Frame(dialog, bg="#f5f7fa")
         frm.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
 
-        tk.Label(frm, text=f"Admission: {admission['admission_id']}", font=("Segoe UI", 11, "bold"), bg="#f5f7fa", fg="#1a237e").pack(anchor="w", pady=(0, 10))
+        tk.Label(frm, text=f"Admission: {admission['admission_id']}", font=(FONT_UI, 11, "bold"), bg="#f5f7fa", fg="#1a237e").pack(anchor="w", pady=(0, 10))
 
         row = tk.Frame(frm, bg="#f5f7fa")
         row.pack(fill=tk.X, pady=6)
-        tk.Label(row, text="Discharge Date:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").pack(side=tk.LEFT)
+        tk.Label(row, text="Discharge Date:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").pack(side=tk.LEFT)
         discharge_date_var = tk.StringVar(value=get_current_date())
         tk.Entry(row, textvariable=discharge_date_var, width=18).pack(side=tk.LEFT, padx=10)
 
-        tk.Label(frm, text="Discharge Summary:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").pack(anchor="w", pady=(10, 4))
+        tk.Label(frm, text="Discharge Summary:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").pack(anchor="w", pady=(10, 4))
         summary = tk.Text(frm, height=8, width=48, wrap="word")
         summary.pack(fill=tk.BOTH, expand=True)
 
@@ -423,7 +424,7 @@ class AdmissionNotesWindow:
             btns,
             text="Confirm Discharge",
             command=do_discharge,
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg="#ef4444",
             fg="white",
             padx=16,
@@ -439,7 +440,7 @@ class AdmissionNotesWindow:
             btns,
             text="Cancel",
             command=lambda: (log_dialog_close("Discharge Patient"), dialog.destroy()),
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg="#6b7280",
             fg="white",
             padx=16,

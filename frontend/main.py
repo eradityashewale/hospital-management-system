@@ -17,7 +17,7 @@ from utils.logger import log_button_click, log_navigation, log_error, log_info, 
 # Frontend module imports
 from frontend.theme import (
     BG_BASE, BG_DEEP, BG_CARD, TEXT_PRIMARY, TEXT_SECONDARY, SIDEBAR_BG,
-    ACCENT_BLUE, ACCENT_TEAL, FONT_FALLBACK,
+    ACCENT_BLUE, ACCENT_TEAL, FONT_UI,
     get_theme, set_theme, get_theme_mode,
 )
 from frontend.ui_components import ModernCard, ModernSidebar, ModernPillButton
@@ -367,15 +367,15 @@ class HospitalManagementSystem:
             logo_lbl.image = logo_image
             logo_lbl.pack(side=tk.LEFT, padx=(0, 10))
         else:
-            logo_lbl = tk.Label(logo_frame, text="⚕", font=(FONT_FALLBACK, 20), 
+            logo_lbl = tk.Label(logo_frame, text="⚕", font=(FONT_UI, 20), 
                                bg=SIDEBAR_BG, fg=ACCENT_TEAL)
             logo_lbl.pack(side=tk.LEFT, padx=(0, 10))
         
         brand_frame = tk.Frame(logo_frame, bg=SIDEBAR_BG)
         brand_frame.pack(side=tk.LEFT)
-        tk.Label(brand_frame, text="MediFlow", font=(FONT_FALLBACK, 16, 'bold'),
+        tk.Label(brand_frame, text="MediFlow", font=(FONT_UI, 16, 'bold'),
                 bg=SIDEBAR_BG, fg=TEXT_PRIMARY).pack(anchor='w')
-        tk.Label(brand_frame, text="by Nexvora Solutions", font=(FONT_FALLBACK, 9),
+        tk.Label(brand_frame, text="by Nexvora Solutions", font=(FONT_UI, 9),
                 bg=SIDEBAR_BG, fg=SIDEBAR_TEXT).pack(anchor='w')
         
         # Navigation sidebar
@@ -466,7 +466,7 @@ class HospitalManagementSystem:
         self.day_btn = tk.Button(
             theme_toggle_frame,
             text="☀ DAY",
-            font=(FONT_FALLBACK, 9, 'bold'),
+            font=(FONT_UI, 9, 'bold'),
             bg='#f8fafc' if get_theme_mode() == 'day' else '#374151',
             fg='#0f172a' if get_theme_mode() == 'day' else '#9ca3af',
             activebackground='#e2e8f0',
@@ -484,7 +484,7 @@ class HospitalManagementSystem:
         self.night_btn = tk.Button(
             theme_toggle_frame,
             text="🌙 NIGHT",
-            font=(FONT_FALLBACK, 9, 'bold'),
+            font=(FONT_UI, 9, 'bold'),
             bg='#1e293b' if get_theme_mode() == 'night' else '#374151',
             fg='#e2e8f0' if get_theme_mode() == 'night' else '#9ca3af',
             activebackground='#334155',
@@ -500,14 +500,14 @@ class HospitalManagementSystem:
         self.night_btn.pack(side=tk.LEFT)
         
         self.user_info_label = tk.Label(
-            header_inner, text="", font=(FONT_FALLBACK, 10),
+            header_inner, text="", font=(FONT_UI, 10),
             bg=t["BG_BASE"], fg=t["TEXT_SECONDARY"]
         )
         self.user_info_label.pack(side=tk.RIGHT, padx=(0, 12))
         
         logout_btn = tk.Button(
             header_inner, text="Logout", command=self.logout,
-            font=(FONT_FALLBACK, 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#ef4444', fg='white', activebackground='#dc2626', activeforeground='white',
             relief=tk.FLAT, bd=0, padx=16, pady=6, cursor='hand2', highlightthickness=0
         )
@@ -786,7 +786,7 @@ class HospitalManagementSystem:
             
             filter_label = tk.Label(
                 filter_frame, text="Filter by:",
-                font=(FONT_FALLBACK, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_PRIMARY"]
+                font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_PRIMARY"]
             )
             filter_label.pack(side=tk.LEFT, padx=(0, 10))
             
@@ -802,7 +802,7 @@ class HospitalManagementSystem:
             
             date_label = tk.Label(
                 date_input_frame, text="Date:",
-                font=(FONT_FALLBACK, 10), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]
+                font=(FONT_UI, 10), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]
             )
             date_label.pack(side=tk.LEFT, padx=(0, 5))
             
@@ -811,7 +811,7 @@ class HospitalManagementSystem:
             date_entry = tk.Entry(
                 date_input_frame,
                 textvariable=self.filter_date_var,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 width=12,
                 relief=tk.SOLID,
                 bd=1
@@ -869,7 +869,7 @@ class HospitalManagementSystem:
                 tk.Label(
                     header_frame,
                     text="Select Date",
-                    font=('Segoe UI', 12, 'bold'),
+                    font=(FONT_UI, 12, 'bold'),
                     bg='#1e40af',
                     fg='white'
                 ).pack(pady=10)
@@ -927,7 +927,7 @@ class HospitalManagementSystem:
                         label = tk.Label(
                             cal_days_frame,
                             text=day,
-                            font=('Segoe UI', 9, 'bold'),
+                            font=(FONT_UI, 9, 'bold'),
                             bg='#f3f4f6',
                             fg='#374151',
                             width=4
@@ -947,7 +947,7 @@ class HospitalManagementSystem:
                         day_btn = tk.Button(
                             cal_days_frame,
                             text=day_str,
-                            font=('Segoe UI', 9),
+                            font=(FONT_UI, 9),
                             bg='#ffffff',
                             fg='#374151',
                             width=4,
@@ -1014,7 +1014,7 @@ class HospitalManagementSystem:
                     nav_frame,
                     text="◀",
                     command=prev_month,
-                    font=('Segoe UI', 10, 'bold'),
+                    font=(FONT_UI, 10, 'bold'),
                     bg='#e5e7eb',
                     fg='#374151',
                     width=3,
@@ -1026,7 +1026,7 @@ class HospitalManagementSystem:
                 month_label = tk.Label(
                     nav_frame,
                     text="",
-                    font=('Segoe UI', 11, 'bold'),
+                    font=(FONT_UI, 11, 'bold'),
                     bg='#ffffff',
                     fg='#1a237e'
                 )
@@ -1036,7 +1036,7 @@ class HospitalManagementSystem:
                     nav_frame,
                     text="▶",
                     command=next_month,
-                    font=('Segoe UI', 10, 'bold'),
+                    font=(FONT_UI, 10, 'bold'),
                     bg='#e5e7eb',
                     fg='#374151',
                     width=3,
@@ -1057,7 +1057,7 @@ class HospitalManagementSystem:
                     btn_frame,
                     text="Today",
                     command=lambda: select_date(datetime.now().day),
-                    font=('Segoe UI', 9),
+                    font=(FONT_UI, 9),
                     bg='#3b82f6',
                     fg='white',
                     padx=15,
@@ -1071,7 +1071,7 @@ class HospitalManagementSystem:
                     btn_frame,
                     text="Cancel",
                     command=calendar_window.destroy,
-                    font=('Segoe UI', 9),
+                    font=(FONT_UI, 9),
                     bg='#6b7280',
                     fg='white',
                     padx=15,
@@ -1089,7 +1089,7 @@ class HospitalManagementSystem:
                 date_input_frame,
                 text="📅",
                 command=lambda: open_calendar_for_date(date_entry, self.filter_date_var),
-                font=('Segoe UI', 12),
+                font=(FONT_UI, 12),
                 bg='#3b82f6',
                 fg='white',
                 width=3,
@@ -1106,7 +1106,7 @@ class HospitalManagementSystem:
             month_label = tk.Label(
                 month_input_frame,
                 text="Month (YYYY-MM):",
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 bg='#f5f7fa',
                 fg='#6b7280'
             )
@@ -1118,7 +1118,7 @@ class HospitalManagementSystem:
             month_entry = tk.Entry(
                 month_input_frame,
                 textvariable=self.filter_month_var,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 width=12,
                 relief=tk.SOLID,
                 bd=1
@@ -1202,7 +1202,7 @@ class HospitalManagementSystem:
                 prev_year_btn = tk.Button(
                     year_nav_frame,
                     text="«",
-                    font=('Segoe UI', 12, 'bold'),
+                    font=(FONT_UI, 12, 'bold'),
                     bg='#ffffff',
                     fg='#374151',
                     relief=tk.FLAT,
@@ -1218,7 +1218,7 @@ class HospitalManagementSystem:
                 year_label = tk.Label(
                     year_nav_frame,
                     text=str(initial_year),
-                    font=('Segoe UI', 14, 'bold'),
+                    font=(FONT_UI, 14, 'bold'),
                     bg='#ffffff',
                     fg='#1f2937'
                 )
@@ -1228,7 +1228,7 @@ class HospitalManagementSystem:
                 next_year_btn = tk.Button(
                     year_nav_frame,
                     text="»",
-                    font=('Segoe UI', 12, 'bold'),
+                    font=(FONT_UI, 12, 'bold'),
                     bg='#ffffff',
                     fg='#374151',
                     relief=tk.FLAT,
@@ -1295,7 +1295,7 @@ class HospitalManagementSystem:
                     month_btn = tk.Button(
                         month_grid_frame,
                         text=month_name,
-                        font=('Segoe UI', 10),
+                        font=(FONT_UI, 10),
                         bg='#3b82f6' if is_selected else '#ffffff',
                         fg='white' if is_selected else '#374151',
                         relief=tk.SOLID if is_selected else tk.FLAT,
@@ -1389,7 +1389,7 @@ class HospitalManagementSystem:
                 prev_decade_btn = tk.Button(
                     decade_nav_frame,
                     text="<",
-                    font=('Segoe UI', 12, 'bold'),
+                    font=(FONT_UI, 12, 'bold'),
                     bg='#ffffff',
                     fg='#374151',
                     relief=tk.FLAT,
@@ -1410,7 +1410,7 @@ class HospitalManagementSystem:
                 decade_label = tk.Label(
                     decade_nav_frame,
                     text=get_decade_range(),
-                    font=('Segoe UI', 12, 'bold'),
+                    font=(FONT_UI, 12, 'bold'),
                     bg='#ffffff',
                     fg='#1f2937'
                 )
@@ -1420,7 +1420,7 @@ class HospitalManagementSystem:
                 next_decade_btn = tk.Button(
                     decade_nav_frame,
                     text=">",
-                    font=('Segoe UI', 12, 'bold'),
+                    font=(FONT_UI, 12, 'bold'),
                     bg='#ffffff',
                     fg='#374151',
                     relief=tk.FLAT,
@@ -1464,7 +1464,7 @@ class HospitalManagementSystem:
                         year_btn = tk.Button(
                             year_grid_frame,
                             text=str(year_value),
-                            font=('Segoe UI', 10),
+                            font=(FONT_UI, 10),
                             bg='#3b82f6' if is_selected else '#ffffff',
                             fg='white' if is_selected else '#374151',
                             relief=tk.SOLID if is_selected else tk.FLAT,
@@ -1513,7 +1513,7 @@ class HospitalManagementSystem:
                     year_btn = tk.Button(
                         year_grid_frame,
                         text=str(year_value),
-                        font=('Segoe UI', 10),
+                        font=(FONT_UI, 10),
                         bg='#3b82f6' if is_selected else '#ffffff',
                         fg='white' if is_selected else '#374151',
                         relief=tk.SOLID if is_selected else tk.FLAT,
@@ -1539,7 +1539,7 @@ class HospitalManagementSystem:
                 month_input_frame,
                 text="📅",
                 command=lambda: open_month_picker(month_entry, self.filter_month_var),
-                font=('Segoe UI', 12),
+                font=(FONT_UI, 12),
                 bg='#3b82f6',
                 fg='white',
                 width=3,
@@ -1556,7 +1556,7 @@ class HospitalManagementSystem:
             year_label = tk.Label(
                 year_input_frame,
                 text="Year (YYYY):",
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 bg='#f5f7fa',
                 fg='#6b7280'
             )
@@ -1567,7 +1567,7 @@ class HospitalManagementSystem:
             year_entry = tk.Entry(
                 year_input_frame,
                 textvariable=self.filter_year_var,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 width=12,
                 relief=tk.SOLID,
                 bd=1
@@ -1579,7 +1579,7 @@ class HospitalManagementSystem:
                 year_input_frame,
                 text="📅",
                 command=lambda: open_year_picker(year_entry, self.filter_year_var),
-                font=('Segoe UI', 12),
+                font=(FONT_UI, 12),
                 bg='#3b82f6',
                 fg='white',
                 width=3,
@@ -1596,7 +1596,7 @@ class HospitalManagementSystem:
             from_label = tk.Label(
                 date_range_frame,
                 text="From:",
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 bg='#f5f7fa',
                 fg='#6b7280'
             )
@@ -1606,7 +1606,7 @@ class HospitalManagementSystem:
             from_date_entry = tk.Entry(
                 date_range_frame,
                 textvariable=self.filter_from_date_var,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 width=12,
                 relief=tk.SOLID,
                 bd=1
@@ -1617,7 +1617,7 @@ class HospitalManagementSystem:
                 date_range_frame,
                 text="📅",
                 command=lambda: open_calendar_for_date(from_date_entry, self.filter_from_date_var),
-                font=('Segoe UI', 12),
+                font=(FONT_UI, 12),
                 bg='#3b82f6',
                 fg='white',
                 width=3,
@@ -1630,7 +1630,7 @@ class HospitalManagementSystem:
             to_label = tk.Label(
                 date_range_frame,
                 text="To:",
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 bg='#f5f7fa',
                 fg='#6b7280'
             )
@@ -1640,7 +1640,7 @@ class HospitalManagementSystem:
             to_date_entry = tk.Entry(
                 date_range_frame,
                 textvariable=self.filter_to_date_var,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 width=12,
                 relief=tk.SOLID,
                 bd=1
@@ -1651,7 +1651,7 @@ class HospitalManagementSystem:
                 date_range_frame,
                 text="📅",
                 command=lambda: open_calendar_for_date(to_date_entry, self.filter_to_date_var),
-                font=('Segoe UI', 12),
+                font=(FONT_UI, 12),
                 bg='#3b82f6',
                 fg='white',
                 width=3,
@@ -1940,7 +1940,7 @@ class HospitalManagementSystem:
             else:
                 # Fallback to styled text logo on blue background
                 logo_icon = tk.Label(
-                    logo_bg_frame, text="⚕", font=(FONT_FALLBACK, 24, 'bold'),
+                    logo_bg_frame, text="⚕", font=(FONT_UI, 24, 'bold'),
                     bg=t["ACCENT_BLUE"], fg='white', padx=15, pady=10
                 )
                 logo_icon.pack()
@@ -1951,19 +1951,19 @@ class HospitalManagementSystem:
             
             product_name_label = tk.Label(
                 product_info, text="MediFlow",
-                font=(FONT_FALLBACK, 22, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]
+                font=(FONT_UI, 22, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]
             )
             product_name_label.pack(anchor='w', pady=(0, 5))
             
             tagline_label = tk.Label(
                 product_info, text="Streamlining Healthcare Management",
-                font=(FONT_FALLBACK, 12), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]
+                font=(FONT_UI, 12), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]
             )
             tagline_label.pack(anchor='w', pady=(0, 8))
             
             company_label = tk.Label(
                 product_info, text="Powered by Nexvora Solutions",
-                font=(FONT_FALLBACK, 10, 'italic'), bg=t["BG_CARD"], fg=t["ACCENT_TEAL"]
+                font=(FONT_UI, 10, 'italic'), bg=t["BG_CARD"], fg=t["ACCENT_TEAL"]
             )
             company_label.pack(anchor='w')
             
@@ -1972,7 +1972,7 @@ class HospitalManagementSystem:
             
             features_title = tk.Label(
                 features_frame, text="Key Features",
-                font=(FONT_FALLBACK, 12, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]
+                font=(FONT_UI, 12, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]
             )
             features_title.pack(anchor='e', pady=(0, 8))
             
@@ -1984,7 +1984,7 @@ class HospitalManagementSystem:
             ]
             
             for feature in features_list:
-                tk.Label(features_frame, text=feature, font=(FONT_FALLBACK, 9),
+                tk.Label(features_frame, text=feature, font=(FONT_UI, 9),
                        bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"], anchor='e').pack(anchor='e', pady=2)
             
             main_content = tk.Frame(scrollable_frame, bg=t["BG_DEEP"])
@@ -2006,7 +2006,7 @@ class HospitalManagementSystem:
             chart_header.pack(fill=tk.X, padx=20, pady=(15, 10))
             
             tk.Label(chart_header, text="Appointments Overview",
-                    font=(FONT_FALLBACK, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
+                    font=(FONT_UI, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
             
             toggle_frame = tk.Frame(chart_header, bg=t["BG_CARD"])
             toggle_frame.pack(side=tk.RIGHT)
@@ -2014,7 +2014,7 @@ class HospitalManagementSystem:
             daily_toggle = tk.Button(
                 toggle_frame,
                 text="Daily",
-                font=('Segoe UI', 9, 'bold'),
+                font=(FONT_UI, 9, 'bold'),
                 bg='#3b82f6',
                 fg='white',
                 padx=12,
@@ -2027,7 +2027,7 @@ class HospitalManagementSystem:
             monthly_toggle = tk.Button(
                 toggle_frame,
                 text="Monthly",
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#e5e7eb',
                 fg='#6b7280',
                 padx=12,
@@ -2054,7 +2054,7 @@ class HospitalManagementSystem:
                     canvas_width = chart_canvas.winfo_width() or 500
                     canvas_height = chart_canvas.winfo_height() or 280
                     chart_canvas.create_text(canvas_width/2, canvas_height/2, text="No appointment data available", 
-                                           font=('Segoe UI', 11), fill='#9ca3af', justify=tk.CENTER)
+                                           font=(FONT_UI, 11), fill='#9ca3af', justify=tk.CENTER)
                     return
                 
                 # Prepare data based on mode
@@ -2139,7 +2139,7 @@ class HospitalManagementSystem:
                         
                         # Draw label below bars
                         chart_canvas.create_text(x_center, chart_height - margin_bottom + 20, text=label, 
-                                                font=('Segoe UI', 9, 'bold'), fill='#374151', anchor='n')
+                                                font=(FONT_UI, 9, 'bold'), fill='#374151', anchor='n')
                         
                         # Draw bars for each status with better spacing
                         if scheduled_data[i] > 0:
@@ -2178,7 +2178,7 @@ class HospitalManagementSystem:
                         
                         # Y-axis label
                         chart_canvas.create_text(margin_left - 10, y_pos, text=str(int(y_val)), 
-                                                font=('Segoe UI', 9), fill='#6b7280', anchor='e')
+                                                font=(FONT_UI, 9), fill='#6b7280', anchor='e')
             
             # Draw initial chart after a short delay to ensure canvas is sized
             def draw_initial_chart():
@@ -2190,15 +2190,15 @@ class HospitalManagementSystem:
             # Toggle button handlers
             def toggle_daily():
                 self.appointments_chart_mode = 'daily'
-                daily_toggle.config(bg='#3b82f6', fg='white', font=('Segoe UI', 9, 'bold'))
-                monthly_toggle.config(bg='#e5e7eb', fg='#6b7280', font=('Segoe UI', 9))
+                daily_toggle.config(bg='#3b82f6', fg='white', font=(FONT_UI, 9, 'bold'))
+                monthly_toggle.config(bg='#e5e7eb', fg='#6b7280', font=(FONT_UI, 9))
                 chart_canvas.update_idletasks()
                 draw_appointments_chart('daily')
             
             def toggle_monthly():
                 self.appointments_chart_mode = 'monthly'
-                monthly_toggle.config(bg='#3b82f6', fg='white', font=('Segoe UI', 9, 'bold'))
-                daily_toggle.config(bg='#e5e7eb', fg='#6b7280', font=('Segoe UI', 9))
+                monthly_toggle.config(bg='#3b82f6', fg='white', font=(FONT_UI, 9, 'bold'))
+                daily_toggle.config(bg='#e5e7eb', fg='#6b7280', font=(FONT_UI, 9))
                 chart_canvas.update_idletasks()
                 draw_appointments_chart('monthly')
             
@@ -2219,8 +2219,8 @@ class HospitalManagementSystem:
             for i, (label, color) in enumerate(legend_items):
                 legend_item = tk.Frame(legend_frame, bg=t["BG_CARD"])
                 legend_item.pack(side=tk.LEFT, padx=15)
-                tk.Label(legend_item, text="●", font=(FONT_FALLBACK, 14), bg=t["BG_CARD"], fg=color).pack(side=tk.LEFT, padx=(0, 8))
-                tk.Label(legend_item, text=label, font=(FONT_FALLBACK, 10, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
+                tk.Label(legend_item, text="●", font=(FONT_UI, 14), bg=t["BG_CARD"], fg=color).pack(side=tk.LEFT, padx=(0, 8))
+                tk.Label(legend_item, text=label, font=(FONT_UI, 10, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
             
             revenue_chart_frame = tk.Frame(left_column, bg=t["BG_CARD"], relief=tk.FLAT, highlightbackground=t["BORDER_DEFAULT"], highlightthickness=1)
             revenue_chart_frame.pack(fill=tk.BOTH, expand=True)
@@ -2229,20 +2229,20 @@ class HospitalManagementSystem:
             revenue_header.pack(fill=tk.X, padx=20, pady=(15, 10))
             
             tk.Label(revenue_header, text="Revenue Insights",
-                    font=(FONT_FALLBACK, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
+                    font=(FONT_UI, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
             tk.Label(revenue_header, text="87% $100k >",
-                    font=(FONT_FALLBACK, 10), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(side=tk.RIGHT)
+                    font=(FONT_UI, 10), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(side=tk.RIGHT)
             revenue_canvas = tk.Canvas(revenue_chart_frame, bg=t["BG_CARD"], height=200, highlightthickness=0)
             revenue_canvas.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
             
             revenue_canvas.create_text(200, 100, text="📊 Bar chart visualization\n(Monthly revenue)", 
-                                      font=(FONT_FALLBACK, 11), fill=t["TEXT_SECONDARY"], justify=tk.CENTER)
+                                      font=(FONT_UI, 11), fill=t["TEXT_SECONDARY"], justify=tk.CENTER)
             
             status_chart_frame = tk.Frame(middle_column, bg=t["BG_CARD"], relief=tk.FLAT, highlightbackground=t["BORDER_DEFAULT"], highlightthickness=1)
             status_chart_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
             
             tk.Label(status_chart_frame, text="Appointment Status",
-                    font=(FONT_FALLBACK, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(pady=(15, 10))
+                    font=(FONT_UI, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(pady=(15, 10))
             status_canvas = tk.Canvas(status_chart_frame, bg=t["BG_CARD"], height=250, highlightthickness=0)
             status_canvas.pack(fill=tk.BOTH, expand=True, padx=25, pady=(0, 15))
             
@@ -2315,11 +2315,11 @@ class HospitalManagementSystem:
                     # Center text with largest percentage
                     max_pct = max(scheduled_pct, completed_pct, cancelled_pct)
                     status_canvas.create_text(center_x, center_y, text=f"{max_pct:.1f}%", 
-                                            font=('Segoe UI', 18, 'bold'), fill='#1f2937')
+                                            font=(FONT_UI, 18, 'bold'), fill='#1f2937')
                 else:
                     # No data
                     status_canvas.create_text(center_x, center_y, text="No Data", 
-                                            font=('Segoe UI', 12), fill='#9ca3af')
+                                            font=(FONT_UI, 12), fill='#9ca3af')
             
             # Draw initial chart
             self.root.after(100, draw_donut_chart)
@@ -2343,9 +2343,9 @@ class HospitalManagementSystem:
             for label, color, percent, count in status_items:
                 item_frame = tk.Frame(status_legend, bg=t["BG_CARD"])
                 item_frame.pack(fill=tk.X, pady=8, padx=10)
-                tk.Label(item_frame, text="●", font=(FONT_FALLBACK, 14), bg=t["BG_CARD"], fg=color).pack(side=tk.LEFT, padx=(0, 12))
-                tk.Label(item_frame, text=label, font=(FONT_FALLBACK, 11), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
-                tk.Label(item_frame, text=f"{percent} ({count})", font=(FONT_FALLBACK, 11, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(side=tk.RIGHT)
+                tk.Label(item_frame, text="●", font=(FONT_UI, 14), bg=t["BG_CARD"], fg=color).pack(side=tk.LEFT, padx=(0, 12))
+                tk.Label(item_frame, text=label, font=(FONT_UI, 11), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
+                tk.Label(item_frame, text=f"{percent} ({count})", font=(FONT_UI, 11, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(side=tk.RIGHT)
             
             # Active Admissions (Middle Column)
             active_admissions_frame = tk.Frame(middle_column, bg=t["BG_CARD"], relief=tk.FLAT, highlightbackground=t["BORDER_DEFAULT"], highlightthickness=1)
@@ -2355,7 +2355,7 @@ class HospitalManagementSystem:
             admissions_header.pack(fill=tk.X, padx=20, pady=(15, 10))
             
             tk.Label(admissions_header, text="Active Admissions",
-                    font=(FONT_FALLBACK, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
+                    font=(FONT_UI, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
             
             # Get active admissions
             try:
@@ -2389,9 +2389,9 @@ class HospitalManagementSystem:
                     patient_name = admission.get('patient_name', 'Unknown')
                     admission_id = admission.get('admission_id', 'N/A')
                     tk.Label(name_frame, text=f"👤 {patient_name}",
-                            font=(FONT_FALLBACK, 10, 'bold'), bg=adm_frame['bg'], fg=t["TEXT_PRIMARY"], anchor='w').pack(side=tk.LEFT, fill=tk.X)
+                            font=(FONT_UI, 10, 'bold'), bg=adm_frame['bg'], fg=t["TEXT_PRIMARY"], anchor='w').pack(side=tk.LEFT, fill=tk.X)
                     tk.Label(name_frame, text=f"ID: {admission_id}",
-                            font=(FONT_FALLBACK, 8), bg=adm_frame['bg'], fg=t["TEXT_SECONDARY"], anchor='e').pack(side=tk.RIGHT)
+                            font=(FONT_UI, 8), bg=adm_frame['bg'], fg=t["TEXT_SECONDARY"], anchor='e').pack(side=tk.RIGHT)
                     
                     # Admission details
                     details_text = []
@@ -2406,7 +2406,7 @@ class HospitalManagementSystem:
                     
                     if details_text:
                         tk.Label(adm_frame, text=" | ".join(details_text),
-                                font=(FONT_FALLBACK, 8), bg=adm_frame['bg'], fg=t["TEXT_SECONDARY"],
+                                font=(FONT_UI, 8), bg=adm_frame['bg'], fg=t["TEXT_SECONDARY"],
                                 anchor='w', wraplength=250).pack(fill=tk.X, pady=(0, 2))
                     
                     # Days admitted
@@ -2419,7 +2419,7 @@ class HospitalManagementSystem:
                             tk.Label(
                                 adm_frame,
                                 text=f"⏱️ {status_text}",
-                                font=('Segoe UI', 8, 'bold'),
+                                font=(FONT_UI, 8, 'bold'),
                                 bg=adm_frame['bg'],
                                 fg='#ef4444',
                                 anchor='w'
@@ -2428,7 +2428,7 @@ class HospitalManagementSystem:
                             pass
             else:
                 no_adm_label = tk.Label(admissions_scrollable, text="No active admissions",
-                                        font=(FONT_FALLBACK, 10), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"])
+                                        font=(FONT_UI, 10), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"])
                 no_adm_label.pack(pady=20)
             
             admissions_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
@@ -2439,7 +2439,7 @@ class HospitalManagementSystem:
             activities_frame.pack(fill=tk.BOTH, expand=True)
             
             tk.Label(activities_frame, text="Recent Activities",
-                    font=(FONT_FALLBACK, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(pady=(15, 10))
+                    font=(FONT_UI, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(pady=(15, 10))
             activities_list = tk.Frame(activities_frame, bg=t["BG_CARD"])
             activities_list.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 15))
             
@@ -2456,12 +2456,12 @@ class HospitalManagementSystem:
                     
                     activity_item = tk.Frame(activities_list, bg=t["BG_CARD"])
                     activity_item.pack(fill=tk.X, pady=8)
-                    tk.Label(activity_item, text=activity_text, font=(FONT_FALLBACK, 10),
+                    tk.Label(activity_item, text=activity_text, font=(FONT_UI, 10),
                             bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(anchor='w')
-                    tk.Label(activity_item, text=time_text, font=(FONT_FALLBACK, 9),
+                    tk.Label(activity_item, text=time_text, font=(FONT_UI, 9),
                             bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(anchor='w')
             except:
-                tk.Label(activities_list, text="No recent activities", font=(FONT_FALLBACK, 10), 
+                tk.Label(activities_list, text="No recent activities", font=(FONT_UI, 10), 
                         bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(pady=10)
             
             # Quick Actions (Right Column)
@@ -2469,7 +2469,7 @@ class HospitalManagementSystem:
             quick_actions_frame.pack(fill=tk.X, pady=(0, 15))
             
             tk.Label(quick_actions_frame, text="Quick Actions",
-                    font=(FONT_FALLBACK, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(pady=(15, 10))
+                    font=(FONT_UI, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(pady=(15, 10))
             actions_list = tk.Frame(quick_actions_frame, bg=t["BG_CARD"])
             actions_list.pack(fill=tk.X, padx=15, pady=(0, 15))
             
@@ -2484,7 +2484,7 @@ class HospitalManagementSystem:
                 btn = tk.Button(
                     actions_list,
                     text=text,
-                    font=('Segoe UI', 11, 'bold'),
+                    font=(FONT_UI, 11, 'bold'),
                     bg=color,
                     fg='white',
                     padx=15,
@@ -2507,7 +2507,7 @@ class HospitalManagementSystem:
             tk.Label(
                 today_header,
                 text="Today's Appointments",
-                font=('Segoe UI', 14, 'bold'),
+                font=(FONT_UI, 14, 'bold'),
                 bg=t["BG_CARD"],
                 fg=t["TEXT_PRIMARY"]
             ).pack(side=tk.LEFT)
@@ -2515,7 +2515,7 @@ class HospitalManagementSystem:
             tk.Label(
                 today_header,
                 text="UPCOMING 3 HOURS",
-                font=(FONT_FALLBACK, 9, 'bold'),
+                font=(FONT_UI, 9, 'bold'),
                 bg=t["BG_CARD"],
                 fg=t["TEXT_SECONDARY"]
             ).pack(side=tk.RIGHT)
@@ -2535,15 +2535,15 @@ class HospitalManagementSystem:
                     
                     apt_item = tk.Frame(appointments_list, bg=t["BG_CARD"])
                     apt_item.pack(fill=tk.X, pady=8)
-                    tk.Label(apt_item, text=apt_time, font=(FONT_FALLBACK, 10, 'bold'),
+                    tk.Label(apt_item, text=apt_time, font=(FONT_UI, 10, 'bold'),
                             bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(anchor='w')
                     tk.Label(apt_item, text=f"{patient_name} - {doctor_name}",
-                            font=(FONT_FALLBACK, 10), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(anchor='w')
+                            font=(FONT_UI, 10), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(anchor='w')
                     if specialization:
-                        tk.Label(apt_item, text=specialization, font=(FONT_FALLBACK, 9),
+                        tk.Label(apt_item, text=specialization, font=(FONT_UI, 9),
                                 bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(anchor='w')
             except Exception as e:
-                tk.Label(appointments_list, text="No appointments today", font=(FONT_FALLBACK, 10), 
+                tk.Label(appointments_list, text="No appointments today", font=(FONT_UI, 10), 
                         bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(pady=10)
             
             # Update scroll region after all content is loaded

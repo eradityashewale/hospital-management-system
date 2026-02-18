@@ -13,7 +13,7 @@ from frontend.theme import (
     BG_BASE, BG_CARD, BG_DEEP, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
     ACCENT_BLUE, ACCENT_PURPLE, BORDER_DEFAULT, TABLE_HEADER_BG, BTN_SUCCESS_BG, BTN_SUCCESS_HOVER,
     BTN_PRIMARY_BG, BTN_PRIMARY_HOVER, BTN_DANGER_BG, BTN_DANGER_HOVER,
-    BTN_SECONDARY_BG, BTN_SECONDARY_HOVER, WARNING,
+    BTN_SECONDARY_BG, BTN_SECONDARY_HOVER, WARNING, FONT_UI,
     get_theme,
 )
 
@@ -46,7 +46,7 @@ class IPDModule:
         header = tk.Label(
             self.parent,
             text="IPD Management",
-            font=('Segoe UI', 24, 'bold'),
+            font=(FONT_UI, 24, 'bold'),
             bg=t["BG_DEEP"],
             fg=t["TEXT_PRIMARY"]
         )
@@ -60,17 +60,17 @@ class IPDModule:
         search_frame = tk.Frame(top_frame, bg=t["BG_DEEP"])
         search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        tk.Label(search_frame, text="Search:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
+        tk.Label(search_frame, text="Search:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
         self.search_var = tk.StringVar()
         self.search_var.trace('w', lambda *args: self.search_admissions())
-        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
+        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=(FONT_UI, 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         search_entry.pack(side=tk.LEFT, padx=8)
         
         # Filter by status
         filter_frame = tk.Frame(top_frame, bg=t["BG_DEEP"])
         filter_frame.pack(side=tk.LEFT, padx=10)
         
-        tk.Label(filter_frame, text="Status:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
+        tk.Label(filter_frame, text="Status:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
         self.status_filter = tk.StringVar(value="All")
         status_combo = ttk.Combobox(filter_frame, textvariable=self.status_filter, values=["All", "Admitted", "Discharged"], state="readonly", width=12)
         status_combo.pack(side=tk.LEFT, padx=5)
@@ -80,9 +80,9 @@ class IPDModule:
         date_filter_frame = tk.Frame(top_frame, bg=t["BG_DEEP"])
         date_filter_frame.pack(side=tk.LEFT, padx=10)
         
-        tk.Label(date_filter_frame, text="Date:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
+        tk.Label(date_filter_frame, text="Date:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
         self.date_filter = tk.StringVar()
-        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_filter, font=('Segoe UI', 11), width=12, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
+        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_filter, font=(FONT_UI, 11), width=12, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         date_entry.pack(side=tk.LEFT, padx=5)
         date_entry.bind('<KeyRelease>', lambda e: self.refresh_list())
         # Add placeholder text
@@ -145,7 +145,7 @@ class IPDModule:
             tk.Label(
                 header_frame,
                 text="Select Date",
-                font=('Segoe UI', 12, 'bold'),
+                font=(FONT_UI, 12, 'bold'),
                 bg='#1e40af',
                 fg='white'
             ).pack(pady=10)
@@ -206,7 +206,7 @@ class IPDModule:
                     label = tk.Label(
                         cal_days_frame,
                         text=day,
-                        font=('Segoe UI', 9, 'bold'),
+                        font=(FONT_UI, 9, 'bold'),
                         bg='#f3f4f6',
                         fg='#374151',
                         width=4
@@ -226,7 +226,7 @@ class IPDModule:
                     day_btn = tk.Button(
                         cal_days_frame,
                         text=day_str,
-                        font=('Segoe UI', 9),
+                        font=(FONT_UI, 9),
                         bg='#ffffff',
                         fg='#374151',
                         width=4,
@@ -295,7 +295,7 @@ class IPDModule:
                 nav_frame,
                 text="◀",
                 command=prev_month,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#e5e7eb',
                 fg='#374151',
                 width=3,
@@ -307,7 +307,7 @@ class IPDModule:
             month_label = tk.Label(
                 nav_frame,
                 text="",
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#ffffff',
                 fg='#1a237e'
             )
@@ -317,7 +317,7 @@ class IPDModule:
                 nav_frame,
                 text="▶",
                 command=next_month,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#e5e7eb',
                 fg='#374151',
                 width=3,
@@ -338,7 +338,7 @@ class IPDModule:
                 btn_frame,
                 text="Today",
                 command=lambda: select_date(datetime.now().day),
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#3b82f6',
                 fg='white',
                 padx=15,
@@ -352,7 +352,7 @@ class IPDModule:
                 btn_frame,
                 text="Cancel",
                 command=calendar_window.destroy,
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#6b7280',
                 fg='white',
                 padx=15,
@@ -370,7 +370,7 @@ class IPDModule:
             date_filter_frame,
             text="📅",
             command=open_calendar_for_filter,
-            font=('Segoe UI', 12),
+            font=(FONT_UI, 12),
             bg=ACCENT_BLUE,
             fg='white',
             width=3,
@@ -385,7 +385,7 @@ class IPDModule:
             top_frame,
             text="+ Admit Patient",
             command=self.admit_patient,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg=BTN_SUCCESS_BG,
             fg='white',
             padx=25,
@@ -422,13 +422,13 @@ class IPDModule:
             pass  # Use default if theme not available
         
         style.configure("Treeview", 
-                       font=('Segoe UI', 10), 
+                       font=(FONT_UI, 10), 
                        rowheight=30, 
                        background=t["BG_CARD"], 
                        foreground=t["TEXT_PRIMARY"],
                        fieldbackground=t["BG_CARD"])
         style.configure("Treeview.Heading", 
-                       font=('Segoe UI', 11, 'bold'), 
+                       font=(FONT_UI, 11, 'bold'), 
                        background=t["TABLE_HEADER_BG"], 
                        foreground=t["TEXT_PRIMARY"],
                        relief='flat')
@@ -513,7 +513,7 @@ class IPDModule:
             left_buttons,
             text="View Details",
             command=self.view_admission,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_PRIMARY_BG,
             fg='white',
             padx=20,
@@ -529,7 +529,7 @@ class IPDModule:
             left_buttons,
             text="📋 Daily Notes",
             command=self.open_daily_notes,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=ACCENT_PURPLE,
             fg='white',
             padx=20,
@@ -550,7 +550,7 @@ class IPDModule:
             right_buttons,
             text="🚪 Discharge Patient",
             command=self.discharge_admission,
-            font=('Segoe UI', 12, 'bold'),
+            font=(FONT_UI, 12, 'bold'),
             bg=BTN_DANGER_BG,
             fg='white',
             padx=30,
@@ -567,7 +567,7 @@ class IPDModule:
             right_buttons,
             text="Refresh",
             command=self.refresh_list,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_SECONDARY_BG,
             fg='white',
             padx=20,
@@ -784,7 +784,7 @@ class IPDModule:
             header = tk.Label(
                 details_window,
                 text=f"Admission Details",
-                font=('Segoe UI', 18, 'bold'),
+                font=(FONT_UI, 18, 'bold'),
                 bg='#f5f7fa',
                 fg='#1a237e'
             )
@@ -822,7 +822,7 @@ class IPDModule:
                 tk.Label(
                     row,
                     text=label,
-                    font=('Segoe UI', 11, 'bold'),
+                    font=(FONT_UI, 11, 'bold'),
                     bg='#ffffff',
                     fg='#374151',
                     anchor='w',
@@ -832,7 +832,7 @@ class IPDModule:
                 tk.Label(
                     row,
                     text=str(value),
-                    font=('Segoe UI', 11),
+                    font=(FONT_UI, 11),
                     bg='#ffffff',
                     fg='#6b7280',
                     anchor='w',
@@ -844,7 +844,7 @@ class IPDModule:
                 details_window,
                 text="Close",
                 command=details_window.destroy,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#6b7280',
                 fg='white',
                 padx=20,
@@ -910,15 +910,15 @@ class IPDModule:
         frm = tk.Frame(discharge_window, bg="#f5f7fa")
         frm.pack(fill=tk.BOTH, expand=True, padx=18, pady=18)
         
-        tk.Label(frm, text=f"Admission: {admission_id}", font=("Segoe UI", 11, "bold"), bg="#f5f7fa", fg="#1a237e").pack(anchor="w", pady=(0, 10))
+        tk.Label(frm, text=f"Admission: {admission_id}", font=(FONT_UI, 11, "bold"), bg="#f5f7fa", fg="#1a237e").pack(anchor="w", pady=(0, 10))
         
         row = tk.Frame(frm, bg="#f5f7fa")
         row.pack(fill=tk.X, pady=6)
-        tk.Label(row, text="Discharge Date:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").pack(side=tk.LEFT)
+        tk.Label(row, text="Discharge Date:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").pack(side=tk.LEFT)
         discharge_date_var = tk.StringVar(value=get_current_date())
         tk.Entry(row, textvariable=discharge_date_var, width=18).pack(side=tk.LEFT, padx=10)
         
-        tk.Label(frm, text="Discharge Summary:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").pack(anchor="w", pady=(10, 4))
+        tk.Label(frm, text="Discharge Summary:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").pack(anchor="w", pady=(10, 4))
         summary = tk.Text(frm, height=8, width=48, wrap="word")
         summary.pack(fill=tk.BOTH, expand=True)
         
@@ -946,7 +946,7 @@ class IPDModule:
             btns,
             text="Confirm Discharge",
             command=do_discharge,
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg="#ef4444",
             fg="white",
             padx=16,
@@ -962,7 +962,7 @@ class IPDModule:
             btns,
             text="Cancel",
             command=discharge_window.destroy,
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg="#6b7280",
             fg="white",
             padx=16,
@@ -988,7 +988,7 @@ class IPDModule:
         header = tk.Label(
             select_window,
             text="Select Patient to Admit",
-            font=("Segoe UI", 16, "bold"),
+            font=(FONT_UI, 16, "bold"),
             bg="#f5f7fa",
             fg="#1a237e",
         )
@@ -998,7 +998,7 @@ class IPDModule:
         search_frame = tk.Frame(select_window, bg="#f5f7fa")
         search_frame.pack(fill=tk.X, padx=18, pady=(0, 10))
         
-        tk.Label(search_frame, text="Search:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").pack(side=tk.LEFT, padx=(0, 8))
+        tk.Label(search_frame, text="Search:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").pack(side=tk.LEFT, padx=(0, 8))
         search_var = tk.StringVar()
         search_entry = tk.Entry(search_frame, textvariable=search_var, width=30)
         search_entry.pack(side=tk.LEFT, padx=8)
@@ -1089,7 +1089,7 @@ class IPDModule:
             btn_frame,
             text="Admit Selected Patient",
             command=proceed_to_admit,
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg="#10b981",
             fg="white",
             padx=16,
@@ -1105,7 +1105,7 @@ class IPDModule:
             btn_frame,
             text="Cancel",
             command=select_window.destroy,
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg="#6b7280",
             fg="white",
             padx=16,
@@ -1149,7 +1149,7 @@ class IPDModule:
             tk.Label(
                 frm,
                 text=f"Patient: {patient_name} ({patient_id})",
-                font=("Segoe UI", 11, "bold"),
+                font=(FONT_UI, 11, "bold"),
                 bg="#f5f7fa",
                 fg="#1a237e",
             ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 12))
@@ -1157,28 +1157,28 @@ class IPDModule:
             doctors = self.db.get_all_doctors()
             doctor_labels = ["(None)"] + [f"{d['doctor_id']} - Dr. {d['first_name']} {d['last_name']}" for d in doctors]
             
-            tk.Label(frm, text="Assigned Doctor (optional):", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=1, column=0, sticky="w", pady=8)
+            tk.Label(frm, text="Assigned Doctor (optional):", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=1, column=0, sticky="w", pady=8)
             doctor_var = tk.StringVar(value=doctor_labels[0])
             doctor_combo = ttk.Combobox(frm, textvariable=doctor_var, values=doctor_labels, state="readonly", width=34)
             doctor_combo.grid(row=1, column=1, sticky="w", pady=8)
             
-            tk.Label(frm, text="Admission Date:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=2, column=0, sticky="w", pady=8)
+            tk.Label(frm, text="Admission Date:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=2, column=0, sticky="w", pady=8)
             adm_date_var = tk.StringVar(value=get_current_date())
             tk.Entry(frm, textvariable=adm_date_var, width=18).grid(row=2, column=1, sticky="w", pady=8)
             
-            tk.Label(frm, text="Expected Days:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=3, column=0, sticky="w", pady=8)
+            tk.Label(frm, text="Expected Days:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=3, column=0, sticky="w", pady=8)
             exp_days_var = tk.StringVar(value="3")
             tk.Entry(frm, textvariable=exp_days_var, width=10).grid(row=3, column=1, sticky="w", pady=8)
             
-            tk.Label(frm, text="Ward:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=4, column=0, sticky="w", pady=8)
+            tk.Label(frm, text="Ward:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=4, column=0, sticky="w", pady=8)
             ward_var = tk.StringVar()
             tk.Entry(frm, textvariable=ward_var, width=22).grid(row=4, column=1, sticky="w", pady=8)
             
-            tk.Label(frm, text="Bed:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=5, column=0, sticky="w", pady=8)
+            tk.Label(frm, text="Bed:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=5, column=0, sticky="w", pady=8)
             bed_var = tk.StringVar()
             tk.Entry(frm, textvariable=bed_var, width=22).grid(row=5, column=1, sticky="w", pady=8)
             
-            tk.Label(frm, text="Reason / Diagnosis:", font=("Segoe UI", 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=6, column=0, sticky="nw", pady=8)
+            tk.Label(frm, text="Reason / Diagnosis:", font=(FONT_UI, 10, "bold"), bg="#f5f7fa", fg="#374151").grid(row=6, column=0, sticky="nw", pady=8)
             reason_txt = tk.Text(frm, height=5, width=34, wrap="word")
             reason_txt.grid(row=6, column=1, sticky="w", pady=8)
             
@@ -1223,7 +1223,7 @@ class IPDModule:
                 btns,
                 text="Save Admission",
                 command=do_save,
-                font=("Segoe UI", 10, "bold"),
+                font=(FONT_UI, 10, "bold"),
                 bg="#10b981",
                 fg="white",
                 padx=16,
@@ -1239,7 +1239,7 @@ class IPDModule:
                 btns,
                 text="Cancel",
                 command=dialog.destroy,
-                font=("Segoe UI", 10, "bold"),
+                font=(FONT_UI, 10, "bold"),
                 bg="#6b7280",
                 fg="white",
                 padx=16,

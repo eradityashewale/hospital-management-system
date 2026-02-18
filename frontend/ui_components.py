@@ -12,7 +12,7 @@ from frontend.theme import (
     TEXT_PRIMARY, TEXT_SECONDARY, SIDEBAR_ACTIVE, SIDEBAR_HOVER, SIDEBAR_BG,
     SIDEBAR_TEXT, SIDEBAR_TEXT_ACTIVE, FILTER_ACTIVE, FILTER_INACTIVE,
     FILTER_INACTIVE_TEXT, RADIUS_CARD, RADIUS_LG, RADIUS_MD,
-    FONT_FAMILY, FONT_FALLBACK, FONT_SIZE_SM, FONT_SIZE_BASE, FONT_SIZE_LG,
+    FONT_FAMILY, FONT_UI, FONT_SIZE_SM, FONT_SIZE_BASE, FONT_SIZE_LG,
     FONT_SIZE_2XL, FONT_SIZE_3XL, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
     SIDEBAR_WIDTH, SIDEBAR_ACTIVE_GLOW,
 )
@@ -63,21 +63,21 @@ class ModernCard(tk.Frame):
         top_frame = tk.Frame(content, bg=self.card_color)
         top_frame.pack(fill=tk.X, padx=20, pady=(20, 8))
         
-        icon_lbl = tk.Label(top_frame, text=icon, font=(FONT_FALLBACK, 22), 
+        icon_lbl = tk.Label(top_frame, text=icon, font=(FONT_UI, 22), 
                            bg=self.card_color, fg='white')
         icon_lbl.pack(side=tk.LEFT, padx=(0, 12))
         
         label_frame = tk.Frame(top_frame, bg=self.card_color)
         label_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        tk.Label(label_frame, text=label, font=(FONT_FALLBACK, FONT_SIZE_SM, 'bold'),
+        tk.Label(label_frame, text=label, font=(FONT_UI, FONT_SIZE_SM, 'bold'),
                 bg=self.card_color, fg='white').pack(anchor='w')
         if trend:
-            tk.Label(label_frame, text=f"↑ {trend}", font=(FONT_FALLBACK, 9),
+            tk.Label(label_frame, text=f"↑ {trend}", font=(FONT_UI, 9),
                     bg=self.card_color, fg='white').pack(anchor='w')
         
         # Value - large number
-        self.value_label = tk.Label(content, text=str(value), font=(FONT_FALLBACK, FONT_SIZE_3XL, 'bold'),
+        self.value_label = tk.Label(content, text=str(value), font=(FONT_UI, FONT_SIZE_3XL, 'bold'),
                                    bg=self.card_color, fg='white')
         self.value_label.pack(pady=(0, 20))
         
@@ -132,10 +132,10 @@ class ModernSidebar(tk.Frame):
         inner = tk.Frame(frame, bg=SIDEBAR_BG, cursor='hand2')
         inner.pack(fill=tk.BOTH, expand=True)
         
-        icon_lbl = tk.Label(inner, text=icon, font=(FONT_FALLBACK, 14), bg=SIDEBAR_BG, fg=SIDEBAR_TEXT)
+        icon_lbl = tk.Label(inner, text=icon, font=(FONT_UI, 14), bg=SIDEBAR_BG, fg=SIDEBAR_TEXT)
         icon_lbl.pack(side=tk.LEFT, padx=(16, 12), pady=12)
         
-        text_lbl = tk.Label(inner, text=label, font=(FONT_FALLBACK, FONT_SIZE_BASE, 'bold'),
+        text_lbl = tk.Label(inner, text=label, font=(FONT_UI, FONT_SIZE_BASE, 'bold'),
                            bg=SIDEBAR_BG, fg=SIDEBAR_TEXT)
         text_lbl.pack(side=tk.LEFT, fill=tk.X, expand=True, anchor='w')
         
@@ -183,7 +183,7 @@ class ModernPillButton(tk.Button):
         super().__init__(parent, text=text, command=command, **kwargs)
         self._active = active
         self.configure(
-            font=(FONT_FALLBACK, FONT_SIZE_SM, 'bold'),
+            font=(FONT_UI, FONT_SIZE_SM, 'bold'),
             bg=FILTER_ACTIVE if active else FILTER_INACTIVE,
             fg='white' if active else FILTER_INACTIVE_TEXT,
             activebackground=FILTER_ACTIVE if active else '#2d3748',
@@ -223,7 +223,7 @@ def create_modern_button(parent, text: str, command: Callable = None,
     }
     bg, abg = styles.get(style, styles['primary'])
     btn = tk.Button(parent, text=text, command=command,
-                    font=(FONT_FALLBACK, FONT_SIZE_BASE, 'bold'),
+                    font=(FONT_UI, FONT_SIZE_BASE, 'bold'),
                     bg=bg, fg='white', activebackground=abg, activeforeground='white',
                     relief=tk.FLAT, bd=0, padx=20, pady=10, cursor='hand2',
                     highlightthickness=0, **kwargs)

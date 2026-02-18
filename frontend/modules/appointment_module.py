@@ -14,7 +14,7 @@ from frontend.theme import (
     ACCENT_BLUE, BORDER_DEFAULT, WARNING, ERROR, SUCCESS,
     TABLE_HEADER_BG, BTN_SUCCESS_BG, BTN_SUCCESS_HOVER, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
     BTN_DANGER_BG, BTN_DANGER_HOVER, BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
-    get_theme,
+    FONT_UI, get_theme,
 )
 
 # Utils imports
@@ -39,7 +39,7 @@ class AppointmentModule:
         header = tk.Label(
             self.parent,
             text="Appointment Management",
-            font=('Segoe UI', 24, 'bold'),
+            font=(FONT_UI, 24, 'bold'),
             bg=t["BG_DEEP"],
             fg=t["TEXT_PRIMARY"]
         )
@@ -54,18 +54,18 @@ class AppointmentModule:
         filter_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
         # Search by patient name
-        tk.Label(filter_frame, text="Search by Patient Name:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
+        tk.Label(filter_frame, text="Search by Patient Name:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
         self.patient_name_var = tk.StringVar()
         self.patient_name_var.trace('w', lambda *args: self.apply_filters())
-        patient_name_entry = tk.Entry(filter_frame, textvariable=self.patient_name_var, font=('Segoe UI', 10), width=20, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
+        patient_name_entry = tk.Entry(filter_frame, textvariable=self.patient_name_var, font=(FONT_UI, 10), width=20, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         patient_name_entry.pack(side=tk.LEFT, padx=5)
         
         # Date filter with calendar button
-        tk.Label(filter_frame, text="Filter by Date:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=(15, 5))
+        tk.Label(filter_frame, text="Filter by Date:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=(15, 5))
         date_filter_frame = tk.Frame(filter_frame, bg=t["BG_DEEP"])
         date_filter_frame.pack(side=tk.LEFT, padx=5)
         self.date_var = tk.StringVar(value="")
-        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_var, font=('Segoe UI', 10), width=15, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
+        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_var, font=(FONT_UI, 10), width=15, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         date_entry.pack(side=tk.LEFT)
         # Auto-filter when date changes
         self.date_var.trace('w', lambda *args: self.apply_filters())
@@ -112,7 +112,7 @@ class AppointmentModule:
             tk.Label(
                 header_frame,
                 text="Select Date",
-                font=('Segoe UI', 12, 'bold'),
+                font=(FONT_UI, 12, 'bold'),
                 bg='#1e40af',
                 fg='white'
             ).pack(pady=10)
@@ -170,7 +170,7 @@ class AppointmentModule:
                     label = tk.Label(
                         cal_days_frame,
                         text=day,
-                        font=('Segoe UI', 9, 'bold'),
+                        font=(FONT_UI, 9, 'bold'),
                         bg='#f3f4f6',
                         fg='#374151',
                         width=4
@@ -190,7 +190,7 @@ class AppointmentModule:
                     day_btn = tk.Button(
                         cal_days_frame,
                         text=day_str,
-                        font=('Segoe UI', 9),
+                        font=(FONT_UI, 9),
                         bg='#ffffff',
                         fg='#374151',
                         width=4,
@@ -255,7 +255,7 @@ class AppointmentModule:
                 nav_frame,
                 text="◀",
                 command=prev_month,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
                 bg='#e5e7eb',
                 fg='#374151',
                 width=3,
@@ -267,7 +267,7 @@ class AppointmentModule:
             month_label = tk.Label(
                 nav_frame,
                 text="",
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#ffffff',
                 fg='#1a237e'
             )
@@ -277,7 +277,7 @@ class AppointmentModule:
                 nav_frame,
                 text="▶",
                 command=next_month,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#e5e7eb',
                 fg='#374151',
                 width=3,
@@ -298,7 +298,7 @@ class AppointmentModule:
                 btn_frame,
                 text="Today",
                 command=lambda: select_date(datetime.now().day),
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
             bg='#3b82f6',
             fg='white',
             padx=15,
@@ -312,7 +312,7 @@ class AppointmentModule:
                 btn_frame,
                 text="Cancel",
                 command=calendar_window.destroy,
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
             bg='#6b7280',
             fg='white',
             padx=15,
@@ -330,7 +330,7 @@ class AppointmentModule:
             date_filter_frame,
             text="📅",
             command=open_calendar_for_filter,
-            font=('Segoe UI', 12),
+            font=(FONT_UI, 12),
             bg=ACCENT_BLUE,
             fg='white',
             width=3,
@@ -341,13 +341,13 @@ class AppointmentModule:
         date_cal_btn.pack(side=tk.LEFT, padx=(5, 0))
         
         # Status filter
-        tk.Label(filter_frame, text="Status:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=(10, 5))
+        tk.Label(filter_frame, text="Status:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=(10, 5))
         self.status_var = tk.StringVar(value="All")
         status_combo = ttk.Combobox(
             filter_frame,
             textvariable=self.status_var,
             values=["All", "Scheduled", "Completed", "Cancelled"],
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             width=12,
             state='readonly'
         )
@@ -360,7 +360,7 @@ class AppointmentModule:
             top_frame,
             text="+ Schedule Appointment",
             command=self.add_appointment,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg=BTN_SUCCESS_BG,
             fg='white',
             padx=25,
@@ -381,7 +381,7 @@ class AppointmentModule:
         tk.Label(
             action_frame,
             text="Quick Actions:",
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg=t["BG_DEEP"],
             fg=t["TEXT_SECONDARY"]
         ).pack(side=tk.LEFT, padx=(0, 15))
@@ -390,7 +390,7 @@ class AppointmentModule:
             action_frame,
             text="View Details",
             command=self.view_appointment,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_PRIMARY_BG,
             fg='white',
             padx=20,
@@ -406,7 +406,7 @@ class AppointmentModule:
             action_frame,
             text="✏️ Edit Appointment",
             command=self.edit_appointment,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=WARNING,
             fg='white',
             padx=20,
@@ -422,7 +422,7 @@ class AppointmentModule:
             action_frame,
             text="Delete",
             command=self.delete_appointment,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_DANGER_BG,
             fg='white',
             padx=20,
@@ -438,7 +438,7 @@ class AppointmentModule:
             action_frame,
             text="✅ Mark Complete",
             command=self.mark_complete,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_SUCCESS_BG,
             fg='white',
             padx=20,
@@ -454,7 +454,7 @@ class AppointmentModule:
             action_frame,
             text="❌ Cancel Appointment",
             command=self.cancel_appointment,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#f97316',
             fg='white',
             padx=20,
@@ -481,13 +481,13 @@ class AppointmentModule:
             pass  # Use default if theme not available
         
         style.configure("Treeview", 
-                       font=('Segoe UI', 10), 
+                       font=(FONT_UI, 10), 
                        rowheight=30, 
                        background=t["BG_CARD"], 
                        foreground=t["TEXT_PRIMARY"],
                        fieldbackground=t["BG_CARD"])
         style.configure("Treeview.Heading", 
-                       font=('Segoe UI', 11, 'bold'), 
+                       font=(FONT_UI, 11, 'bold'), 
                        background=t["TABLE_HEADER_BG"], 
                        foreground=t["TEXT_PRIMARY"],
                        relief='flat')
@@ -666,7 +666,7 @@ class AppointmentModule:
         tk.Label(
             header_frame,
             text=title,
-            font=('Segoe UI', 14, 'bold'),
+            font=(FONT_UI, 14, 'bold'),
             bg='#1e40af',
             fg='white'
         ).pack(pady=18)
@@ -678,7 +678,7 @@ class AppointmentModule:
         tk.Label(
             search_frame,
             text="Search by Patient Name, Doctor, or Date:",
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#f5f7fa',
             fg='#374151'
         ).pack(side=tk.LEFT, padx=5)
@@ -687,7 +687,7 @@ class AppointmentModule:
         search_entry = tk.Entry(
             search_frame,
             textvariable=search_var,
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             width=30,
             relief=tk.FLAT,
             bd=2,
@@ -784,7 +784,7 @@ class AppointmentModule:
             button_frame,
             text="Select",
             command=on_select,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#10b981',
             fg='white',
             padx=30,
@@ -799,7 +799,7 @@ class AppointmentModule:
             button_frame,
             text="Cancel",
             command=popup.destroy,
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             bg='#6b7280',
             fg='white',
             padx=30,
@@ -978,11 +978,11 @@ class AppointmentModule:
         # Add mode indicator
         if view_only:
             mode_label = tk.Label(fields_frame, text="📖 VIEW MODE (Read Only)", 
-                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#ef4444')
+                                 font=(FONT_UI, 11, 'bold'), bg='#f5f7fa', fg='#ef4444')
             mode_label.pack(pady=5)
         elif appointment:
             mode_label = tk.Label(fields_frame, text="✏️ EDIT MODE (Editable)", 
-                                 font=('Segoe UI', 11, 'bold'), bg='#f5f7fa', fg='#10b981')
+                                 font=(FONT_UI, 11, 'bold'), bg='#f5f7fa', fg='#10b981')
             mode_label.pack(pady=5)
         
         if appointment:
@@ -990,7 +990,7 @@ class AppointmentModule:
         else:
             appointment_id = generate_id('APT')
         
-        tk.Label(fields_frame, text=f"Appointment ID: {appointment_id}", font=('Segoe UI', 13, 'bold'), bg='#f5f7fa', fg='#1a237e').pack(pady=8)
+        tk.Label(fields_frame, text=f"Appointment ID: {appointment_id}", font=(FONT_UI, 13, 'bold'), bg='#f5f7fa', fg='#1a237e').pack(pady=8)
         
         # Patient selection with searchable dropdown
         tk.Label(fields_frame, text="Patient ID *:", font=('Arial', 10), bg='#f0f0f0').pack(anchor='w', pady=5)
@@ -1125,7 +1125,7 @@ class AppointmentModule:
             tk.Label(
                 header_frame,
                 text="Select Date",
-                font=('Segoe UI', 12, 'bold'),
+                font=(FONT_UI, 12, 'bold'),
                 bg='#1e40af',
                 fg='white'
             ).pack(pady=10)
@@ -1183,7 +1183,7 @@ class AppointmentModule:
                     label = tk.Label(
                         cal_days_frame,
                         text=day,
-                        font=('Segoe UI', 9, 'bold'),
+                        font=(FONT_UI, 9, 'bold'),
                         bg='#f3f4f6',
                         fg='#374151',
                         width=4
@@ -1203,7 +1203,7 @@ class AppointmentModule:
                     day_btn = tk.Button(
                         cal_days_frame,
                         text=day_str,
-                        font=('Segoe UI', 9),
+                        font=(FONT_UI, 9),
                         bg='#ffffff',
                         fg='#374151',
                         width=4,
@@ -1269,7 +1269,7 @@ class AppointmentModule:
                 nav_frame,
                 text="◀",
                 command=prev_month,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#e5e7eb',
                 fg='#374151',
                 width=3,
@@ -1281,7 +1281,7 @@ class AppointmentModule:
             month_label = tk.Label(
                 nav_frame,
                 text="",
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#ffffff',
                 fg='#1a237e'
             )
@@ -1291,7 +1291,7 @@ class AppointmentModule:
                 nav_frame,
                 text="▶",
                 command=next_month,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#e5e7eb',
                 fg='#374151',
                 width=3,
@@ -1312,7 +1312,7 @@ class AppointmentModule:
                 btn_frame,
                 text="Today",
                 command=lambda: select_date(datetime.now().day),
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#3b82f6',
                 fg='white',
                 padx=15,
@@ -1326,7 +1326,7 @@ class AppointmentModule:
                 btn_frame,
                 text="Cancel",
                 command=calendar_window.destroy,
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#6b7280',
                 fg='white',
                 padx=15,
@@ -1343,7 +1343,7 @@ class AppointmentModule:
             date_frame,
             text="📅",
             command=open_calendar_for_date if not view_only else lambda: None,
-            font=('Segoe UI', 12),
+            font=(FONT_UI, 12),
             bg='#3b82f6',
             fg='white',
             width=3,
@@ -1386,7 +1386,7 @@ class AppointmentModule:
             tk.Label(
                 header_frame,
                 text="Select Time",
-                font=('Segoe UI', 12, 'bold'),
+                font=(FONT_UI, 12, 'bold'),
                 bg='#1e40af',
                 fg='white'
             ).pack(pady=10)
@@ -1422,7 +1422,7 @@ class AppointmentModule:
             tk.Label(
                 hour_frame,
                 text="Hour:",
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#ffffff',
                 fg='#374151'
             ).pack(side=tk.LEFT, padx=5)
@@ -1432,7 +1432,7 @@ class AppointmentModule:
                 from_=0,
                 to=23,
                 textvariable=hour_var,
-                font=('Segoe UI', 12),
+                font=(FONT_UI, 12),
                 width=5,
                 justify=tk.CENTER,
                 relief=tk.SOLID,
@@ -1447,7 +1447,7 @@ class AppointmentModule:
             tk.Label(
                 minute_frame,
                 text="Minute:",
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#ffffff',
                 fg='#374151'
             ).pack(side=tk.LEFT, padx=5)
@@ -1457,7 +1457,7 @@ class AppointmentModule:
                 from_=0,
                 to=59,
                 textvariable=minute_var,
-                font=('Segoe UI', 12),
+                font=(FONT_UI, 12),
                 width=5,
                 justify=tk.CENTER,
                 relief=tk.SOLID,
@@ -1473,7 +1473,7 @@ class AppointmentModule:
             tk.Label(
                 quick_times_frame,
                 text="Quick Select:",
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#ffffff',
                 fg='#6b7280'
             ).pack(anchor='w', pady=(0, 5))
@@ -1498,7 +1498,7 @@ class AppointmentModule:
                     quick_buttons_frame,
                     text=time_label,
                     command=lambda t=time_val: select_time_from_quick(t),
-                    font=('Segoe UI', 9),
+                    font=(FONT_UI, 9),
                     bg='#e5e7eb',
                     fg='#374151',
                     relief=tk.FLAT,
@@ -1533,7 +1533,7 @@ class AppointmentModule:
                 btn_frame,
                 text="Now",
                 command=lambda: select_time_from_quick(datetime.now().strftime('%H:%M')),
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#3b82f6',
                 fg='white',
                 padx=15,
@@ -1547,7 +1547,7 @@ class AppointmentModule:
                 btn_frame,
                 text="OK",
                 command=select_time,
-                font=('Segoe UI', 9, 'bold'),
+                font=(FONT_UI, 9, 'bold'),
                 bg='#10b981',
                 fg='white',
                 padx=20,
@@ -1561,7 +1561,7 @@ class AppointmentModule:
                 btn_frame,
                 text="Cancel",
                 command=time_window.destroy,
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#6b7280',
                 fg='white',
                 padx=15,
@@ -1575,7 +1575,7 @@ class AppointmentModule:
             time_frame,
             text="🕐",
             command=open_time_picker if not view_only else lambda: None,
-            font=('Segoe UI', 12),
+            font=(FONT_UI, 12),
             bg='#3b82f6',
             fg='white',
             width=3,
@@ -1801,7 +1801,7 @@ class AppointmentModule:
                 inner_button_frame,
                 text=button_text,
                 command=save_appointment,
-                font=('Segoe UI', 12, 'bold'),
+                font=(FONT_UI, 12, 'bold'),
                 bg='#10b981',
                 fg='white',
                 padx=40,
@@ -1819,7 +1819,7 @@ class AppointmentModule:
             inner_button_frame if not view_only else main_frame,
             text="Close",
             command=close_dialog,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg='#6b7280',
             fg='white',
             padx=35,

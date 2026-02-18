@@ -14,7 +14,7 @@ from frontend.theme import (
     BG_BASE, BG_CARD, BG_DEEP, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
     ACCENT_BLUE, BORDER_DEFAULT, TABLE_HEADER_BG, BTN_SUCCESS_BG, BTN_SUCCESS_HOVER,
     BTN_PRIMARY_BG, BTN_PRIMARY_HOVER, BTN_DANGER_BG, BTN_DANGER_HOVER,
-    BTN_SECONDARY_BG, BTN_SECONDARY_HOVER, WARNING,
+    BTN_SECONDARY_BG, BTN_SECONDARY_HOVER, WARNING, FONT_UI,
     get_theme,
 )
 
@@ -293,7 +293,7 @@ class PrescriptionModule:
         header = tk.Label(
             self.parent,
             text="Prescription Management",
-            font=('Segoe UI', 24, 'bold'),
+            font=(FONT_UI, 24, 'bold'),
             bg=t["BG_DEEP"],
             fg=t["TEXT_PRIMARY"]
         )
@@ -307,7 +307,7 @@ class PrescriptionModule:
         self.selection_label = tk.Label(
             self.selection_indicator_frame,
             text="",
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg=t["BG_BASE"],
             fg=t["ACCENT_BLUE"],
             padx=15,
@@ -324,18 +324,18 @@ class PrescriptionModule:
         filter_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
         # Search by patient name
-        tk.Label(filter_frame, text="Search by Patient Name:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
+        tk.Label(filter_frame, text="Search by Patient Name:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
         self.search_var = tk.StringVar()
         self.search_var.trace('w', lambda *args: self.apply_filters())
-        search_entry = tk.Entry(filter_frame, textvariable=self.search_var, font=('Segoe UI', 10), width=20, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
+        search_entry = tk.Entry(filter_frame, textvariable=self.search_var, font=(FONT_UI, 10), width=20, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         search_entry.pack(side=tk.LEFT, padx=5)
         
         # Date filter with calendar button
-        tk.Label(filter_frame, text="Filter by Date:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=(15, 5))
+        tk.Label(filter_frame, text="Filter by Date:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=(15, 5))
         date_filter_frame = tk.Frame(filter_frame, bg=t["BG_DEEP"])
         date_filter_frame.pack(side=tk.LEFT, padx=5)
         self.date_var = tk.StringVar(value="")
-        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_var, font=('Segoe UI', 10), width=15, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
+        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_var, font=(FONT_UI, 10), width=15, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         date_entry.pack(side=tk.LEFT)
         # Auto-filter when date changes
         self.date_var.trace('w', lambda *args: self.apply_filters())
@@ -382,7 +382,7 @@ class PrescriptionModule:
             tk.Label(
                 header_frame,
                 text="Select Date",
-                font=('Segoe UI', 12, 'bold'),
+                font=(FONT_UI, 12, 'bold'),
                 bg='#1e40af',
                 fg='white'
             ).pack(pady=10)
@@ -440,7 +440,7 @@ class PrescriptionModule:
                     label = tk.Label(
                         cal_days_frame,
                         text=day,
-                        font=('Segoe UI', 9, 'bold'),
+                        font=(FONT_UI, 9, 'bold'),
                         bg='#f3f4f6',
                         fg='#374151',
                         width=4
@@ -460,7 +460,7 @@ class PrescriptionModule:
                     day_btn = tk.Button(
                         cal_days_frame,
                         text=day_str,
-                        font=('Segoe UI', 9),
+                        font=(FONT_UI, 9),
                         bg='#ffffff',
                         fg='#374151',
                         width=4,
@@ -525,7 +525,7 @@ class PrescriptionModule:
                 nav_frame,
                 text="◀",
                 command=prev_month,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#e5e7eb',
                 fg='#374151',
                 width=3,
@@ -537,7 +537,7 @@ class PrescriptionModule:
             month_label = tk.Label(
                 nav_frame,
                 text="",
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#ffffff',
                 fg='#1a237e'
             )
@@ -547,7 +547,7 @@ class PrescriptionModule:
                 nav_frame,
                 text="▶",
                 command=next_month,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#e5e7eb',
                 fg='#374151',
                 width=3,
@@ -568,7 +568,7 @@ class PrescriptionModule:
                 btn_frame,
                 text="Today",
                 command=lambda: select_date(datetime.now().day),
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#3b82f6',
                 fg='white',
                 padx=15,
@@ -582,7 +582,7 @@ class PrescriptionModule:
                 btn_frame,
                 text="Cancel",
                 command=calendar_window.destroy,
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#6b7280',
                 fg='white',
                 padx=15,
@@ -600,7 +600,7 @@ class PrescriptionModule:
             date_filter_frame,
             text="📅",
             command=open_calendar_for_filter,
-            font=('Segoe UI', 12),
+            font=(FONT_UI, 12),
             bg=ACCENT_BLUE,
             fg='white',
             width=3,
@@ -615,7 +615,7 @@ class PrescriptionModule:
             top_frame,
             text="+ New Prescription",
             command=self.add_prescription,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg=BTN_SUCCESS_BG,
             fg='white',
             padx=25,
@@ -636,7 +636,7 @@ class PrescriptionModule:
         tk.Label(
             action_frame,
             text="Quick Actions:",
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg=t["BG_DEEP"],
             fg=t["TEXT_SECONDARY"]
         ).pack(side=tk.LEFT, padx=(0, 15))
@@ -645,7 +645,7 @@ class PrescriptionModule:
             action_frame,
             text="View Details",
             command=self.view_prescription,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_PRIMARY_BG,
             fg='white',
             padx=20,
@@ -661,7 +661,7 @@ class PrescriptionModule:
             action_frame,
             text="✏️ Edit Prescription",
             command=self.edit_prescription,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=WARNING,
             fg='white',
             padx=20,
@@ -677,7 +677,7 @@ class PrescriptionModule:
             action_frame,
             text="Delete",
             command=self.delete_prescription,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_DANGER_BG,
             fg='white',
             padx=20,
@@ -704,13 +704,13 @@ class PrescriptionModule:
             pass  # Use default if theme not available
         
         style.configure("Treeview", 
-                       font=('Segoe UI', 10), 
+                       font=(FONT_UI, 10), 
                        rowheight=30, 
                        background=t["BG_CARD"], 
                        foreground=t["TEXT_PRIMARY"],
                        fieldbackground=t["BG_CARD"])
         style.configure("Treeview.Heading", 
-                       font=('Segoe UI', 11, 'bold'), 
+                       font=(FONT_UI, 11, 'bold'), 
                        background=t["TABLE_HEADER_BG"], 
                        foreground=t["TEXT_PRIMARY"],
                        relief='flat')
@@ -899,7 +899,7 @@ class PrescriptionModule:
         tk.Label(
             header_frame,
             text=title,
-            font=('Segoe UI', 14, 'bold'),
+            font=(FONT_UI, 14, 'bold'),
             bg='#1e40af',
             fg='white'
         ).pack(pady=18)
@@ -911,7 +911,7 @@ class PrescriptionModule:
         tk.Label(
             search_frame,
             text="Search by Patient Name or Date:",
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#f5f7fa',
             fg='#374151'
         ).pack(side=tk.LEFT, padx=5)
@@ -920,7 +920,7 @@ class PrescriptionModule:
         search_entry = tk.Entry(
             search_frame,
             textvariable=search_var,
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             width=30,
             relief=tk.FLAT,
             bd=2,
@@ -1017,7 +1017,7 @@ class PrescriptionModule:
             button_frame,
             text="Select",
             command=on_select,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#10b981',
             fg='white',
             padx=30,
@@ -1032,7 +1032,7 @@ class PrescriptionModule:
             button_frame,
             text="Cancel",
             command=popup.destroy,
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             bg='#6b7280',
             fg='white',
             padx=30,
@@ -1169,7 +1169,7 @@ class PrescriptionModule:
         title_label = tk.Label(
             header_frame,
             text=f"Prescription Details - {prescription_id}",
-            font=('Segoe UI', 14, 'bold'),
+            font=(FONT_UI, 14, 'bold'),
             bg='#1e40af',
             fg='white'
         )
@@ -1184,7 +1184,7 @@ class PrescriptionModule:
             header_frame,
             text="✏️ Edit",
             command=open_edit,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#10b981',
             fg='white',
             padx=20,
@@ -1452,7 +1452,7 @@ class PrescriptionModule:
             header_frame,
             text="🖨️ Print",
             command=print_prescription,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#6366f1',
             fg='white',
             padx=20,
@@ -1516,7 +1516,7 @@ class PrescriptionModule:
         info_frame = tk.LabelFrame(
             content_frame,
             text="Patient & Doctor Information",
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg='#ffffff',
             fg='#1a237e',
             padx=15,
@@ -1537,7 +1537,7 @@ class PrescriptionModule:
         tk.Label(
             info_frame,
             text=info_text,
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             bg='#ffffff',
             fg='#374151',
             justify=tk.LEFT,
@@ -1560,7 +1560,7 @@ class PrescriptionModule:
             vitals_frame = tk.LabelFrame(
                 content_frame,
                 text="📊 Vital Signs & Measurements",
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#ffffff',
                 fg='#1a237e',
                 padx=15,
@@ -1588,14 +1588,14 @@ class PrescriptionModule:
                 tk.Label(
                     frame,
                     text=label_text,
-                    font=('Segoe UI', 9, 'bold'),
+                    font=(FONT_UI, 9, 'bold'),
                     bg='#ffffff',
                     fg='#6b7280'
                 ).pack(anchor='w')
                 tk.Label(
                     frame,
                     text=str(value),
-                    font=('Segoe UI', 10),
+                    font=(FONT_UI, 10),
                     bg='#ffffff',
                     fg='#374151'
                 ).pack(anchor='w', pady=(2, 0))
@@ -1639,7 +1639,7 @@ class PrescriptionModule:
             diagnosis_frame = tk.LabelFrame(
                 content_frame,
                 text="Diagnosis",
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#ffffff',
                 fg='#1a237e',
                 padx=15,
@@ -1650,7 +1650,7 @@ class PrescriptionModule:
             diagnosis_label = tk.Label(
                 diagnosis_frame,
                 text=prescription_data.get('diagnosis', ''),
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 bg='#ffffff',
                 fg='#374151',
                 wraplength=700,
@@ -1664,7 +1664,7 @@ class PrescriptionModule:
             medicines_frame = tk.LabelFrame(
                 content_frame,
                 text="Prescribed Medicines",
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#ffffff',
                 fg='#1a237e',
                 padx=15,
@@ -1704,7 +1704,7 @@ class PrescriptionModule:
             notes_frame = tk.LabelFrame(
                 content_frame,
                 text="Doctor's Notes",
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#ffffff',
                 fg='#1a237e',
                 padx=15,
@@ -1715,7 +1715,7 @@ class PrescriptionModule:
             notes_label = tk.Label(
                 notes_frame,
                 text=prescription_data.get('notes', ''),
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 bg='#ffffff',
                 fg='#374151',
                 wraplength=700,
@@ -1901,7 +1901,7 @@ class PrescriptionModule:
         mode_label = tk.Label(
             title_frame,
             text=mode_text,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg='#1e40af',
             fg=mode_color
         )
@@ -1911,7 +1911,7 @@ class PrescriptionModule:
         title_label = tk.Label(
             title_frame,
             text=title_text,
-            font=('Segoe UI', 12, 'bold'),
+            font=(FONT_UI, 12, 'bold'),
             bg='#1e40af',
             fg='white'
         )
@@ -1926,7 +1926,7 @@ class PrescriptionModule:
             header_frame,
             text="✕ Close",
             command=back_to_list,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#6b7280',
             fg='white',
             padx=18,
@@ -1968,7 +1968,7 @@ class PrescriptionModule:
         form_frame = tk.LabelFrame(
             left_column, 
             text="👤 Patient & Doctor Information", 
-            font=('Segoe UI', 11, 'bold'), 
+            font=(FONT_UI, 11, 'bold'), 
             bg='#ffffff', 
             fg='#1a237e',
             padx=20, 
@@ -1988,7 +1988,7 @@ class PrescriptionModule:
         status_label = tk.Label(
             status_frame,
             text="⚪ Required fields not completed",
-            font=('Segoe UI', 9, 'bold'),
+            font=(FONT_UI, 9, 'bold'),
             bg='#ffffff',
             fg='#ef4444'
         )
@@ -2019,7 +2019,7 @@ class PrescriptionModule:
         patient_title_frame = tk.Frame(patient_label_frame, bg='#ffffff')
         patient_title_frame.pack(fill=tk.X)
         
-        tk.Label(patient_title_frame, text="Patient *", font=('Segoe UI', 10, 'bold'), bg='#ffffff', fg='#374151').pack(side=tk.LEFT, anchor='w')
+        tk.Label(patient_title_frame, text="Patient *", font=(FONT_UI, 10, 'bold'), bg='#ffffff', fg='#374151').pack(side=tk.LEFT, anchor='w')
         
         # Show recent patients if editing same patient
         recent_patients_frame = tk.Frame(patient_label_frame, bg='#ffffff')
@@ -2034,7 +2034,7 @@ class PrescriptionModule:
         patient_display = tk.Entry(
             patient_frame,
             textvariable=patient_var,
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             state='readonly',
             relief=tk.SOLID,
             bd=1,
@@ -2072,7 +2072,7 @@ class PrescriptionModule:
             tk.Label(
                 header_frame,
                 text="Select Patient",
-                font=('Segoe UI', 14, 'bold'),
+                font=(FONT_UI, 14, 'bold'),
                 bg='#1e40af',
                 fg='white'
             ).pack(pady=18)
@@ -2084,7 +2084,7 @@ class PrescriptionModule:
             tk.Label(
                 search_frame,
                 text="Search:",
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#f5f7fa',
                 fg='#374151'
             ).pack(side=tk.LEFT, padx=5)
@@ -2093,7 +2093,7 @@ class PrescriptionModule:
             search_entry = tk.Entry(
                 search_frame,
                 textvariable=search_var,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 width=30,
                 relief=tk.FLAT,
                 bd=2,
@@ -2178,7 +2178,7 @@ class PrescriptionModule:
                 button_frame,
                 text="Select",
                 command=on_select,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#10b981',
                 fg='white',
                 padx=30,
@@ -2193,7 +2193,7 @@ class PrescriptionModule:
                 button_frame,
                 text="Cancel",
                 command=patient_popup.destroy,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 bg='#6b7280',
                 fg='white',
                 padx=30,
@@ -2211,7 +2211,7 @@ class PrescriptionModule:
             patient_frame,
             text="🔍 Select Patient",
             command=open_patient_selector if not view_only else lambda: None,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#3b82f6',
             fg='white',
             padx=15,
@@ -2235,7 +2235,7 @@ class PrescriptionModule:
         # Doctor selection with popup button
         doctor_label_frame = tk.Frame(form_frame, bg='#ffffff')
         doctor_label_frame.pack(fill=tk.X, pady=(0, 8))
-        tk.Label(doctor_label_frame, text="Doctor *", font=('Segoe UI', 10, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
+        tk.Label(doctor_label_frame, text="Doctor *", font=(FONT_UI, 10, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
         
         doctor_frame = tk.Frame(form_frame, bg='#ffffff')
         doctor_frame.pack(fill=tk.X, pady=(0, 15))
@@ -2244,7 +2244,7 @@ class PrescriptionModule:
         doctor_display = tk.Entry(
             doctor_frame,
             textvariable=doctor_var,
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             state='readonly',
             relief=tk.SOLID,
             bd=1,
@@ -2282,7 +2282,7 @@ class PrescriptionModule:
             tk.Label(
                 header_frame,
                 text="Select Doctor",
-                font=('Segoe UI', 14, 'bold'),
+                font=(FONT_UI, 14, 'bold'),
                 bg='#1e40af',
                 fg='white'
             ).pack(pady=18)
@@ -2294,7 +2294,7 @@ class PrescriptionModule:
             tk.Label(
                 search_frame,
                 text="Search:",
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#f5f7fa',
                 fg='#374151'
             ).pack(side=tk.LEFT, padx=5)
@@ -2303,7 +2303,7 @@ class PrescriptionModule:
             search_entry = tk.Entry(
                 search_frame,
                 textvariable=search_var,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 width=30,
                 relief=tk.FLAT,
                 bd=2,
@@ -2393,7 +2393,7 @@ class PrescriptionModule:
                 button_frame,
                 text="Select",
                 command=on_select,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#10b981',
                 fg='white',
                 padx=30,
@@ -2408,7 +2408,7 @@ class PrescriptionModule:
                 button_frame,
                 text="Cancel",
                 command=doctor_popup.destroy,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 bg='#6b7280',
                 fg='white',
                 padx=30,
@@ -2426,7 +2426,7 @@ class PrescriptionModule:
             doctor_frame,
             text="🔍 Select Doctor",
             command=open_doctor_selector if not view_only else lambda: None,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#3b82f6',
             fg='white',
             padx=15,
@@ -2450,22 +2450,22 @@ class PrescriptionModule:
         # Appointment ID (optional)
         appointment_label_frame = tk.Frame(form_frame, bg='#ffffff')
         appointment_label_frame.pack(fill=tk.X, pady=(0, 8))
-        tk.Label(appointment_label_frame, text="Appointment ID (Optional)", font=('Segoe UI', 10), bg='#ffffff', fg='#6b7280').pack(anchor='w')
+        tk.Label(appointment_label_frame, text="Appointment ID (Optional)", font=(FONT_UI, 10), bg='#ffffff', fg='#6b7280').pack(anchor='w')
         appointment_var = tk.StringVar()
-        appointment_entry = tk.Entry(form_frame, textvariable=appointment_var, font=('Segoe UI', 10), relief=tk.SOLID, bd=1)
+        appointment_entry = tk.Entry(form_frame, textvariable=appointment_var, font=(FONT_UI, 10), relief=tk.SOLID, bd=1)
         appointment_entry.pack(fill=tk.X, pady=(0, 15), ipady=5)
         
         # Date with calendar picker
         date_label_frame = tk.Frame(form_frame, bg='#ffffff')
         date_label_frame.pack(fill=tk.X, pady=(0, 8))
-        tk.Label(date_label_frame, text="Date", font=('Segoe UI', 10, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
+        tk.Label(date_label_frame, text="Date", font=(FONT_UI, 10, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
         
         date_input_frame = tk.Frame(form_frame, bg='#ffffff')
         date_input_frame.pack(fill=tk.X, pady=(0, 15))
         
         # Set entry state based on view_only
         entry_state = 'readonly' if view_only else 'normal'
-        date_entry = tk.Entry(date_input_frame, font=('Segoe UI', 10), relief=tk.SOLID, bd=1, state=entry_state)
+        date_entry = tk.Entry(date_input_frame, font=(FONT_UI, 10), relief=tk.SOLID, bd=1, state=entry_state)
         date_entry.insert(0, get_current_date())
         date_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, ipady=5, padx=(0, 5))
         
@@ -2496,7 +2496,7 @@ class PrescriptionModule:
             tk.Label(
                 header_frame,
                 text="Select Date",
-                font=('Segoe UI', 12, 'bold'),
+                font=(FONT_UI, 12, 'bold'),
                 bg='#1e40af',
                 fg='white'
             ).pack(pady=10)
@@ -2555,7 +2555,7 @@ class PrescriptionModule:
                     label = tk.Label(
                         cal_days_frame,
                         text=day,
-                        font=('Segoe UI', 9, 'bold'),
+                        font=(FONT_UI, 9, 'bold'),
                         bg='#f3f4f6',
                         fg='#374151',
                         width=4
@@ -2575,7 +2575,7 @@ class PrescriptionModule:
                     day_btn = tk.Button(
                         cal_days_frame,
                         text=day_str,
-                        font=('Segoe UI', 9),
+                        font=(FONT_UI, 9),
                         bg='#ffffff',
                         fg='#374151',
                         width=4,
@@ -2641,7 +2641,7 @@ class PrescriptionModule:
                 nav_frame,
                 text="◀",
                 command=prev_month,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#e5e7eb',
                 fg='#374151',
                 width=3,
@@ -2653,7 +2653,7 @@ class PrescriptionModule:
             month_label = tk.Label(
                 nav_frame,
                 text="",
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#ffffff',
                 fg='#1a237e'
             )
@@ -2663,7 +2663,7 @@ class PrescriptionModule:
                 nav_frame,
                 text="▶",
                 command=next_month,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#e5e7eb',
                 fg='#374151',
                 width=3,
@@ -2684,7 +2684,7 @@ class PrescriptionModule:
                 btn_frame,
                 text="Today",
                 command=lambda: select_date(datetime.now().day),
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#3b82f6',
                 fg='white',
                 padx=15,
@@ -2698,7 +2698,7 @@ class PrescriptionModule:
                 btn_frame,
                 text="Cancel",
                 command=calendar_window.destroy,
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#6b7280',
                 fg='white',
                 padx=15,
@@ -2716,7 +2716,7 @@ class PrescriptionModule:
             date_input_frame,
             text="📅",
             command=open_calendar if not view_only else lambda: None,
-            font=('Segoe UI', 12),
+            font=(FONT_UI, 12),
             bg='#3b82f6',
             fg='white',
             width=3,
@@ -2740,7 +2740,7 @@ class PrescriptionModule:
         vitals_frame = tk.LabelFrame(
             form_frame,
             text="📊 Vital Signs & Measurements",
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg='#ffffff',
             fg='#1a237e',
             padx=20,
@@ -2765,9 +2765,9 @@ class PrescriptionModule:
             """Helper function to create a vital sign field"""
             frame = tk.Frame(parent, bg='#ffffff')
             frame.grid(row=row, column=col, padx=15, pady=8, sticky='ew')
-            tk.Label(frame, text=label_text, font=('Segoe UI', 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w', pady=(0, 3))
+            tk.Label(frame, text=label_text, font=(FONT_UI, 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w', pady=(0, 3))
             var = tk.StringVar()
-            entry = tk.Entry(frame, textvariable=var, font=('Segoe UI', 10), width=15, relief=tk.SOLID, bd=1, state='normal' if not view_only else 'disabled', bg='#f9fafb')
+            entry = tk.Entry(frame, textvariable=var, font=(FONT_UI, 10), width=15, relief=tk.SOLID, bd=1, state='normal' if not view_only else 'disabled', bg='#f9fafb')
             entry.pack(fill=tk.X)
             return var, entry
         
@@ -2790,17 +2790,17 @@ class PrescriptionModule:
         diagnosis_title_frame = tk.Frame(diagnosis_label_frame, bg='#ffffff')
         diagnosis_title_frame.pack(fill=tk.X)
         
-        tk.Label(diagnosis_title_frame, text="Diagnosis", font=('Segoe UI', 10, 'bold'), bg='#ffffff', fg='#374151').pack(side=tk.LEFT, anchor='w')
+        tk.Label(diagnosis_title_frame, text="Diagnosis", font=(FONT_UI, 10, 'bold'), bg='#ffffff', fg='#374151').pack(side=tk.LEFT, anchor='w')
         
         # ICD Codes field - cleaner layout
         icd_frame = tk.Frame(diagnosis_label_frame, bg='#ffffff')
         icd_frame.pack(fill=tk.X, pady=(8, 0))
         icd_label_frame = tk.Frame(icd_frame, bg='#ffffff')
         icd_label_frame.pack(fill=tk.X, pady=(0, 5))
-        tk.Label(icd_label_frame, text="ICD Codes (optional):", font=('Segoe UI', 9, 'bold'), bg='#ffffff', fg='#374151').pack(side=tk.LEFT)
-        tk.Label(icd_label_frame, text="💡 Enter codes separated by commas (e.g., D51.9, E55.9)", font=('Segoe UI', 8), bg='#ffffff', fg='#9ca3af').pack(side=tk.LEFT, padx=(10, 0))
+        tk.Label(icd_label_frame, text="ICD Codes (optional):", font=(FONT_UI, 9, 'bold'), bg='#ffffff', fg='#374151').pack(side=tk.LEFT)
+        tk.Label(icd_label_frame, text="💡 Enter codes separated by commas (e.g., D51.9, E55.9)", font=(FONT_UI, 8), bg='#ffffff', fg='#9ca3af').pack(side=tk.LEFT, padx=(10, 0))
         icd_var = tk.StringVar()
-        icd_entry = tk.Entry(icd_frame, textvariable=icd_var, font=('Segoe UI', 10), relief=tk.SOLID, bd=1, state='normal' if not view_only else 'disabled', bg='#f9fafb')
+        icd_entry = tk.Entry(icd_frame, textvariable=icd_var, font=(FONT_UI, 10), relief=tk.SOLID, bd=1, state='normal' if not view_only else 'disabled', bg='#f9fafb')
         icd_entry.pack(fill=tk.X, pady=(0, 5), ipady=5)
         
         # Common diagnosis templates
@@ -2832,7 +2832,7 @@ class PrescriptionModule:
         tk.Label(
             template_frame,
             text="Quick templates:",
-            font=('Segoe UI', 8),
+            font=(FONT_UI, 8),
             bg='#f0f9ff',
             fg='#6b7280'
         ).pack(side=tk.LEFT, padx=5, pady=3)
@@ -2842,7 +2842,7 @@ class PrescriptionModule:
                 template_frame,
                 text=diag[:25] + "..." if len(diag) > 25 else diag,
                 command=lambda d=diag: insert_diagnosis_template(d),
-                font=('Segoe UI', 7),
+                font=(FONT_UI, 7),
                 bg='#dbeafe',
                 fg='#1e40af',
                 padx=8,
@@ -2853,14 +2853,14 @@ class PrescriptionModule:
             )
             btn.pack(side=tk.LEFT, padx=2, pady=3)
         
-        diagnosis_text = tk.Text(form_frame, font=('Segoe UI', 10), height=4, wrap=tk.WORD, relief=tk.SOLID, bd=1, padx=8, pady=8, bg='#f9fafb', state='normal' if not view_only else 'disabled')
+        diagnosis_text = tk.Text(form_frame, font=(FONT_UI, 10), height=4, wrap=tk.WORD, relief=tk.SOLID, bd=1, padx=8, pady=8, bg='#f9fafb', state='normal' if not view_only else 'disabled')
         diagnosis_text.pack(fill=tk.X, pady=(0, 15))
         
         # Additional Notes section
         notes_frame = tk.LabelFrame(
             right_column, 
             text="📝 Additional Notes", 
-            font=('Segoe UI', 11, 'bold'), 
+            font=(FONT_UI, 11, 'bold'), 
             bg='#ffffff', 
             fg='#1a237e',
             padx=20, 
@@ -2875,8 +2875,8 @@ class PrescriptionModule:
         
         notes_label_frame = tk.Frame(notes_frame, bg='#ffffff')
         notes_label_frame.pack(fill=tk.X, pady=(0, 8))
-        tk.Label(notes_label_frame, text="Doctor's Notes", font=('Segoe UI', 10), bg='#ffffff', fg='#6b7280').pack(anchor='w')
-        notes_text = tk.Text(notes_frame, font=('Segoe UI', 10), height=12, wrap=tk.WORD, relief=tk.SOLID, bd=1, padx=5, pady=5, state='normal' if not view_only else 'disabled')
+        tk.Label(notes_label_frame, text="Doctor's Notes", font=(FONT_UI, 10), bg='#ffffff', fg='#6b7280').pack(anchor='w')
+        notes_text = tk.Text(notes_frame, font=(FONT_UI, 10), height=12, wrap=tk.WORD, relief=tk.SOLID, bd=1, padx=5, pady=5, state='normal' if not view_only else 'disabled')
         notes_text.pack(fill=tk.BOTH, expand=True)
         
         # Populate form fields if editing
@@ -2932,7 +2932,7 @@ class PrescriptionModule:
         medicines_frame = tk.LabelFrame(
             main_frame, 
             text="💊 Prescribed Medicines", 
-            font=('Segoe UI', 11, 'bold'), 
+            font=(FONT_UI, 11, 'bold'), 
             bg='#ffffff', 
             fg='#1a237e',
             padx=20, 
@@ -3050,7 +3050,7 @@ class PrescriptionModule:
         info_label = tk.Label(
             med_list_frame, 
             text=info_text, 
-            font=('Segoe UI', 9), 
+            font=(FONT_UI, 9), 
             bg='#ffffff', 
             fg='#6b7280',
             anchor='w'
@@ -3063,13 +3063,13 @@ class PrescriptionModule:
         # Configure treeview style
         style = ttk.Style()
         style.configure("MedTreeview.Treeview", 
-                       font=('Segoe UI', 9), 
+                       font=(FONT_UI, 9), 
                        rowheight=28,
                        background='#ffffff',
                        foreground='#374151',
                        fieldbackground='#ffffff')
         style.configure("MedTreeview.Treeview.Heading", 
-                       font=('Segoe UI', 9, 'bold'), 
+                       font=(FONT_UI, 9, 'bold'), 
                        background='#6366f1', 
                        foreground='white',
                        relief='flat')
@@ -3197,7 +3197,7 @@ class PrescriptionModule:
             editing_combo = ttk.Combobox(
                 parent_window,
                 values=options,
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 width=max(20, width // 8)
             )
             editing_combo.set(current_value)
@@ -3381,7 +3381,7 @@ class PrescriptionModule:
             remove_btn_frame,
             text="🗑️ Remove Selected",
             command=remove_selected_medicine,
-            font=('Segoe UI', 9, 'bold'),
+            font=(FONT_UI, 9, 'bold'),
             bg='#ef4444',
             fg='white',
             padx=15,
@@ -3405,7 +3405,7 @@ class PrescriptionModule:
         add_med_frame = tk.LabelFrame(
             medicines_frame, 
             text="➕ Add New Medicine", 
-            font=('Segoe UI', 10, 'bold'), 
+            font=(FONT_UI, 10, 'bold'), 
             bg='#ffffff', 
             fg='#1a237e',
             padx=15, 
@@ -3421,7 +3421,7 @@ class PrescriptionModule:
         
         med_name_label_frame = tk.Frame(med_name_frame, bg='#ffffff')
         med_name_label_frame.pack(side=tk.LEFT, padx=(0, 10))
-        tk.Label(med_name_label_frame, text="Medicine Name *", font=('Segoe UI', 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
+        tk.Label(med_name_label_frame, text="Medicine Name *", font=(FONT_UI, 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
         
         med_name_input_frame = tk.Frame(med_name_frame, bg='#ffffff')
         med_name_input_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
@@ -3430,7 +3430,7 @@ class PrescriptionModule:
         med_name_entry = tk.Entry(
             med_name_input_frame,
             textvariable=med_name_var,
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             relief=tk.SOLID,
             bd=1,
             state=entry_state
@@ -3780,7 +3780,7 @@ class PrescriptionModule:
             med_name_input_frame,
             text="🔍 Browse",
             command=open_medicine_selector if not view_only else lambda: None,
-            font=('Segoe UI', 9, 'bold'),
+            font=(FONT_UI, 9, 'bold'),
             bg='#6366f1',
             fg='white',
             padx=12,
@@ -3824,7 +3824,7 @@ class PrescriptionModule:
         # Dosage field
         dosage_label_frame = tk.Frame(details_frame, bg='#ffffff')
         dosage_label_frame.grid(row=0, column=0, sticky='w', padx=(0, 8), pady=5)
-        tk.Label(dosage_label_frame, text="Dosage *", font=('Segoe UI', 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
+        tk.Label(dosage_label_frame, text="Dosage *", font=(FONT_UI, 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
         
         # Common prescription presets
         presets_frame = tk.Frame(add_med_frame, bg='#ffffff')
@@ -3833,7 +3833,7 @@ class PrescriptionModule:
         tk.Label(
             presets_frame,
             text="💊 Quick Presets:",
-            font=('Segoe UI', 8, 'bold'),
+            font=(FONT_UI, 8, 'bold'),
             bg='#ffffff',
             fg='#6b7280'
         ).pack(side=tk.LEFT, padx=(0, 5), pady=3)
@@ -3860,7 +3860,7 @@ class PrescriptionModule:
                 presets_frame,
                 text=f"{med} ({dose})",
                 command=lambda m=med, d=dose, f=freq, dur=dur, i=inst: apply_preset(m, d, f, dur, i),
-                font=('Segoe UI', 7),
+                font=(FONT_UI, 7),
                 bg='#ecfdf5',
                 fg='#065f46',
                 padx=6,
@@ -3879,7 +3879,7 @@ class PrescriptionModule:
             details_frame, 
             textvariable=dosage_var, 
             values=dosage_options, 
-            font=('Segoe UI', 9), 
+            font=(FONT_UI, 9), 
             width=20, 
             state=combo_state
         )
@@ -3966,7 +3966,7 @@ class PrescriptionModule:
         # Frequency field
         frequency_label_frame = tk.Frame(details_frame, bg='#ffffff')
         frequency_label_frame.grid(row=0, column=2, sticky='w', padx=(0, 8), pady=5)
-        tk.Label(frequency_label_frame, text="Frequency *", font=('Segoe UI', 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
+        tk.Label(frequency_label_frame, text="Frequency *", font=(FONT_UI, 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
         
         frequency_var = tk.StringVar()
         # Set combo state based on view_only
@@ -3975,7 +3975,7 @@ class PrescriptionModule:
             details_frame, 
             textvariable=frequency_var, 
             values=frequency_options, 
-            font=('Segoe UI', 9), 
+            font=(FONT_UI, 9), 
             width=20, 
             state=combo_state
         )
@@ -4005,14 +4005,14 @@ class PrescriptionModule:
         # Duration field
         duration_label_frame = tk.Frame(details_frame, bg='#ffffff')
         duration_label_frame.grid(row=1, column=0, sticky='w', padx=(0, 8), pady=5)
-        tk.Label(duration_label_frame, text="Duration *", font=('Segoe UI', 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
+        tk.Label(duration_label_frame, text="Duration *", font=(FONT_UI, 9, 'bold'), bg='#ffffff', fg='#374151').pack(anchor='w')
         
         duration_var = tk.StringVar()
         duration_combo = ttk.Combobox(
             details_frame, 
             textvariable=duration_var, 
             values=duration_options, 
-            font=('Segoe UI', 9), 
+            font=(FONT_UI, 9), 
             width=20, 
             state=combo_state
         )
@@ -4060,13 +4060,13 @@ class PrescriptionModule:
         # Purpose field
         purpose_label_frame = tk.Frame(details_frame, bg='#ffffff')
         purpose_label_frame.grid(row=1, column=2, sticky='w', padx=(0, 8), pady=5)
-        tk.Label(purpose_label_frame, text="Purpose", font=('Segoe UI', 9), bg='#ffffff', fg='#6b7280').pack(anchor='w')
+        tk.Label(purpose_label_frame, text="Purpose", font=(FONT_UI, 9), bg='#ffffff', fg='#6b7280').pack(anchor='w')
         
         purpose_var = tk.StringVar()
         purpose_entry = tk.Entry(
             details_frame,
             textvariable=purpose_var,
-            font=('Segoe UI', 9), 
+            font=(FONT_UI, 9), 
             width=20,
             relief=tk.SOLID,
             bd=1,
@@ -4077,13 +4077,13 @@ class PrescriptionModule:
         # Instructions field
         instructions_label_frame = tk.Frame(details_frame, bg='#ffffff')
         instructions_label_frame.grid(row=2, column=0, sticky='w', padx=(0, 8), pady=5)
-        tk.Label(instructions_label_frame, text="Instructions", font=('Segoe UI', 9), bg='#ffffff', fg='#6b7280').pack(anchor='w')
+        tk.Label(instructions_label_frame, text="Instructions", font=(FONT_UI, 9), bg='#ffffff', fg='#6b7280').pack(anchor='w')
         
         instructions_var = tk.StringVar()
         instructions_entry = tk.Entry(
             details_frame,
             textvariable=instructions_var,
-            font=('Segoe UI', 9), 
+            font=(FONT_UI, 9), 
             width=20,
             relief=tk.SOLID,
             bd=1,
@@ -4196,7 +4196,7 @@ class PrescriptionModule:
             add_med_btn_frame,
             text="➕ Add Medicine to List",
             command=add_medicine if not view_only else lambda: None,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#3b82f6',
             fg='white',
             padx=25,
@@ -4222,7 +4222,7 @@ class PrescriptionModule:
         tip_label = tk.Label(
             add_med_btn_frame,
             text="💡 Tip: Press Enter after filling fields to quickly add",
-            font=('Segoe UI', 8),
+            font=(FONT_UI, 8),
             bg='#ffffff',
             fg='#6b7280'
         )
@@ -4321,7 +4321,7 @@ class PrescriptionModule:
         shortcuts_label = tk.Label(
             shortcuts_frame,
             text=shortcuts_text,
-            font=('Segoe UI', 8),
+            font=(FONT_UI, 8),
             bg='#f0f9ff',
             fg='#1e40af',
             anchor='w',
@@ -4892,7 +4892,7 @@ Date: {prescription_date}
                 button_frame,
                 text="🖨️ Print",
                 command=print_text,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#f59e0b',
                 fg='white',
                 padx=20,
@@ -4907,7 +4907,7 @@ Date: {prescription_date}
                 button_frame,
                 text="Close",
                 command=print_dialog.destroy,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 bg='#6b7280',
                 fg='white',
                 padx=20,
@@ -4924,7 +4924,7 @@ Date: {prescription_date}
                 inner_button_frame,
                 text="💾 Save Prescription",
                 command=save_prescription,
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#10b981',
                 fg='white',
                 padx=35,
@@ -4950,7 +4950,7 @@ Date: {prescription_date}
             inner_button_frame,
             text="🖨️ Print Prescription",
             command=print_prescription,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#f59e0b',
             fg='white',
             padx=30,
@@ -4975,7 +4975,7 @@ Date: {prescription_date}
             inner_button_frame,
             text="❌ Cancel",
             command=back_to_list,
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             bg='#6b7280',
             fg='white',
             padx=30,
@@ -4999,7 +4999,7 @@ Date: {prescription_date}
         shortcuts_label = tk.Label(
             shortcut_frame,
             text=shortcuts_text,
-            font=('Segoe UI', 8),
+            font=(FONT_UI, 8),
             bg='#f5f7fa',
             fg='#6b7280',
             anchor='w'

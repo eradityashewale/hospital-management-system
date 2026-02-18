@@ -13,7 +13,7 @@ from frontend.theme import (
     ACCENT_BLUE, BORDER_DEFAULT, WARNING, ERROR, SUCCESS,
     TABLE_HEADER_BG, BTN_SUCCESS_BG, BTN_SUCCESS_HOVER, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
     BTN_DANGER_BG, BTN_DANGER_HOVER, BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
-    get_theme,
+    FONT_UI, get_theme,
 )
 
 # Utils imports
@@ -38,7 +38,7 @@ class DoctorModule:
         header = tk.Label(
             self.parent,
             text="Doctor Management",
-            font=('Segoe UI', 24, 'bold'),
+            font=(FONT_UI, 24, 'bold'),
             bg=t["BG_DEEP"],
             fg=t["TEXT_PRIMARY"]
         )
@@ -52,10 +52,10 @@ class DoctorModule:
         search_frame = tk.Frame(top_frame, bg=t["BG_DEEP"])
         search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        tk.Label(search_frame, text="Search:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
+        tk.Label(search_frame, text="Search:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
         self.search_var = tk.StringVar()
         self.search_var.trace('w', lambda *args: self.search_doctors())
-        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
+        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=(FONT_UI, 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         search_entry.pack(side=tk.LEFT, padx=8)
         
         # Add doctor button with modern styling
@@ -63,7 +63,7 @@ class DoctorModule:
             top_frame,
             text="+ Add New Doctor",
             command=self.add_doctor,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg=BTN_SUCCESS_BG,
             fg='white',
             padx=25,
@@ -95,13 +95,13 @@ class DoctorModule:
             pass  # Use default if theme not available
         
         style.configure("Treeview", 
-                       font=('Segoe UI', 10), 
+                       font=(FONT_UI, 10), 
                        rowheight=30, 
                        background=t["BG_CARD"], 
                        foreground=t["TEXT_PRIMARY"],
                        fieldbackground=t["BG_CARD"])
         style.configure("Treeview.Heading", 
-                       font=('Segoe UI', 11, 'bold'), 
+                       font=(FONT_UI, 11, 'bold'), 
                        background=t["TABLE_HEADER_BG"], 
                        foreground=t["TEXT_PRIMARY"],
                        relief='flat')
@@ -209,7 +209,7 @@ class DoctorModule:
             action_frame,
             text="View Details",
             command=self.view_doctor,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_PRIMARY_BG,
             fg='white',
             padx=20,
@@ -225,7 +225,7 @@ class DoctorModule:
             action_frame,
             text="✏️ Edit Doctor",
             command=self.edit_doctor,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=WARNING,
             fg='white',
             padx=20,
@@ -244,7 +244,7 @@ class DoctorModule:
             action_frame,
             text="Delete",
             command=self.delete_doctor,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_DANGER_BG,
             fg='white',
             padx=20,
@@ -407,19 +407,19 @@ class DoctorModule:
         # Add mode indicator
         if view_only:
             mode_label = tk.Label(fields_frame, text="📖 VIEW MODE (Read Only)", 
-                                 font=('Segoe UI', 11, 'bold'), bg=BG_BASE, fg=ERROR)
+                                 font=(FONT_UI, 11, 'bold'), bg=BG_BASE, fg=ERROR)
             mode_label.pack(pady=5)
         elif doctor:
             mode_label = tk.Label(fields_frame, text="✏️ EDIT MODE (Editable)", 
-                                 font=('Segoe UI', 11, 'bold'), bg=BG_BASE, fg=SUCCESS)
+                                 font=(FONT_UI, 11, 'bold'), bg=BG_BASE, fg=SUCCESS)
             mode_label.pack(pady=5)
         
         if doctor:
             doctor_id = doctor['doctor_id']
-            tk.Label(fields_frame, text=f"Doctor ID: {doctor_id}", font=('Segoe UI', 13, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY).pack(pady=8)
+            tk.Label(fields_frame, text=f"Doctor ID: {doctor_id}", font=(FONT_UI, 13, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY).pack(pady=8)
         else:
             doctor_id = generate_id('DOC')
-            tk.Label(fields_frame, text=f"Doctor ID: {doctor_id}", font=('Segoe UI', 13, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY).pack(pady=8)
+            tk.Label(fields_frame, text=f"Doctor ID: {doctor_id}", font=(FONT_UI, 13, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY).pack(pady=8)
         
         field_configs = [
             ('first_name', 'First Name', True),
@@ -438,11 +438,11 @@ class DoctorModule:
             frame = tk.Frame(fields_frame, bg=BG_BASE)
             frame.pack(fill=tk.X, pady=10)
             
-            tk.Label(frame, text=f"{label}{' *' if required else ''}:", font=('Segoe UI', 10, 'bold'), bg=BG_BASE, fg=TEXT_SECONDARY, width=20, anchor='w').pack(side=tk.LEFT)
+            tk.Label(frame, text=f"{label}{' *' if required else ''}:", font=(FONT_UI, 10, 'bold'), bg=BG_BASE, fg=TEXT_SECONDARY, width=20, anchor='w').pack(side=tk.LEFT)
             
             # Entry fields should be 'normal' (editable) when not in view_only mode
             entry_state = 'readonly' if view_only else 'normal'
-            entry = tk.Entry(frame, font=('Segoe UI', 10), width=35, 
+            entry = tk.Entry(frame, font=(FONT_UI, 10), width=35, 
                            state=entry_state, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=BORDER_DEFAULT, highlightcolor=ACCENT_BLUE, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
             
             # Insert doctor data BEFORE packing
@@ -555,7 +555,7 @@ class DoctorModule:
                 button_frame,
                 text="Save",
                 command=save_doctor,
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg=BTN_SUCCESS_BG,
                 fg='white',
                 padx=35,
@@ -593,7 +593,7 @@ class DoctorModule:
                 button_frame,
                 text="Close",
                 command=close_dialog,
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg=BTN_SECONDARY_BG,
                 fg='white',
                 padx=35,
@@ -628,7 +628,7 @@ class DoctorModule:
                 fields_frame,
                 text="Close",
                 command=close_dialog,
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg=BTN_SECONDARY_BG,
                 fg='white',
                 padx=35,

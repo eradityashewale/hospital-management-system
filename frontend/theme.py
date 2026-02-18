@@ -1,9 +1,11 @@
 """
 MediFlow - Modern UI Theme System
 Premium medical-tech aesthetic: Dark (Night) / Light (Day) mode, glassmorphism, gradient accents
+Typography: 2025 modern sans-serif, cross-platform (desktop + web alignment).
 """
 from __future__ import annotations
 import os
+import sys
 
 # =============================================================================
 # THEME: DARK MODE (NIGHT) - Premium Medical-Tech
@@ -94,9 +96,18 @@ RADIUS_LG = 16
 RADIUS_XL = 20
 RADIUS_CARD = 20
 
-# Fonts (Segoe UI Variable / fallback Inter)
-FONT_FAMILY = "Segoe UI Variable"
-FONT_FALLBACK = "Segoe UI"
+# Fonts — 2025 modern UI: variable/system sans-serif, strong readability, premium aesthetic
+def _get_ui_font():
+    """Cross-platform modern typeface: sleek sans-serif, desktop + web consistency."""
+    if sys.platform == "win32":
+        return "Segoe UI Variable"
+    if sys.platform == "darwin":
+        return "Helvetica Neue"
+    return "Ubuntu"
+
+FONT_UI = _get_ui_font()
+FONT_FAMILY = FONT_UI
+FONT_FALLBACK = "Segoe UI"  # fallback when FONT_UI not available (e.g. older Windows)
 FONT_SIZE_XS = 9
 FONT_SIZE_SM = 10
 FONT_SIZE_BASE = 11

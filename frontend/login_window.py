@@ -7,7 +7,7 @@ from tkinter import ttk, messagebox
 import sys
 import os
 
-from frontend.theme import BG_DEEP, BG_BASE, BG_CARD, TEXT_PRIMARY, TEXT_SECONDARY, ACCENT_BLUE, ACCENT_TEAL, FONT_FALLBACK
+from frontend.theme import BG_DEEP, BG_BASE, BG_CARD, TEXT_PRIMARY, TEXT_SECONDARY, ACCENT_BLUE, ACCENT_TEAL, FONT_UI
 from backend.database import Database
 
 # Utils imports
@@ -229,45 +229,45 @@ class LoginWindow:
             logo_icon_label.pack(pady=(0, 10))
         else:
             # Fallback to styled medical cross
-            logo_icon = tk.Label(logo_container, text="⚕", font=(FONT_FALLBACK, 48, 'bold'), bg=BG_BASE, fg=ACCENT_TEAL)
+            logo_icon = tk.Label(logo_container, text="⚕", font=(FONT_UI, 48, 'bold'), bg=BG_BASE, fg=ACCENT_TEAL)
             logo_icon.pack(pady=(0, 10))
         
-        product_label = tk.Label(logo_container, text="MediFlow", font=(FONT_FALLBACK, 32, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY)
+        product_label = tk.Label(logo_container, text="MediFlow", font=(FONT_UI, 32, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY)
         product_label.pack(pady=(0, 5))
-        tagline_label = tk.Label(logo_container, text="HOSPITAL MANAGEMENT SYSTEM", font=(FONT_FALLBACK, 9, 'bold'), bg=BG_BASE, fg=TEXT_SECONDARY)
+        tagline_label = tk.Label(logo_container, text="HOSPITAL MANAGEMENT SYSTEM", font=(FONT_UI, 9, 'bold'), bg=BG_BASE, fg=TEXT_SECONDARY)
         tagline_label.pack(pady=(0, 0))
         
         company_frame = tk.Frame(main_frame, bg=BG_DEEP)
         company_frame.pack(fill=tk.X, pady=(15, 5))
-        company_label = tk.Label(company_frame, text="Powered by Nexvora Solutions", font=(FONT_FALLBACK, 10, 'italic'), bg=BG_DEEP, fg=ACCENT_TEAL)
+        company_label = tk.Label(company_frame, text="Powered by Nexvora Solutions", font=(FONT_UI, 10, 'italic'), bg=BG_DEEP, fg=ACCENT_TEAL)
         company_label.pack()
-        subtitle_label = tk.Label(company_frame, text="Please login to continue", font=(FONT_FALLBACK, 11), bg=BG_DEEP, fg=TEXT_SECONDARY)
+        subtitle_label = tk.Label(company_frame, text="Please login to continue", font=(FONT_UI, 11), bg=BG_DEEP, fg=TEXT_SECONDARY)
         subtitle_label.pack(pady=(5, 20))
         
         form_frame = tk.Frame(main_frame, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
         form_frame.pack(fill=tk.X, padx=40, pady=(0, 30), ipady=10)
         form_inner = tk.Frame(form_frame, bg=BG_CARD)
         form_inner.pack(fill=tk.X, padx=30, pady=25)
-        username_label = tk.Label(form_inner, text="Username", font=(FONT_FALLBACK, 11, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY, anchor='w')
+        username_label = tk.Label(form_inner, text="Username", font=(FONT_UI, 11, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY, anchor='w')
         username_label.pack(fill=tk.X, pady=(0, 8))
         username_container = tk.Frame(form_inner, bg=BG_CARD)
         username_container.pack(fill=tk.X, pady=(0, 20))
         
         self.username_entry = tk.Entry(
-            username_container, font=(FONT_FALLBACK, 11),
+            username_container, font=(FONT_UI, 11),
             relief=tk.SOLID, bd=1, highlightthickness=1,
             highlightcolor=ACCENT_BLUE, highlightbackground='#2d3748',
             bg='#1e2732', fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY
         )
         self.username_entry.pack(fill=tk.X, ipady=10, padx=1, pady=1)
         
-        password_label = tk.Label(form_inner, text="Password", font=(FONT_FALLBACK, 11, 'bold'),
+        password_label = tk.Label(form_inner, text="Password", font=(FONT_UI, 11, 'bold'),
                                  bg=BG_CARD, fg=TEXT_PRIMARY, anchor='w')
         password_label.pack(fill=tk.X, pady=(0, 8))
         password_container = tk.Frame(form_inner, bg=BG_CARD)
         password_container.pack(fill=tk.X, pady=(0, 25))
         self.password_entry = tk.Entry(
-            password_container, font=(FONT_FALLBACK, 11), relief=tk.SOLID, bd=1, show='*',
+            password_container, font=(FONT_UI, 11), relief=tk.SOLID, bd=1, show='*',
             highlightthickness=1, highlightcolor=ACCENT_BLUE, highlightbackground='#2d3748',
             bg='#1e2732', fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY, width=30
         )
@@ -276,7 +276,7 @@ class LoginWindow:
         button_container = tk.Frame(form_inner, bg=BG_CARD)
         button_container.pack(fill=tk.X, pady=(15, 10))
         login_button = tk.Button(
-            button_container, text="LOGIN", font=(FONT_FALLBACK, 13, 'bold'),
+            button_container, text="LOGIN", font=(FONT_UI, 13, 'bold'),
             bg=ACCENT_BLUE, fg='white', activebackground='#2563eb', activeforeground='white',
             relief=tk.FLAT, bd=0, cursor='hand2', padx=30, pady=15,
             command=self.attempt_login, width=25, height=2
@@ -289,12 +289,12 @@ class LoginWindow:
         login_button.lift()
         login_button.update_idletasks()
         
-        self.error_label = tk.Label(form_inner, text="", font=(FONT_FALLBACK, 10, 'bold'),
+        self.error_label = tk.Label(form_inner, text="", font=(FONT_UI, 10, 'bold'),
                                    bg=BG_CARD, fg='#ef4444', wraplength=350, justify=tk.CENTER)
         self.error_label.pack(fill=tk.X, pady=(5, 10))
         info_frame = tk.Frame(form_inner, bg=BG_CARD)
         info_frame.pack(fill=tk.X, pady=(5, 0))
-        info_label = tk.Label(info_frame, text="Default: admin / admin", font=(FONT_FALLBACK, 9),
+        info_label = tk.Label(info_frame, text="Default: admin / admin", font=(FONT_UI, 9),
                              bg=BG_CARD, fg=TEXT_SECONDARY, cursor='hand2')
         info_label.pack()
         

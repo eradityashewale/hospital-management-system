@@ -16,7 +16,7 @@ from frontend.theme import (
     ACCENT_BLUE, BORDER_DEFAULT, WARNING, ERROR, SUCCESS, ACCENT_PURPLE, ACCENT_TEAL,
     TABLE_HEADER_BG, BTN_SUCCESS_BG, BTN_SUCCESS_HOVER, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
     BTN_DANGER_BG, BTN_DANGER_HOVER, BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
-    get_theme,
+    FONT_UI, get_theme,
 )
 
 # Utils imports
@@ -77,7 +77,7 @@ class XRayReportsWindow:
         header = tk.Label(
             self.window,
             text=f"X-Ray Reports — {self.patient.get('first_name', '')} {self.patient.get('last_name', '')} ({self.patient_id})",
-            font=("Segoe UI", 16, "bold"),
+            font=(FONT_UI, 16, "bold"),
             bg=t["BG_DEEP"],
             fg=t["TEXT_PRIMARY"],
         )
@@ -94,7 +94,7 @@ class XRayReportsWindow:
             pass
         style.configure(
             "Treeview",
-            font=("Segoe UI", 10),
+            font=(FONT_UI, 10),
             rowheight=26,
             background=t["BG_CARD"],
             foreground=t["TEXT_PRIMARY"],
@@ -102,7 +102,7 @@ class XRayReportsWindow:
         )
         style.configure(
             "Treeview.Heading",
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             background=t["TABLE_HEADER_BG"],
             foreground=t["TEXT_PRIMARY"],
         )
@@ -125,7 +125,7 @@ class XRayReportsWindow:
             btn_frame,
             text="+ Add X-Ray Report",
             command=self._on_add,
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg=BTN_SUCCESS_BG,
             fg="white",
             padx=18,
@@ -140,7 +140,7 @@ class XRayReportsWindow:
             btn_frame,
             text="View",
             command=self._on_view,
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg=BTN_PRIMARY_BG,
             fg="white",
             padx=18,
@@ -155,7 +155,7 @@ class XRayReportsWindow:
             btn_frame,
             text="Delete",
             command=self._on_delete,
-            font=("Segoe UI", 10, "bold"),
+            font=(FONT_UI, 10, "bold"),
             bg=BTN_DANGER_BG,
             fg="white",
             padx=18,
@@ -231,23 +231,23 @@ class XRayReportsWindow:
         d.focus_force()
         fields = tk.Frame(d, bg=t["BG_BASE"])
         fields.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
-        tk.Label(fields, text="Report date (YYYY-MM-DD):", font=("Segoe UI", 10, "bold"), bg=t["BG_BASE"], fg=t["TEXT_PRIMARY"]).grid(row=0, column=0, sticky="w", pady=6)
+        tk.Label(fields, text="Report date (YYYY-MM-DD):", font=(FONT_UI, 10, "bold"), bg=t["BG_BASE"], fg=t["TEXT_PRIMARY"]).grid(row=0, column=0, sticky="w", pady=6)
         date_var = tk.StringVar(value=get_current_date())
-        tk.Entry(fields, textvariable=date_var, width=14, font=("Segoe UI", 10), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).grid(row=0, column=1, sticky="w", padx=(8, 0), pady=6)
-        tk.Label(fields, text="Body part:", font=("Segoe UI", 10, "bold"), bg=t["BG_BASE"], fg=t["TEXT_PRIMARY"]).grid(row=1, column=0, sticky="w", pady=6)
+        tk.Entry(fields, textvariable=date_var, width=14, font=(FONT_UI, 10), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).grid(row=0, column=1, sticky="w", padx=(8, 0), pady=6)
+        tk.Label(fields, text="Body part:", font=(FONT_UI, 10, "bold"), bg=t["BG_BASE"], fg=t["TEXT_PRIMARY"]).grid(row=1, column=0, sticky="w", pady=6)
         body_var = tk.StringVar()
         body_combo = ttk.Combobox(fields, textvariable=body_var, values=list(self.BODY_PARTS), width=18, state="readonly")
         body_combo.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=6)
         if self.BODY_PARTS:
             body_combo.set(self.BODY_PARTS[0])
-        tk.Label(fields, text="Findings (optional):", font=("Segoe UI", 10, "bold"), bg=t["BG_BASE"], fg=t["TEXT_PRIMARY"]).grid(row=2, column=0, sticky="nw", pady=6)
-        findings_text = tk.Text(fields, height=6, width=42, wrap="word", font=("Segoe UI", 10), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"])
+        tk.Label(fields, text="Findings (optional):", font=(FONT_UI, 10, "bold"), bg=t["BG_BASE"], fg=t["TEXT_PRIMARY"]).grid(row=2, column=0, sticky="nw", pady=6)
+        findings_text = tk.Text(fields, height=6, width=42, wrap="word", font=(FONT_UI, 10), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"])
         findings_text.grid(row=2, column=1, sticky="ew", padx=(8, 0), pady=6)
-        tk.Label(fields, text="File (image/PDF):", font=("Segoe UI", 10, "bold"), bg=t["BG_BASE"], fg=t["TEXT_PRIMARY"]).grid(row=3, column=0, sticky="w", pady=6)
+        tk.Label(fields, text="File (image/PDF):", font=(FONT_UI, 10, "bold"), bg=t["BG_BASE"], fg=t["TEXT_PRIMARY"]).grid(row=3, column=0, sticky="w", pady=6)
         file_var = tk.StringVar()
         file_frame = tk.Frame(fields, bg=t["BG_BASE"])
         file_frame.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=6)
-        tk.Entry(file_frame, textvariable=file_var, width=32, state="readonly", font=("Segoe UI", 9), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT, padx=(0, 8))
+        tk.Entry(file_frame, textvariable=file_var, width=32, state="readonly", font=(FONT_UI, 9), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT, padx=(0, 8))
         def choose_file():
             path = filedialog.askopenfilename(
                 title="Select X-Ray image or PDF",
@@ -260,7 +260,7 @@ class XRayReportsWindow:
             )
             if path:
                 file_var.set(path)
-        tk.Button(file_frame, text="Choose file…", command=choose_file, font=("Segoe UI", 9, "bold"), bg=BTN_SECONDARY_BG, fg=t["TEXT_PRIMARY"], padx=10, pady=4, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT)
+        tk.Button(file_frame, text="Choose file…", command=choose_file, font=(FONT_UI, 9, "bold"), bg=BTN_SECONDARY_BG, fg=t["TEXT_PRIMARY"], padx=10, pady=4, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT)
         btns = tk.Frame(d, bg=t["BG_BASE"])
         btns.pack(fill=tk.X, padx=20, pady=(0, 16))
         def save():
@@ -295,8 +295,8 @@ class XRayReportsWindow:
                 d.destroy()
             else:
                 messagebox.showerror("Error", "Failed to save report to database.")
-        tk.Button(btns, text="Save", command=save, font=("Segoe UI", 10, "bold"), bg=BTN_SUCCESS_BG, fg="white", padx=20, pady=8, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT, padx=6)
-        tk.Button(btns, text="Cancel", command=d.destroy, font=("Segoe UI", 10, "bold"), bg=BTN_SECONDARY_BG, fg=t["TEXT_PRIMARY"], padx=20, pady=8, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT, padx=6)
+        tk.Button(btns, text="Save", command=save, font=(FONT_UI, 10, "bold"), bg=BTN_SUCCESS_BG, fg="white", padx=20, pady=8, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT, padx=6)
+        tk.Button(btns, text="Cancel", command=d.destroy, font=(FONT_UI, 10, "bold"), bg=BTN_SECONDARY_BG, fg=t["TEXT_PRIMARY"], padx=20, pady=8, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT, padx=6)
 
 
 class PatientModule:
@@ -319,7 +319,7 @@ class PatientModule:
         header = tk.Label(
             self.parent,
             text="Patient Management",
-            font=('Segoe UI', 24, 'bold'),
+            font=(FONT_UI, 24, 'bold'),
             bg=t["BG_DEEP"],
             fg=t["TEXT_PRIMARY"]
         )
@@ -333,10 +333,10 @@ class PatientModule:
         search_frame = tk.Frame(top_frame, bg=t["BG_DEEP"])
         search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        tk.Label(search_frame, text="Search:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
+        tk.Label(search_frame, text="Search:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
         self.search_var = tk.StringVar()
         self.search_var.trace('w', lambda *args: self.search_patients())
-        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
+        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=(FONT_UI, 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         search_entry.pack(side=tk.LEFT, padx=8)
         
         # Add patient button with modern styling
@@ -344,7 +344,7 @@ class PatientModule:
             top_frame,
             text="+ Add New Patient",
             command=self.add_patient,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg=BTN_SUCCESS_BG,
             fg='white',
             padx=25,
@@ -376,13 +376,13 @@ class PatientModule:
             pass  # Use default if theme not available
         
         style.configure("Treeview", 
-                       font=('Segoe UI', 10), 
+                       font=(FONT_UI, 10), 
                        rowheight=30, 
                        background=t["BG_CARD"], 
                        foreground=t["TEXT_PRIMARY"],
                        fieldbackground=t["BG_CARD"])
         style.configure("Treeview.Heading", 
-                       font=('Segoe UI', 11, 'bold'), 
+                       font=(FONT_UI, 11, 'bold'), 
                        background=t["TABLE_HEADER_BG"], 
                        foreground=t["TEXT_PRIMARY"],
                        relief='flat')
@@ -495,7 +495,7 @@ class PatientModule:
             action_frame,
             text="View Details",
             command=self.view_patient,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_PRIMARY_BG,
             fg='white',
             padx=20,
@@ -511,7 +511,7 @@ class PatientModule:
             action_frame,
             text="IPD / Daily Notes",
             command=self.open_ipd_notes,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=ACCENT_PURPLE,
             fg='white',
             padx=20,
@@ -527,7 +527,7 @@ class PatientModule:
             action_frame,
             text="🖨️ Print All Documents",
             command=self.print_all_documents,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=ACCENT_TEAL,
             fg='white',
             padx=20,
@@ -543,7 +543,7 @@ class PatientModule:
             action_frame,
             text="📷 X-Ray Reports",
             command=self.open_xray_reports,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=ACCENT_PURPLE,
             fg='white',
             padx=20,
@@ -559,7 +559,7 @@ class PatientModule:
             action_frame,
             text="✏️ Edit Patient",
             command=self.edit_patient,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=WARNING,
             fg='white',
             padx=20,
@@ -578,7 +578,7 @@ class PatientModule:
             action_frame,
             text="Delete",
             command=self.delete_patient,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_DANGER_BG,
             fg='white',
             padx=20,
@@ -789,19 +789,19 @@ class PatientModule:
         # Add mode indicator
         if view_only:
             mode_label = tk.Label(fields_frame, text="📖 VIEW MODE (Read Only)", 
-                                 font=('Segoe UI', 11, 'bold'), bg=BG_BASE, fg=ERROR)
+                                 font=(FONT_UI, 11, 'bold'), bg=BG_BASE, fg=ERROR)
             mode_label.pack(pady=5)
         elif patient:
             mode_label = tk.Label(fields_frame, text="✏️ EDIT MODE (Editable)", 
-                                 font=('Segoe UI', 11, 'bold'), bg=BG_BASE, fg=SUCCESS)
+                                 font=(FONT_UI, 11, 'bold'), bg=BG_BASE, fg=SUCCESS)
             mode_label.pack(pady=5)
         
         if patient:
             patient_id = patient['patient_id']
-            tk.Label(fields_frame, text=f"Patient ID: {patient_id}", font=('Segoe UI', 13, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY).pack(pady=8)
+            tk.Label(fields_frame, text=f"Patient ID: {patient_id}", font=(FONT_UI, 13, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY).pack(pady=8)
         else:
             patient_id = generate_id('PAT')
-            tk.Label(fields_frame, text=f"Patient ID: {patient_id}", font=('Segoe UI', 13, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY).pack(pady=8)
+            tk.Label(fields_frame, text=f"Patient ID: {patient_id}", font=(FONT_UI, 13, 'bold'), bg=BG_BASE, fg=TEXT_PRIMARY).pack(pady=8)
         
         field_configs = [
             ('first_name', 'First Name', True),
@@ -821,7 +821,7 @@ class PatientModule:
             frame = tk.Frame(fields_frame, bg=BG_BASE)
             frame.pack(fill=tk.X, pady=10)
             
-            tk.Label(frame, text=f"{label}{' *' if required else ''}:", font=('Segoe UI', 10, 'bold'), bg=BG_BASE, fg=TEXT_SECONDARY, width=20, anchor='w').pack(side=tk.LEFT)
+            tk.Label(frame, text=f"{label}{' *' if required else ''}:", font=(FONT_UI, 10, 'bold'), bg=BG_BASE, fg=TEXT_SECONDARY, width=20, anchor='w').pack(side=tk.LEFT)
             
             if field == 'gender':
                 # Get gender value from patient if available, otherwise empty string
@@ -840,7 +840,7 @@ class PatientModule:
                 # Entry fields should be 'normal' (editable) when not in view_only mode
                 # Always create in 'normal' state first, then set to readonly if needed
                 entry_state = 'readonly' if view_only else 'normal'
-                entry = tk.Entry(frame, font=('Segoe UI', 10), width=35, 
+                entry = tk.Entry(frame, font=(FONT_UI, 10), width=35, 
                                state=entry_state, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=BORDER_DEFAULT, highlightcolor=ACCENT_BLUE, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
                 
                 # Insert patient data BEFORE packing
@@ -1064,7 +1064,7 @@ class PatientModule:
                 button_frame,
                 text="Save",
                 command=on_save_button_click,
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg=BTN_SUCCESS_BG,
                 fg='white',
                 padx=35,
@@ -1124,7 +1124,7 @@ class PatientModule:
             button_frame,
             text="Close",
             command=close_dialog,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg=BTN_SECONDARY_BG,
             fg='white',
             padx=35,

@@ -18,7 +18,7 @@ from frontend.theme import (
     ACCENT_BLUE, BORDER_DEFAULT, WARNING, ERROR, SUCCESS,
     TABLE_HEADER_BG, BTN_SUCCESS_BG, BTN_SUCCESS_HOVER, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
     BTN_DANGER_BG, BTN_DANGER_HOVER, BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
-    get_theme,
+    FONT_UI, get_theme,
 )
 
 # Utils imports
@@ -43,7 +43,7 @@ class BillingModule:
         header = tk.Label(
             self.parent,
             text="Billing Management",
-            font=('Segoe UI', 24, 'bold'),
+            font=(FONT_UI, 24, 'bold'),
             bg=t["BG_DEEP"],
             fg=t["TEXT_PRIMARY"]
         )
@@ -58,18 +58,18 @@ class BillingModule:
         filter_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
         # Search by patient name
-        tk.Label(filter_frame, text="Search by Patient Name:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
+        tk.Label(filter_frame, text="Search by Patient Name:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
         self.patient_name_var = tk.StringVar()
         self.patient_name_var.trace('w', lambda *args: self.apply_filters())
-        patient_name_entry = tk.Entry(filter_frame, textvariable=self.patient_name_var, font=('Segoe UI', 10), width=20, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
+        patient_name_entry = tk.Entry(filter_frame, textvariable=self.patient_name_var, font=(FONT_UI, 10), width=20, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         patient_name_entry.pack(side=tk.LEFT, padx=5)
         
         # Date filter with calendar button
-        tk.Label(filter_frame, text="Filter by Date:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=(15, 5))
+        tk.Label(filter_frame, text="Filter by Date:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=(15, 5))
         date_filter_frame = tk.Frame(filter_frame, bg=t["BG_DEEP"])
         date_filter_frame.pack(side=tk.LEFT, padx=5)
         self.date_var = tk.StringVar(value="")
-        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_var, font=('Segoe UI', 10), width=15, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
+        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_var, font=(FONT_UI, 10), width=15, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         date_entry.pack(side=tk.LEFT)
         # Auto-filter when date changes
         self.date_var.trace('w', lambda *args: self.apply_filters())
@@ -116,7 +116,7 @@ class BillingModule:
             tk.Label(
                 header_frame,
                 text="Select Date",
-                font=('Segoe UI', 12, 'bold'),
+                font=(FONT_UI, 12, 'bold'),
                 bg='#1e40af',
                 fg='white'
             ).pack(pady=10)
@@ -174,7 +174,7 @@ class BillingModule:
                     label = tk.Label(
                         cal_days_frame,
                         text=day,
-                        font=('Segoe UI', 9, 'bold'),
+                        font=(FONT_UI, 9, 'bold'),
                         bg='#f3f4f6',
                         fg='#374151',
                         width=4
@@ -194,7 +194,7 @@ class BillingModule:
                     day_btn = tk.Button(
                         cal_days_frame,
                         text=day_str,
-                        font=('Segoe UI', 9),
+                        font=(FONT_UI, 9),
                         bg='#ffffff',
                         fg='#374151',
                         width=4,
@@ -259,7 +259,7 @@ class BillingModule:
                 nav_frame,
                 text="◀",
                 command=prev_month,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#e5e7eb',
                 fg='#374151',
                 width=3,
@@ -271,7 +271,7 @@ class BillingModule:
             month_label = tk.Label(
                 nav_frame,
                 text="",
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#ffffff',
                 fg='#1a237e'
             )
@@ -281,7 +281,7 @@ class BillingModule:
                 nav_frame,
                 text="▶",
                 command=next_month,
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#e5e7eb',
                 fg='#374151',
                 width=3,
@@ -302,7 +302,7 @@ class BillingModule:
                 btn_frame,
                 text="Today",
                 command=lambda: select_date(datetime.now().day),
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#3b82f6',
                 fg='white',
                 padx=15,
@@ -316,7 +316,7 @@ class BillingModule:
                 btn_frame,
                 text="Cancel",
                 command=calendar_window.destroy,
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='#6b7280',
                 fg='white',
                 padx=15,
@@ -334,7 +334,7 @@ class BillingModule:
             date_filter_frame,
             text="📅",
             command=open_calendar_for_filter,
-            font=('Segoe UI', 12),
+            font=(FONT_UI, 12),
             bg='#3b82f6',
             fg='white',
             width=3,
@@ -345,13 +345,13 @@ class BillingModule:
         date_cal_btn.pack(side=tk.LEFT, padx=(5, 0))
         
         # Status filter
-        tk.Label(filter_frame, text="Status:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=(15, 5))
+        tk.Label(filter_frame, text="Status:", font=(FONT_UI, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=(15, 5))
         self.status_var = tk.StringVar(value="All")
         status_combo = ttk.Combobox(
             filter_frame,
             textvariable=self.status_var,
             values=["All", "Pending", "Paid"],
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             width=12,
             state='readonly'
         )
@@ -364,7 +364,7 @@ class BillingModule:
             top_frame,
             text="+ New Bill",
             command=self.add_bill,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg=BTN_SUCCESS_BG,
             fg='white',
             padx=25,
@@ -385,7 +385,7 @@ class BillingModule:
         tk.Label(
             action_frame,
             text="Quick Actions:",
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg=t["BG_DEEP"],
             fg=t["TEXT_SECONDARY"]
         ).pack(side=tk.LEFT, padx=(0, 15))
@@ -394,7 +394,7 @@ class BillingModule:
             action_frame,
             text="View Details",
             command=self.view_bill,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_PRIMARY_BG,
             fg='white',
             padx=20,
@@ -410,7 +410,7 @@ class BillingModule:
             action_frame,
             text="✏️ Edit Bill",
             command=self.edit_bill,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=WARNING,
             fg='white',
             padx=20,
@@ -426,7 +426,7 @@ class BillingModule:
             action_frame,
             text="Delete",
             command=self.delete_bill,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_DANGER_BG,
             fg='white',
             padx=20,
@@ -454,13 +454,13 @@ class BillingModule:
             pass  # Use default if theme not available
         
         style.configure("Treeview", 
-                       font=('Segoe UI', 10), 
+                       font=(FONT_UI, 10), 
                        rowheight=30, 
                        background=t["BG_CARD"], 
                        foreground=t["TEXT_PRIMARY"],
                        fieldbackground=t["BG_CARD"])
         style.configure("Treeview.Heading", 
-                       font=('Segoe UI', 11, 'bold'), 
+                       font=(FONT_UI, 11, 'bold'), 
                        background=t["TABLE_HEADER_BG"], 
                        foreground=t["TEXT_PRIMARY"],
                        relief='flat')
@@ -539,7 +539,7 @@ class BillingModule:
             action_frame,
             text="🖨️ Print",
             command=self.print_bill,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=WARNING,
             fg='white',
             padx=20,
@@ -555,7 +555,7 @@ class BillingModule:
             action_frame,
             text="Mark Paid",
             command=self.mark_paid,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_SUCCESS_BG,
             fg='white',
             padx=20,
@@ -1033,7 +1033,7 @@ NOTES
         tk.Label(
             header_frame,
             text=title,
-            font=('Segoe UI', 14, 'bold'),
+            font=(FONT_UI, 14, 'bold'),
             bg='#1e40af',
             fg='white'
         ).pack(pady=18)
@@ -1045,7 +1045,7 @@ NOTES
         tk.Label(
             search_frame,
             text="Search by Bill ID, Patient Name, or Date:",
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#f5f7fa',
             fg='#374151'
         ).pack(side=tk.LEFT, padx=5)
@@ -1054,7 +1054,7 @@ NOTES
         search_entry = tk.Entry(
             search_frame,
             textvariable=search_var,
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             width=30,
             relief=tk.FLAT,
             bd=2,
@@ -1152,7 +1152,7 @@ NOTES
             button_frame,
             text="Select",
             command=on_select,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg='#10b981',
             fg='white',
             padx=30,
@@ -1167,7 +1167,7 @@ NOTES
             button_frame,
             text="Cancel",
             command=popup.destroy,
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             bg='#6b7280',
             fg='white',
             padx=30,
@@ -1311,7 +1311,7 @@ NOTES
         
         if not is_edit:
             bill_id = generate_id('BILL')
-        tk.Label(main_frame, text=f"Bill ID: {bill_id}", font=('Segoe UI', 13, 'bold'), bg='#f5f7fa', fg='#1a237e').pack(pady=8)
+        tk.Label(main_frame, text=f"Bill ID: {bill_id}", font=(FONT_UI, 13, 'bold'), bg='#f5f7fa', fg='#1a237e').pack(pady=8)
         
         # Form fields - two-column horizontal layout
         form_frame = tk.Frame(main_frame, bg='#f5f7fa')
@@ -1638,7 +1638,7 @@ NOTES
                 inner_button_frame,
                 text="Save",
                 command=save_bill,
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#10b981',
                 fg='white',
                 padx=35,
@@ -1654,7 +1654,7 @@ NOTES
                 inner_button_frame,
                 text="Close",
                 command=close_dialog,
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#6b7280',
                 fg='white',
                 padx=35,
@@ -1671,7 +1671,7 @@ NOTES
                 main_frame,
                 text="Close",
                 command=close_dialog,
-                font=('Segoe UI', 11, 'bold'),
+                font=(FONT_UI, 11, 'bold'),
                 bg='#6b7280',
                 fg='white',
                 padx=35,

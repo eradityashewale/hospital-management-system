@@ -13,7 +13,7 @@ from frontend.theme import (
     BG_BASE, BG_CARD, BG_DEEP, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
     ACCENT_BLUE, BORDER_DEFAULT, TABLE_HEADER_BG, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
     BTN_DANGER_BG, BTN_DANGER_HOVER, BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
-    get_theme,
+    FONT_UI, get_theme,
 )
 
 # Utils imports
@@ -41,7 +41,7 @@ class RoleModule:
         header = tk.Label(
             self.parent,
             text="User Management",
-            font=('Segoe UI', 24, 'bold'),
+            font=(FONT_UI, 24, 'bold'),
             bg=t["BG_DEEP"],
             fg=t["TEXT_PRIMARY"]
         )
@@ -51,7 +51,7 @@ class RoleModule:
         desc_label = tk.Label(
             self.parent,
             text="Create and manage users with direct module access permissions",
-            font=('Segoe UI', 11),
+            font=(FONT_UI, 11),
             bg=t["BG_DEEP"],
             fg=t["TEXT_MUTED"]
         )
@@ -66,7 +66,7 @@ class RoleModule:
             top_frame,
             text="+ Create New User",
             command=self.add_user,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg=BTN_PRIMARY_BG,
             fg='white',
             padx=25,
@@ -98,13 +98,13 @@ class RoleModule:
             pass
         
         style.configure("Treeview", 
-                       font=('Segoe UI', 10), 
+                       font=(FONT_UI, 10), 
                        rowheight=35, 
                        background=t["BG_CARD"], 
                        foreground=t["TEXT_PRIMARY"],
                        fieldbackground=t["BG_CARD"])
         style.configure("Treeview.Heading", 
-                       font=('Segoe UI', 11, 'bold'), 
+                       font=(FONT_UI, 11, 'bold'), 
                        background=t["TABLE_HEADER_BG"], 
                        foreground=t["TEXT_PRIMARY"],
                        relief=tk.FLAT)
@@ -161,7 +161,7 @@ class RoleModule:
             button_frame,
             text="Edit User",
             command=self.edit_user,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_PRIMARY_BG,
             fg='white',
             padx=20,
@@ -177,7 +177,7 @@ class RoleModule:
             button_frame,
             text="Delete User",
             command=self.delete_user,
-            font=('Segoe UI', 10, 'bold'),
+            font=(FONT_UI, 10, 'bold'),
             bg=BTN_DANGER_BG,
             fg='white',
             padx=20,
@@ -411,27 +411,27 @@ class RoleModule:
         dialog.after(100, update_after_creation)
         
         # Username
-        tk.Label(inner_frame, text="Username *", font=('Segoe UI', 11, 'bold'),
+        tk.Label(inner_frame, text="Username *", font=(FONT_UI, 11, 'bold'),
                 bg='white', fg='#374151', anchor='w').pack(fill=tk.X, pady=(0, 5))
         username_var = tk.StringVar(value=user_data['username'] if is_edit else '')
         username_entry = tk.Entry(inner_frame, textvariable=username_var,
-                                 font=('Segoe UI', 11), width=40)
+                                 font=(FONT_UI, 11), width=40)
         username_entry.pack(fill=tk.X, pady=(0, 15), ipady=8)
         
         # Full Name
-        tk.Label(inner_frame, text="Full Name", font=('Segoe UI', 11, 'bold'),
+        tk.Label(inner_frame, text="Full Name", font=(FONT_UI, 11, 'bold'),
                 bg='white', fg='#374151', anchor='w').pack(fill=tk.X, pady=(0, 5))
         full_name_var = tk.StringVar(value=user_data.get('full_name', '') if is_edit else '')
         full_name_entry = tk.Entry(inner_frame, textvariable=full_name_var,
-                                   font=('Segoe UI', 11), width=40)
+                                   font=(FONT_UI, 11), width=40)
         full_name_entry.pack(fill=tk.X, pady=(0, 15), ipady=8)
         
         # Email
-        tk.Label(inner_frame, text="Email *", font=('Segoe UI', 11, 'bold'),
+        tk.Label(inner_frame, text="Email *", font=(FONT_UI, 11, 'bold'),
                 bg='white', fg='#374151', anchor='w').pack(fill=tk.X, pady=(0, 5))
         email_var = tk.StringVar(value=user_data.get('email', '') if is_edit else '')
         email_entry = tk.Entry(inner_frame, textvariable=email_var,
-                              font=('Segoe UI', 11), width=40)
+                              font=(FONT_UI, 11), width=40)
         email_entry.pack(fill=tk.X, pady=(0, 15), ipady=8)
         
         # Password field - only show for new users
@@ -443,11 +443,11 @@ class RoleModule:
             # Password field for new users
             password_label_frame = tk.Frame(inner_frame, bg='white')
             password_label_frame.pack(fill=tk.X, pady=(0, 5))
-            tk.Label(password_label_frame, text="Password *", font=('Segoe UI', 11, 'bold'),
+            tk.Label(password_label_frame, text="Password *", font=(FONT_UI, 11, 'bold'),
                     bg='white', fg='#374151', anchor='w').pack(side=tk.LEFT)
             
             password_entry = tk.Entry(inner_frame, textvariable=password_var,
-                                     font=('Segoe UI', 11), width=40, show='*')
+                                     font=(FONT_UI, 11), width=40, show='*')
             password_entry.pack(fill=tk.X, pady=(0, 5), ipady=8)
             
             # Show password checkbox
@@ -456,7 +456,7 @@ class RoleModule:
                 inner_frame,
                 text="Show Password",
                 variable=show_password_var,
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='white',
                 fg='#6b7280',
                 activebackground='white',
@@ -471,14 +471,14 @@ class RoleModule:
             password_section_frame = tk.Frame(inner_frame, bg='white')
             password_section_frame.pack(fill=tk.X, pady=(0, 15))
             
-            tk.Label(password_section_frame, text="Password", font=('Segoe UI', 11, 'bold'),
+            tk.Label(password_section_frame, text="Password", font=(FONT_UI, 11, 'bold'),
                     bg='white', fg='#374151', anchor='w').pack(side=tk.LEFT, fill=tk.X, expand=True)
             
             reset_password_btn = tk.Button(
                 password_section_frame,
                 text="🔑 Reset Password",
                 command=lambda: self.reset_password_dialog(dialog, user_data['id'], user_data['username']),
-                font=('Segoe UI', 10, 'bold'),
+                font=(FONT_UI, 10, 'bold'),
                 bg='#f59e0b',
                 fg='white',
                 padx=15,
@@ -491,15 +491,15 @@ class RoleModule:
             reset_password_btn.pack(side=tk.RIGHT)
             
             tk.Label(inner_frame, text="Click 'Reset Password' to change the user's password",
-                    font=('Segoe UI', 9), bg='white', fg='#6b7280', anchor='w').pack(fill=tk.X, pady=(5, 0))
+                    font=(FONT_UI, 9), bg='white', fg='#6b7280', anchor='w').pack(fill=tk.X, pady=(5, 0))
         
         # Module permissions - Direct assignment
-        tk.Label(inner_frame, text="Module Access Permissions *", font=('Segoe UI', 11, 'bold'),
+        tk.Label(inner_frame, text="Module Access Permissions *", font=(FONT_UI, 11, 'bold'),
                 bg='white', fg='#374151', anchor='w').pack(fill=tk.X, pady=(0, 5))
         
         # Help text
         tk.Label(inner_frame, text="Select which modules this user can access:",
-                font=('Segoe UI', 9), bg='white', fg='#6b7280', anchor='w').pack(fill=tk.X, pady=(0, 10))
+                font=(FONT_UI, 9), bg='white', fg='#6b7280', anchor='w').pack(fill=tk.X, pady=(0, 10))
         
         # Permissions frame with border
         permissions_container = tk.Frame(inner_frame, bg='white')
@@ -540,7 +540,7 @@ class RoleModule:
                 permissions_frame,
                 text=module_label,
                 variable=var,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 bg='#f9fafb',
                 fg='#374151',
                 activebackground='#f9fafb',
@@ -646,7 +646,7 @@ class RoleModule:
             button_frame,
             text="Save",
             command=save_user,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg='#10b981',
             fg='white',
             padx=25,
@@ -662,7 +662,7 @@ class RoleModule:
             button_frame,
             text="Cancel",
             command=dialog.destroy,
-            font=('Segoe UI', 11),
+            font=(FONT_UI, 11),
             bg='#6b7280',
             fg='white',
             padx=25,
@@ -705,7 +705,7 @@ class RoleModule:
         title_label = tk.Label(
             main_frame,
             text=f"Reset Password for {username}",
-            font=('Segoe UI', 16, 'bold'),
+            font=(FONT_UI, 16, 'bold'),
             bg='#f5f7fa',
             fg='#1a237e'
         )
@@ -715,7 +715,7 @@ class RoleModule:
         info_label = tk.Label(
             main_frame,
             text="Enter a new password for this user:",
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             bg='#f5f7fa',
             fg='#6b7280'
         )
@@ -725,24 +725,24 @@ class RoleModule:
         password_frame = tk.Frame(main_frame, bg='#f5f7fa')
         password_frame.pack(fill=tk.X, pady=(0, 10))
         
-        tk.Label(password_frame, text="New Password *", font=('Segoe UI', 11, 'bold'),
+        tk.Label(password_frame, text="New Password *", font=(FONT_UI, 11, 'bold'),
                 bg='#f5f7fa', fg='#374151', anchor='w').pack(fill=tk.X, pady=(0, 5))
         
         password_var = tk.StringVar()
         password_entry = tk.Entry(password_frame, textvariable=password_var,
-                                 font=('Segoe UI', 11), width=40, show='*')
+                                 font=(FONT_UI, 11), width=40, show='*')
         password_entry.pack(fill=tk.X, ipady=8)
         
         # Confirm password field
         confirm_frame = tk.Frame(main_frame, bg='#f5f7fa')
         confirm_frame.pack(fill=tk.X, pady=(0, 20))
         
-        tk.Label(confirm_frame, text="Confirm Password *", font=('Segoe UI', 11, 'bold'),
+        tk.Label(confirm_frame, text="Confirm Password *", font=(FONT_UI, 11, 'bold'),
                 bg='#f5f7fa', fg='#374151', anchor='w').pack(fill=tk.X, pady=(0, 5))
         
         confirm_password_var = tk.StringVar()
         confirm_password_entry = tk.Entry(confirm_frame, textvariable=confirm_password_var,
-                                          font=('Segoe UI', 11), width=40, show='*')
+                                          font=(FONT_UI, 11), width=40, show='*')
         confirm_password_entry.pack(fill=tk.X, ipady=8)
         
         # Show password checkbox
@@ -751,7 +751,7 @@ class RoleModule:
             main_frame,
             text="Show Password",
             variable=show_password_var,
-            font=('Segoe UI', 9),
+            font=(FONT_UI, 9),
             bg='#f5f7fa',
             fg='#6b7280',
             activebackground='#f5f7fa',
@@ -815,7 +815,7 @@ class RoleModule:
             button_frame,
             text="Reset Password",
             command=reset_password,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg='#f59e0b',
             fg='white',
             padx=25,
@@ -831,7 +831,7 @@ class RoleModule:
             button_frame,
             text="Cancel",
             command=reset_dialog.destroy,
-            font=('Segoe UI', 11),
+            font=(FONT_UI, 11),
             bg='#6b7280',
             fg='white',
             padx=25,

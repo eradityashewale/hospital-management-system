@@ -16,7 +16,7 @@ from backend.database import Database
 from frontend.theme import (
     BG_BASE, BG_CARD, BG_DEEP, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
     ACCENT_BLUE, BORDER_DEFAULT, TABLE_HEADER_BG, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
-    BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
+    BTN_SECONDARY_BG, BTN_SECONDARY_HOVER, FONT_UI,
     get_theme,
 )
 
@@ -60,7 +60,7 @@ class ReportsModule:
         header = tk.Label(
             self.parent,
             text="Reports & Analytics Dashboard",
-            font=('Segoe UI', 24, 'bold'),
+            font=(FONT_UI, 24, 'bold'),
             bg=t["BG_DEEP"],
             fg=t["TEXT_PRIMARY"]
         )
@@ -74,7 +74,7 @@ class ReportsModule:
         filter_frame = tk.LabelFrame(
             content_frame,
             text="Report Filters",
-            font=('Segoe UI', 12, 'bold'),
+            font=(FONT_UI, 12, 'bold'),
             bg=t["BG_CARD"],
             fg=t["TEXT_PRIMARY"],
             relief=tk.FLAT,
@@ -89,7 +89,7 @@ class ReportsModule:
         tk.Label(
             date_frame,
             text="From Date:",
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             bg=t["BG_CARD"],
             fg=t["TEXT_SECONDARY"]
         ).pack(side=tk.LEFT, padx=5)
@@ -99,7 +99,7 @@ class ReportsModule:
             default_from_date = datetime.now() - timedelta(days=30)
             self.from_date_entry = DateEntry(
                 date_frame,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 width=12,
                 background='darkblue',
                 foreground='white',
@@ -114,7 +114,7 @@ class ReportsModule:
             tk.Label(
                 date_frame,
                 text="To Date:",
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 bg=t["BG_CARD"],
                 fg=t["TEXT_SECONDARY"]
             ).pack(side=tk.LEFT, padx=5)
@@ -122,7 +122,7 @@ class ReportsModule:
             default_to_date = datetime.now()
             self.to_date_entry = DateEntry(
                 date_frame,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 width=12,
                 background='darkblue',
                 foreground='white',
@@ -137,7 +137,7 @@ class ReportsModule:
             # Fallback to text entry if tkcalendar is not available
             self.from_date_entry = tk.Entry(
                 date_frame,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 width=12
             )
             self.from_date_entry.pack(side=tk.LEFT, padx=5)
@@ -146,14 +146,14 @@ class ReportsModule:
             tk.Label(
                 date_frame,
                 text="To Date:",
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 bg=t["BG_CARD"],
                 fg=t["TEXT_SECONDARY"]
             ).pack(side=tk.LEFT, padx=5)
             
             self.to_date_entry = tk.Entry(
                 date_frame,
-                font=('Segoe UI', 10),
+                font=(FONT_UI, 10),
                 width=12
             )
             self.to_date_entry.pack(side=tk.LEFT, padx=5)
@@ -163,7 +163,7 @@ class ReportsModule:
             date_frame,
             text="Apply Filters",
             command=self.apply_filters,
-            font=('Segoe UI', 9, 'bold'),
+            font=(FONT_UI, 9, 'bold'),
             bg=BTN_PRIMARY_BG,
             fg='white',
             padx=15,
@@ -177,7 +177,7 @@ class ReportsModule:
             date_frame,
             text="Reset",
             command=self.reset_filters,
-            font=('Segoe UI', 9),
+            font=(FONT_UI, 9),
             bg=BTN_SECONDARY_BG,
             fg='white',
             padx=15,
@@ -194,7 +194,7 @@ class ReportsModule:
         tk.Label(
             report_type_frame,
             text="Report Type:",
-            font=('Segoe UI', 10),
+            font=(FONT_UI, 10),
             bg='white',
             fg='#374151'
         ).pack(side=tk.LEFT, padx=5)
@@ -217,7 +217,7 @@ class ReportsModule:
                 variable=self.report_type_var,
                 value=value,
                 command=self.on_report_type_change,
-                font=('Segoe UI', 9),
+                font=(FONT_UI, 9),
                 bg='white',
                 fg='#374151',
                 selectcolor='white',
@@ -228,7 +228,7 @@ class ReportsModule:
         report_frame = tk.LabelFrame(
             content_frame,
             text="Report Output",
-            font=('Segoe UI', 14, 'bold'),
+            font=(FONT_UI, 14, 'bold'),
             bg='white',
             fg='#1a237e',
             relief=tk.FLAT,
@@ -262,7 +262,7 @@ class ReportsModule:
             button_frame,
             text="🔄 Generate Report",
             command=self.generate_report,
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg='#3b82f6',
             fg='white',
             padx=20,
@@ -277,7 +277,7 @@ class ReportsModule:
             button_frame,
             text="📄 Export PDF",
             command=lambda: self.export_report('pdf'),
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg='#ef4444',
             fg='white',
             padx=20,
@@ -291,7 +291,7 @@ class ReportsModule:
             button_frame,
             text="📊 Export CSV",
             command=lambda: self.export_report('csv'),
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg='#10b981',
             fg='white',
             padx=20,
@@ -305,7 +305,7 @@ class ReportsModule:
             button_frame,
             text="📝 Export TXT",
             command=lambda: self.export_report('txt'),
-            font=('Segoe UI', 11, 'bold'),
+            font=(FONT_UI, 11, 'bold'),
             bg='#f59e0b',
             fg='white',
             padx=20,
