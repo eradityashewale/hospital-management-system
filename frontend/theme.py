@@ -1,11 +1,12 @@
 """
 MediFlow - Modern UI Theme System
-Premium medical-tech aesthetic: Dark mode, glassmorphism, gradient accents
+Premium medical-tech aesthetic: Dark (Night) / Light (Day) mode, glassmorphism, gradient accents
 """
 from __future__ import annotations
+import os
 
 # =============================================================================
-# THEME: DARK MODE - Premium Medical-Tech
+# THEME: DARK MODE (NIGHT) - Premium Medical-Tech
 # =============================================================================
 
 # Background layers (depth)
@@ -111,3 +112,106 @@ SPACING_SM = 8
 SPACING_MD = 16
 SPACING_LG = 24
 SPACING_XL = 32
+
+# =============================================================================
+# DAY / NIGHT MODE - Theme switching
+# =============================================================================
+
+THEME_DARK = {
+    "BG_DEEP": BG_DEEP,
+    "BG_BASE": BG_BASE,
+    "BG_CARD": BG_CARD,
+    "BG_ELEVATED": BG_ELEVATED,
+    "BG_GLASS": BG_GLASS,
+    "TABLE_HEADER_BG": TABLE_HEADER_BG,
+    "SIDEBAR_BG": SIDEBAR_BG,
+    "SIDEBAR_ACTIVE": SIDEBAR_ACTIVE,
+    "SIDEBAR_HOVER": SIDEBAR_HOVER,
+    "SIDEBAR_TEXT": SIDEBAR_TEXT,
+    "SIDEBAR_TEXT_ACTIVE": SIDEBAR_TEXT_ACTIVE,
+    "SIDEBAR_ICON": SIDEBAR_ICON,
+    "TEXT_PRIMARY": TEXT_PRIMARY,
+    "TEXT_SECONDARY": TEXT_SECONDARY,
+    "TEXT_MUTED": TEXT_MUTED,
+    "TEXT_DISABLED": TEXT_DISABLED,
+    "BORDER_SUBTLE": BORDER_SUBTLE,
+    "BORDER_DEFAULT": BORDER_DEFAULT,
+    "ACCENT_BLUE": ACCENT_BLUE,
+    "ACCENT_TEAL": ACCENT_TEAL,
+}
+
+# Light (Day) theme
+THEME_LIGHT = {
+    "BG_DEEP": "#f1f5f9",
+    "BG_BASE": "#ffffff",
+    "BG_CARD": "#ffffff",
+    "BG_ELEVATED": "#f8fafc",
+    "BG_GLASS": "#e2e8f0",
+    "TABLE_HEADER_BG": "#e2e8f0",
+    "SIDEBAR_BG": "#0f172a",
+    "SIDEBAR_ACTIVE": "#1e3a5f",
+    "SIDEBAR_HOVER": "#1e293b",
+    "SIDEBAR_TEXT": "#94a3b8",
+    "SIDEBAR_TEXT_ACTIVE": "#ffffff",
+    "SIDEBAR_ICON": "#64748b",
+    "TEXT_PRIMARY": "#0f172a",
+    "TEXT_SECONDARY": "#475569",
+    "TEXT_MUTED": "#64748b",
+    "TEXT_DISABLED": "#94a3b8",
+    "BORDER_SUBTLE": "#e2e8f0",
+    "BORDER_DEFAULT": "#cbd5e1",
+    "ACCENT_BLUE": "#2563eb",
+    "ACCENT_TEAL": "#0891b2",
+}
+
+_THEME_FILE = None
+
+def _get_theme_file():
+    global _THEME_FILE
+    if _THEME_FILE is not None:
+        return _THEME_FILE
+    try:
+        base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        _THEME_FILE = os.path.join(base, "config", "theme.txt")
+        os.makedirs(os.path.dirname(_THEME_FILE), exist_ok=True)
+    except Exception:
+        _THEME_FILE = os.path.join(os.path.expanduser("~"), ".mediflow_theme.txt")
+    return _THEME_FILE
+
+_current_mode = "night"  # "night" | "day"
+
+def _load_saved_theme():
+    global _current_mode
+    try:
+        path = _get_theme_file()
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8") as f:
+                mode = f.read().strip().lower()
+                if mode in ("day", "night"):
+                    _current_mode = mode
+    except Exception:
+        pass
+
+def get_theme():
+    """Return the current theme dict (for day or night mode)."""
+    return THEME_LIGHT if _current_mode == "day" else THEME_DARK
+
+def get_theme_mode():
+    """Return current mode: 'day' or 'night'."""
+    return _current_mode
+
+def set_theme(mode: str):
+    """Set theme to 'day' or 'night' and persist preference."""
+    global _current_mode
+    mode = mode.lower()
+    if mode not in ("day", "night"):
+        return
+    _current_mode = mode
+    try:
+        with open(_get_theme_file(), "w", encoding="utf-8") as f:
+            f.write(_current_mode)
+    except Exception:
+        pass
+
+# Load saved preference on import
+_load_saved_theme()

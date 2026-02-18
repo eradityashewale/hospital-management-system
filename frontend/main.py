@@ -18,6 +18,7 @@ from utils.logger import log_button_click, log_navigation, log_error, log_info, 
 from frontend.theme import (
     BG_BASE, BG_DEEP, BG_CARD, TEXT_PRIMARY, TEXT_SECONDARY, SIDEBAR_BG,
     ACCENT_BLUE, ACCENT_TEAL, FONT_FALLBACK,
+    get_theme, set_theme, get_theme_mode,
 )
 from frontend.ui_components import ModernCard, ModernSidebar, ModernPillButton
 from frontend.modules.patient_module import PatientModule
@@ -58,8 +59,9 @@ class HospitalManagementSystem:
                 # Fallback: use full screen dimensions
                 self.root.geometry(f"{screen_width}x{screen_height}+0+0")
         
-        # Dark mode premium background
-        self.root.configure(bg=BG_DEEP)
+        # Theme-aware background (day/night)
+        t = get_theme()
+        self.root.configure(bg=t["BG_DEEP"])
         
         # Set window icon for branding
         self.set_window_icon()
@@ -344,9 +346,11 @@ class HospitalManagementSystem:
         """Create main application layout - Premium dark sidebar + content"""
         from frontend.theme import SIDEBAR_WIDTH, SIDEBAR_BG, SIDEBAR_TEXT, ACCENT_BLUE
         
-        # Main horizontal split: Sidebar | Content area
-        main_container = tk.Frame(self.root, bg=BG_DEEP)
+        # Main horizontal split: Sidebar | Content area (theme-aware)
+        t0 = get_theme()
+        main_container = tk.Frame(self.root, bg=t0["BG_DEEP"])
         main_container.pack(fill=tk.BOTH, expand=True)
+        self.main_container = main_container
         
         # === LEFT SIDEBAR ===
         sidebar_container = tk.Frame(main_container, bg=SIDEBAR_BG, width=SIDEBAR_WIDTH)
@@ -439,20 +443,64 @@ class HospitalManagementSystem:
         log_info("Main layout created successfully")
         
         # === RIGHT: Header + Content ===
-        right_panel = tk.Frame(main_container, bg=BG_DEEP)
+        t = get_theme()
+        right_panel = tk.Frame(main_container, bg=t["BG_DEEP"])
         right_panel.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=0, pady=0)
         
         # Slim top header
-        header_frame = tk.Frame(right_panel, bg=BG_BASE, height=56)
+        header_frame = tk.Frame(right_panel, bg=t["BG_BASE"], height=56)
         header_frame.pack(fill=tk.X)
         header_frame.pack_propagate(False)
+        self.header_frame = header_frame
         
-        header_inner = tk.Frame(header_frame, bg=BG_BASE)
+        header_inner = tk.Frame(header_frame, bg=t["BG_BASE"])
         header_inner.pack(fill=tk.BOTH, expand=True, padx=20, pady=8)
+        self.header_inner = header_inner
+        
+        # Day / Night mode toggle (capsule: DAY | NIGHT)
+        theme_toggle_frame = tk.Frame(header_inner, bg=t["BG_BASE"])
+        theme_toggle_frame.pack(side=tk.RIGHT, padx=(0, 20))
+        self.theme_toggle_frame = theme_toggle_frame
+        
+        self.day_btn = tk.Button(
+            theme_toggle_frame,
+            text="☀ DAY",
+            font=(FONT_FALLBACK, 9, 'bold'),
+            bg='#f8fafc' if get_theme_mode() == 'day' else '#374151',
+            fg='#0f172a' if get_theme_mode() == 'day' else '#9ca3af',
+            activebackground='#e2e8f0',
+            activeforeground='#0f172a',
+            relief=tk.FLAT,
+            bd=0,
+            padx=14,
+            pady=6,
+            cursor='hand2',
+            highlightthickness=0,
+            command=lambda: self._switch_theme('day')
+        )
+        self.day_btn.pack(side=tk.LEFT)
+        
+        self.night_btn = tk.Button(
+            theme_toggle_frame,
+            text="🌙 NIGHT",
+            font=(FONT_FALLBACK, 9, 'bold'),
+            bg='#1e293b' if get_theme_mode() == 'night' else '#374151',
+            fg='#e2e8f0' if get_theme_mode() == 'night' else '#9ca3af',
+            activebackground='#334155',
+            activeforeground='#e2e8f0',
+            relief=tk.FLAT,
+            bd=0,
+            padx=14,
+            pady=6,
+            cursor='hand2',
+            highlightthickness=0,
+            command=lambda: self._switch_theme('night')
+        )
+        self.night_btn.pack(side=tk.LEFT)
         
         self.user_info_label = tk.Label(
             header_inner, text="", font=(FONT_FALLBACK, 10),
-            bg=BG_BASE, fg=TEXT_SECONDARY
+            bg=t["BG_BASE"], fg=t["TEXT_SECONDARY"]
         )
         self.user_info_label.pack(side=tk.RIGHT, padx=(0, 12))
         
@@ -473,8 +521,62 @@ class HospitalManagementSystem:
                 self.user_info_label.config(text=f"{username}")
         
         # Main content area
-        self.content_frame = tk.Frame(right_panel, bg=BG_DEEP)
+        self.content_frame = tk.Frame(right_panel, bg=t["BG_DEEP"])
         self.content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        
+        # Keep reference for theme refresh
+        self.right_panel = right_panel
+    
+    def _switch_theme(self, mode: str):
+        """Switch between day and night mode; refresh UI."""
+        if get_theme_mode() == mode:
+            return
+        set_theme(mode)
+        t = get_theme()
+        # Update root and main frames
+        self.root.configure(bg=t["BG_DEEP"])
+        if hasattr(self, 'header_frame'):
+            self.header_frame.configure(bg=t["BG_BASE"])
+        if hasattr(self, 'header_inner'):
+            self.header_inner.configure(bg=t["BG_BASE"])
+        if hasattr(self, 'theme_toggle_frame'):
+            self.theme_toggle_frame.configure(bg=t["BG_BASE"])
+        if hasattr(self, 'user_info_label'):
+            self.user_info_label.configure(bg=t["BG_BASE"], fg=t["TEXT_SECONDARY"])
+        if hasattr(self, 'content_frame'):
+            self.content_frame.configure(bg=t["BG_DEEP"])
+        if hasattr(self, 'right_panel'):
+            self.right_panel.configure(bg=t["BG_DEEP"])
+        if hasattr(self, 'main_container'):
+            self.main_container.configure(bg=t["BG_DEEP"])
+        # Update toggle button appearance
+        if mode == 'day':
+            self.day_btn.configure(bg='#f8fafc', fg='#0f172a')
+            self.night_btn.configure(bg='#374151', fg='#9ca3af')
+        else:
+            self.day_btn.configure(bg='#374151', fg='#9ca3af')
+            self.night_btn.configure(bg='#1e293b', fg='#e2e8f0')
+        # Re-show current view so content uses new theme
+        if self.current_module == "Dashboard":
+            self.show_dashboard()
+        elif self.current_module == "Patients":
+            self.show_patients()
+        elif self.current_module == "Doctors":
+            self.show_doctors()
+        elif self.current_module == "Appointments":
+            self.show_appointments()
+        elif self.current_module == "Prescriptions":
+            self.show_prescriptions()
+        elif self.current_module == "IPD":
+            self.show_ipd()
+        elif self.current_module == "Billing":
+            self.show_billing()
+        elif self.current_module == "Reports":
+            self.show_reports()
+        elif self.current_module == "User Management":
+            self.show_roles()
+        elif self.current_module == "Backup":
+            self.show_backup()
     
     def _handle_navigation(self, button_name):
         """Handle navigation button clicks"""
@@ -574,9 +676,10 @@ class HospitalManagementSystem:
     
     def _create_scrollable_content(self):
         """Create a scrollable canvas+frame in content_frame for module content. Returns the inner frame."""
-        canvas = tk.Canvas(self.content_frame, bg=BG_DEEP, highlightthickness=0)
+        t = get_theme()
+        canvas = tk.Canvas(self.content_frame, bg=t["BG_DEEP"], highlightthickness=0)
         scrollbar = tk.Scrollbar(self.content_frame, orient="vertical", command=canvas.yview)
-        inner = tk.Frame(canvas, bg=BG_DEEP)
+        inner = tk.Frame(canvas, bg=t["BG_DEEP"])
         inner.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
         canvas_window = canvas.create_window((0, 0), window=inner, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
@@ -609,6 +712,7 @@ class HospitalManagementSystem:
             return
         
         try:
+            t = get_theme()
             log_info("show_dashboard() called")
             self.clear_content()
             log_info("Dashboard content cleared")
@@ -616,9 +720,9 @@ class HospitalManagementSystem:
             self.root.update_idletasks()
             
             # Create scrollable frame for dashboard
-            canvas = tk.Canvas(self.content_frame, bg=BG_DEEP, highlightthickness=0)
+            canvas = tk.Canvas(self.content_frame, bg=t["BG_DEEP"], highlightthickness=0)
             scrollbar = tk.Scrollbar(self.content_frame, orient="vertical", command=canvas.yview)
-            scrollable_frame = tk.Frame(canvas, bg=BG_DEEP)
+            scrollable_frame = tk.Frame(canvas, bg=t["BG_DEEP"])
             
             # Configure scrollable frame
             scrollable_frame.bind(
@@ -676,12 +780,12 @@ class HospitalManagementSystem:
             self.root.bind_all("<MouseWheel>", on_mousewheel)
             
             # Filter frame
-            filter_frame = tk.Frame(scrollable_frame, bg=BG_DEEP)
+            filter_frame = tk.Frame(scrollable_frame, bg=t["BG_DEEP"])
             filter_frame.pack(fill=tk.X, padx=25, pady=(10, 20))
             
             filter_label = tk.Label(
                 filter_frame, text="Filter by:",
-                font=(FONT_FALLBACK, 11, 'bold'), bg=BG_DEEP, fg=TEXT_PRIMARY
+                font=(FONT_FALLBACK, 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_PRIMARY"]
             )
             filter_label.pack(side=tk.LEFT, padx=(0, 10))
             
@@ -689,15 +793,15 @@ class HospitalManagementSystem:
             self.current_filter = {'type': 'all', 'date': None}
             self.stat_value_labels = []  # Store references to value labels for updating
             
-            filter_buttons_frame = tk.Frame(filter_frame, bg=BG_DEEP)
+            filter_buttons_frame = tk.Frame(filter_frame, bg=t["BG_DEEP"])
             filter_buttons_frame.pack(side=tk.LEFT, padx=5)
             
-            date_input_frame = tk.Frame(filter_frame, bg=BG_DEEP)
+            date_input_frame = tk.Frame(filter_frame, bg=t["BG_DEEP"])
             date_input_frame.pack(side=tk.LEFT, padx=10)
             
             date_label = tk.Label(
                 date_input_frame, text="Date:",
-                font=(FONT_FALLBACK, 10), bg=BG_DEEP, fg=TEXT_SECONDARY
+                font=(FONT_FALLBACK, 10), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]
             )
             date_label.pack(side=tk.LEFT, padx=(0, 5))
             
@@ -995,7 +1099,7 @@ class HospitalManagementSystem:
             date_cal_btn.pack(side=tk.LEFT, padx=2)
             
             # Month input frame (initially hidden)
-            month_input_frame = tk.Frame(filter_frame, bg=BG_DEEP)
+            month_input_frame = tk.Frame(filter_frame, bg=t["BG_DEEP"])
             month_input_frame.pack(side=tk.LEFT, padx=10)
             
             month_label = tk.Label(
@@ -1445,7 +1549,7 @@ class HospitalManagementSystem:
             month_cal_btn.pack(side=tk.LEFT, padx=2)
             
             # Year input frame (initially hidden)
-            year_input_frame = tk.Frame(filter_frame, bg=BG_DEEP)
+            year_input_frame = tk.Frame(filter_frame, bg=t["BG_DEEP"])
             year_input_frame.pack(side=tk.LEFT, padx=10)
             
             year_label = tk.Label(
@@ -1485,7 +1589,7 @@ class HospitalManagementSystem:
             year_cal_btn.pack(side=tk.LEFT, padx=2)
             
             # Date range input frame (initially hidden)
-            date_range_frame = tk.Frame(filter_frame, bg=BG_DEEP)
+            date_range_frame = tk.Frame(filter_frame, bg=t["BG_DEEP"])
             date_range_frame.pack(side=tk.LEFT, padx=10)
             
             from_label = tk.Label(
@@ -1763,7 +1867,7 @@ class HospitalManagementSystem:
             self.filter_from_date_var.trace('w', auto_apply_daterange)
             self.filter_to_date_var.trace('w', auto_apply_daterange)
             
-            stats_frame = tk.Frame(scrollable_frame, bg=BG_DEEP)
+            stats_frame = tk.Frame(scrollable_frame, bg=t["BG_DEEP"])
             stats_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=25)
             
             try:
@@ -1799,7 +1903,7 @@ class HospitalManagementSystem:
                 ("💰", "Total Revenue", f"${stats['total_revenue']:.2f}", "", 6)
             ]
             
-            cards_frame = tk.Frame(stats_frame, bg=BG_DEEP)
+            cards_frame = tk.Frame(stats_frame, bg=t["BG_DEEP"])
             cards_frame.pack(fill=tk.X, pady=(0, 20))
             
             for i, (icon, label, value, trend, color_idx) in enumerate(stat_cards_data):
@@ -1810,24 +1914,24 @@ class HospitalManagementSystem:
                 cards_frame.grid_columnconfigure(col, weight=1)
                 self.stat_value_labels.append(card)
             
-            # Branding Section - dark elevated panel
-            branding_frame = tk.Frame(stats_frame, bg=BG_CARD, highlightbackground='#2d3748', highlightthickness=1)
+            # Branding Section - elevated panel
+            branding_frame = tk.Frame(stats_frame, bg=t["BG_CARD"], highlightbackground=t["BORDER_DEFAULT"], highlightthickness=1)
             branding_frame.pack(fill=tk.X, pady=(0, 20))
             
-            branding_inner = tk.Frame(branding_frame, bg=BG_CARD)
+            branding_inner = tk.Frame(branding_frame, bg=t["BG_CARD"])
             branding_inner.pack(fill=tk.X, padx=25, pady=20)
             
-            logo_info_frame = tk.Frame(branding_inner, bg=BG_CARD)
+            logo_info_frame = tk.Frame(branding_inner, bg=t["BG_CARD"])
             logo_info_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
             
-            logo_bg_frame = tk.Frame(logo_info_frame, bg=ACCENT_BLUE, relief=tk.FLAT)
+            logo_bg_frame = tk.Frame(logo_info_frame, bg=t["ACCENT_BLUE"], relief=tk.FLAT)
             logo_bg_frame.pack(side=tk.LEFT, padx=(0, 20))
             
             # Try to load actual logo image
             dashboard_logo_image = self.load_logo_image(size=(80, 80))
             if dashboard_logo_image:
                 logo_icon = tk.Label(
-                    logo_bg_frame, image=dashboard_logo_image, bg=ACCENT_BLUE
+                    logo_bg_frame, image=dashboard_logo_image, bg=t["ACCENT_BLUE"]
                 )
                 logo_icon.image = dashboard_logo_image  # Keep a reference
                 logo_icon.pack(padx=15, pady=15)
@@ -1836,38 +1940,38 @@ class HospitalManagementSystem:
                 # Fallback to styled text logo on blue background
                 logo_icon = tk.Label(
                     logo_bg_frame, text="⚕", font=(FONT_FALLBACK, 24, 'bold'),
-                    bg=ACCENT_BLUE, fg='white', padx=15, pady=10
+                    bg=t["ACCENT_BLUE"], fg='white', padx=15, pady=10
                 )
                 logo_icon.pack()
                 log_debug("Dashboard logo displayed as text (image not found)")
             
-            product_info = tk.Frame(logo_info_frame, bg=BG_CARD)
+            product_info = tk.Frame(logo_info_frame, bg=t["BG_CARD"])
             product_info.pack(side=tk.LEFT, fill=tk.X, expand=True)
             
             product_name_label = tk.Label(
                 product_info, text="MediFlow",
-                font=(FONT_FALLBACK, 22, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY
+                font=(FONT_FALLBACK, 22, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]
             )
             product_name_label.pack(anchor='w', pady=(0, 5))
             
             tagline_label = tk.Label(
                 product_info, text="Streamlining Healthcare Management",
-                font=(FONT_FALLBACK, 12), bg=BG_CARD, fg=TEXT_SECONDARY
+                font=(FONT_FALLBACK, 12), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]
             )
             tagline_label.pack(anchor='w', pady=(0, 8))
             
             company_label = tk.Label(
                 product_info, text="Powered by Nexvora Solutions",
-                font=(FONT_FALLBACK, 10, 'italic'), bg=BG_CARD, fg=ACCENT_TEAL
+                font=(FONT_FALLBACK, 10, 'italic'), bg=t["BG_CARD"], fg=t["ACCENT_TEAL"]
             )
             company_label.pack(anchor='w')
             
-            features_frame = tk.Frame(branding_inner, bg=BG_CARD)
+            features_frame = tk.Frame(branding_inner, bg=t["BG_CARD"])
             features_frame.pack(side=tk.RIGHT, padx=(20, 0))
             
             features_title = tk.Label(
                 features_frame, text="Key Features",
-                font=(FONT_FALLBACK, 12, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY
+                font=(FONT_FALLBACK, 12, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]
             )
             features_title.pack(anchor='e', pady=(0, 8))
             
@@ -1880,30 +1984,30 @@ class HospitalManagementSystem:
             
             for feature in features_list:
                 tk.Label(features_frame, text=feature, font=(FONT_FALLBACK, 9),
-                       bg=BG_CARD, fg=TEXT_SECONDARY, anchor='e').pack(anchor='e', pady=2)
+                       bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"], anchor='e').pack(anchor='e', pady=2)
             
-            main_content = tk.Frame(scrollable_frame, bg=BG_DEEP)
+            main_content = tk.Frame(scrollable_frame, bg=t["BG_DEEP"])
             main_content.pack(fill=tk.BOTH, expand=True, padx=25, pady=(0, 25))
             
-            left_column = tk.Frame(main_content, bg=BG_DEEP, width=400)
+            left_column = tk.Frame(main_content, bg=t["BG_DEEP"], width=400)
             left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 15))
             
-            middle_column = tk.Frame(main_content, bg=BG_DEEP, width=300)
+            middle_column = tk.Frame(main_content, bg=t["BG_DEEP"], width=300)
             middle_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 15))
             
-            right_column = tk.Frame(main_content, bg=BG_DEEP, width=300)
+            right_column = tk.Frame(main_content, bg=t["BG_DEEP"], width=300)
             right_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=False)
             
-            appointments_chart_frame = tk.Frame(left_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
+            appointments_chart_frame = tk.Frame(left_column, bg=t["BG_CARD"], relief=tk.FLAT, highlightbackground=t["BORDER_DEFAULT"], highlightthickness=1)
             appointments_chart_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
             
-            chart_header = tk.Frame(appointments_chart_frame, bg=BG_CARD)
+            chart_header = tk.Frame(appointments_chart_frame, bg=t["BG_CARD"])
             chart_header.pack(fill=tk.X, padx=20, pady=(15, 10))
             
             tk.Label(chart_header, text="Appointments Overview",
-                    font=(FONT_FALLBACK, 14, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(side=tk.LEFT)
+                    font=(FONT_FALLBACK, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
             
-            toggle_frame = tk.Frame(chart_header, bg=BG_CARD)
+            toggle_frame = tk.Frame(chart_header, bg=t["BG_CARD"])
             toggle_frame.pack(side=tk.RIGHT)
             
             daily_toggle = tk.Button(
@@ -1932,7 +2036,7 @@ class HospitalManagementSystem:
             )
             monthly_toggle.pack(side=tk.LEFT, padx=2)
             
-            chart_canvas = tk.Canvas(appointments_chart_frame, bg=BG_CARD, height=280, highlightthickness=0)
+            chart_canvas = tk.Canvas(appointments_chart_frame, bg=t["BG_CARD"], height=280, highlightthickness=0)
             chart_canvas.pack(fill=tk.BOTH, expand=True, padx=25, pady=(0, 25))
             
             # Store chart mode
@@ -2107,38 +2211,38 @@ class HospitalManagementSystem:
             
             chart_canvas.bind('<Configure>', on_canvas_configure)
             
-            legend_frame = tk.Frame(appointments_chart_frame, bg=BG_CARD)
+            legend_frame = tk.Frame(appointments_chart_frame, bg=t["BG_CARD"])
             legend_frame.pack(fill=tk.X, padx=25, pady=(0, 20))
             
             legend_items = [("Scheduled", "#3b82f6"), ("Completed", "#10b981"), ("Cancelled", "#ec4899")]
             for i, (label, color) in enumerate(legend_items):
-                legend_item = tk.Frame(legend_frame, bg=BG_CARD)
+                legend_item = tk.Frame(legend_frame, bg=t["BG_CARD"])
                 legend_item.pack(side=tk.LEFT, padx=15)
-                tk.Label(legend_item, text="●", font=(FONT_FALLBACK, 14), bg=BG_CARD, fg=color).pack(side=tk.LEFT, padx=(0, 8))
-                tk.Label(legend_item, text=label, font=(FONT_FALLBACK, 10, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(side=tk.LEFT)
+                tk.Label(legend_item, text="●", font=(FONT_FALLBACK, 14), bg=t["BG_CARD"], fg=color).pack(side=tk.LEFT, padx=(0, 8))
+                tk.Label(legend_item, text=label, font=(FONT_FALLBACK, 10, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
             
-            revenue_chart_frame = tk.Frame(left_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
+            revenue_chart_frame = tk.Frame(left_column, bg=t["BG_CARD"], relief=tk.FLAT, highlightbackground=t["BORDER_DEFAULT"], highlightthickness=1)
             revenue_chart_frame.pack(fill=tk.BOTH, expand=True)
             
-            revenue_header = tk.Frame(revenue_chart_frame, bg=BG_CARD)
+            revenue_header = tk.Frame(revenue_chart_frame, bg=t["BG_CARD"])
             revenue_header.pack(fill=tk.X, padx=20, pady=(15, 10))
             
             tk.Label(revenue_header, text="Revenue Insights",
-                    font=(FONT_FALLBACK, 14, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(side=tk.LEFT)
+                    font=(FONT_FALLBACK, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
             tk.Label(revenue_header, text="87% $100k >",
-                    font=(FONT_FALLBACK, 10), bg=BG_CARD, fg=TEXT_SECONDARY).pack(side=tk.RIGHT)
-            revenue_canvas = tk.Canvas(revenue_chart_frame, bg=BG_CARD, height=200, highlightthickness=0)
+                    font=(FONT_FALLBACK, 10), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(side=tk.RIGHT)
+            revenue_canvas = tk.Canvas(revenue_chart_frame, bg=t["BG_CARD"], height=200, highlightthickness=0)
             revenue_canvas.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 20))
             
             revenue_canvas.create_text(200, 100, text="📊 Bar chart visualization\n(Monthly revenue)", 
-                                      font=(FONT_FALLBACK, 11), fill=TEXT_SECONDARY, justify=tk.CENTER)
+                                      font=(FONT_FALLBACK, 11), fill=t["TEXT_SECONDARY"], justify=tk.CENTER)
             
-            status_chart_frame = tk.Frame(middle_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
+            status_chart_frame = tk.Frame(middle_column, bg=t["BG_CARD"], relief=tk.FLAT, highlightbackground=t["BORDER_DEFAULT"], highlightthickness=1)
             status_chart_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
             
             tk.Label(status_chart_frame, text="Appointment Status",
-                    font=(FONT_FALLBACK, 14, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(pady=(15, 10))
-            status_canvas = tk.Canvas(status_chart_frame, bg=BG_CARD, height=250, highlightthickness=0)
+                    font=(FONT_FALLBACK, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(pady=(15, 10))
+            status_canvas = tk.Canvas(status_chart_frame, bg=t["BG_CARD"], height=250, highlightthickness=0)
             status_canvas.pack(fill=tk.BOTH, expand=True, padx=25, pady=(0, 15))
             
             # Get real appointment status data
@@ -2227,7 +2331,7 @@ class HospitalManagementSystem:
             status_canvas.bind('<Configure>', on_status_canvas_configure)
             
             # Status legend with real data - better spacing
-            status_legend = tk.Frame(status_chart_frame, bg=BG_CARD)
+            status_legend = tk.Frame(status_chart_frame, bg=t["BG_CARD"])
             status_legend.pack(fill=tk.X, padx=25, pady=(0, 20))
             
             status_items = [
@@ -2236,21 +2340,21 @@ class HospitalManagementSystem:
                 ("Cancelled", "#ec4899", f"{cancelled_pct:.1f}%", cancelled_count)
             ]
             for label, color, percent, count in status_items:
-                item_frame = tk.Frame(status_legend, bg=BG_CARD)
+                item_frame = tk.Frame(status_legend, bg=t["BG_CARD"])
                 item_frame.pack(fill=tk.X, pady=8, padx=10)
-                tk.Label(item_frame, text="●", font=(FONT_FALLBACK, 14), bg=BG_CARD, fg=color).pack(side=tk.LEFT, padx=(0, 12))
-                tk.Label(item_frame, text=label, font=(FONT_FALLBACK, 11), bg=BG_CARD, fg=TEXT_PRIMARY).pack(side=tk.LEFT)
-                tk.Label(item_frame, text=f"{percent} ({count})", font=(FONT_FALLBACK, 11, 'bold'), bg=BG_CARD, fg=TEXT_SECONDARY).pack(side=tk.RIGHT)
+                tk.Label(item_frame, text="●", font=(FONT_FALLBACK, 14), bg=t["BG_CARD"], fg=color).pack(side=tk.LEFT, padx=(0, 12))
+                tk.Label(item_frame, text=label, font=(FONT_FALLBACK, 11), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
+                tk.Label(item_frame, text=f"{percent} ({count})", font=(FONT_FALLBACK, 11, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(side=tk.RIGHT)
             
             # Active Admissions (Middle Column)
-            active_admissions_frame = tk.Frame(middle_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
+            active_admissions_frame = tk.Frame(middle_column, bg=t["BG_CARD"], relief=tk.FLAT, highlightbackground=t["BORDER_DEFAULT"], highlightthickness=1)
             active_admissions_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 15))
             
-            admissions_header = tk.Frame(active_admissions_frame, bg=BG_CARD)
+            admissions_header = tk.Frame(active_admissions_frame, bg=t["BG_CARD"])
             admissions_header.pack(fill=tk.X, padx=20, pady=(15, 10))
             
             tk.Label(admissions_header, text="Active Admissions",
-                    font=(FONT_FALLBACK, 14, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(side=tk.LEFT)
+                    font=(FONT_FALLBACK, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT)
             
             # Get active admissions
             try:
@@ -2260,9 +2364,9 @@ class HospitalManagementSystem:
                 active_admissions = []
             
             # Create scrollable frame for admissions list
-            admissions_canvas = tk.Canvas(active_admissions_frame, bg=BG_CARD, highlightthickness=0, height=200)
+            admissions_canvas = tk.Canvas(active_admissions_frame, bg=t["BG_CARD"], highlightthickness=0, height=200)
             admissions_scrollbar = tk.Scrollbar(active_admissions_frame, orient="vertical", command=admissions_canvas.yview)
-            admissions_scrollable = tk.Frame(admissions_canvas, bg=BG_CARD)
+            admissions_scrollable = tk.Frame(admissions_canvas, bg=t["BG_CARD"])
             
             admissions_scrollable.bind(
                 "<Configure>",
@@ -2274,7 +2378,7 @@ class HospitalManagementSystem:
             
             if active_admissions:
                 for idx, admission in enumerate(active_admissions):
-                    adm_frame = tk.Frame(admissions_scrollable, bg='#1e2732' if idx % 2 == 0 else BG_CARD, relief=tk.FLAT)
+                    adm_frame = tk.Frame(admissions_scrollable, bg=t["BG_ELEVATED"] if idx % 2 == 0 else t["BG_CARD"], relief=tk.FLAT)
                     adm_frame.pack(fill=tk.X, padx=15, pady=8)
                     
                     # Patient name and admission ID
@@ -2284,9 +2388,9 @@ class HospitalManagementSystem:
                     patient_name = admission.get('patient_name', 'Unknown')
                     admission_id = admission.get('admission_id', 'N/A')
                     tk.Label(name_frame, text=f"👤 {patient_name}",
-                            font=(FONT_FALLBACK, 10, 'bold'), bg=adm_frame['bg'], fg=TEXT_PRIMARY, anchor='w').pack(side=tk.LEFT, fill=tk.X)
+                            font=(FONT_FALLBACK, 10, 'bold'), bg=adm_frame['bg'], fg=t["TEXT_PRIMARY"], anchor='w').pack(side=tk.LEFT, fill=tk.X)
                     tk.Label(name_frame, text=f"ID: {admission_id}",
-                            font=(FONT_FALLBACK, 8), bg=adm_frame['bg'], fg=TEXT_SECONDARY, anchor='e').pack(side=tk.RIGHT)
+                            font=(FONT_FALLBACK, 8), bg=adm_frame['bg'], fg=t["TEXT_SECONDARY"], anchor='e').pack(side=tk.RIGHT)
                     
                     # Admission details
                     details_text = []
@@ -2301,7 +2405,7 @@ class HospitalManagementSystem:
                     
                     if details_text:
                         tk.Label(adm_frame, text=" | ".join(details_text),
-                                font=(FONT_FALLBACK, 8), bg=adm_frame['bg'], fg=TEXT_SECONDARY,
+                                font=(FONT_FALLBACK, 8), bg=adm_frame['bg'], fg=t["TEXT_SECONDARY"],
                                 anchor='w', wraplength=250).pack(fill=tk.X, pady=(0, 2))
                     
                     # Days admitted
@@ -2323,19 +2427,19 @@ class HospitalManagementSystem:
                             pass
             else:
                 no_adm_label = tk.Label(admissions_scrollable, text="No active admissions",
-                                        font=(FONT_FALLBACK, 10), bg=BG_CARD, fg=TEXT_SECONDARY)
+                                        font=(FONT_FALLBACK, 10), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"])
                 no_adm_label.pack(pady=20)
             
             admissions_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
             admissions_scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=(0, 15))
             
             # Recent Activities (Middle Column)
-            activities_frame = tk.Frame(middle_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
+            activities_frame = tk.Frame(middle_column, bg=t["BG_CARD"], relief=tk.FLAT, highlightbackground=t["BORDER_DEFAULT"], highlightthickness=1)
             activities_frame.pack(fill=tk.BOTH, expand=True)
             
             tk.Label(activities_frame, text="Recent Activities",
-                    font=(FONT_FALLBACK, 14, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(pady=(15, 10))
-            activities_list = tk.Frame(activities_frame, bg=BG_CARD)
+                    font=(FONT_FALLBACK, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(pady=(15, 10))
+            activities_list = tk.Frame(activities_frame, bg=t["BG_CARD"])
             activities_list.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 15))
             
             # Get recent activities
@@ -2349,23 +2453,23 @@ class HospitalManagementSystem:
                     activity_text = f"{action.capitalize()} {name}"
                     time_text = "5m ago"  # Simplified
                     
-                    activity_item = tk.Frame(activities_list, bg=BG_CARD)
+                    activity_item = tk.Frame(activities_list, bg=t["BG_CARD"])
                     activity_item.pack(fill=tk.X, pady=8)
                     tk.Label(activity_item, text=activity_text, font=(FONT_FALLBACK, 10),
-                            bg=BG_CARD, fg=TEXT_PRIMARY).pack(anchor='w')
+                            bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(anchor='w')
                     tk.Label(activity_item, text=time_text, font=(FONT_FALLBACK, 9),
-                            bg=BG_CARD, fg=TEXT_SECONDARY).pack(anchor='w')
+                            bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(anchor='w')
             except:
                 tk.Label(activities_list, text="No recent activities", font=(FONT_FALLBACK, 10), 
-                        bg=BG_CARD, fg=TEXT_SECONDARY).pack(pady=10)
+                        bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(pady=10)
             
             # Quick Actions (Right Column)
-            quick_actions_frame = tk.Frame(right_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
+            quick_actions_frame = tk.Frame(right_column, bg=t["BG_CARD"], relief=tk.FLAT, highlightbackground=t["BORDER_DEFAULT"], highlightthickness=1)
             quick_actions_frame.pack(fill=tk.X, pady=(0, 15))
             
             tk.Label(quick_actions_frame, text="Quick Actions",
-                    font=(FONT_FALLBACK, 14, 'bold'), bg=BG_CARD, fg=TEXT_PRIMARY).pack(pady=(15, 10))
-            actions_list = tk.Frame(quick_actions_frame, bg=BG_CARD)
+                    font=(FONT_FALLBACK, 14, 'bold'), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(pady=(15, 10))
+            actions_list = tk.Frame(quick_actions_frame, bg=t["BG_CARD"])
             actions_list.pack(fill=tk.X, padx=15, pady=(0, 15))
             
             action_buttons = [
@@ -2393,29 +2497,29 @@ class HospitalManagementSystem:
                 btn.pack(fill=tk.X, pady=5)
             
             # Today's Appointments (Right Column)
-            today_appts_frame = tk.Frame(right_column, bg=BG_CARD, relief=tk.FLAT, highlightbackground='#2d3748', highlightthickness=1)
+            today_appts_frame = tk.Frame(right_column, bg=t["BG_CARD"], relief=tk.FLAT, highlightbackground=t["BORDER_DEFAULT"], highlightthickness=1)
             today_appts_frame.pack(fill=tk.BOTH, expand=True)
             
-            today_header = tk.Frame(today_appts_frame, bg=BG_CARD)
+            today_header = tk.Frame(today_appts_frame, bg=t["BG_CARD"])
             today_header.pack(fill=tk.X, padx=15, pady=(15, 10))
             
             tk.Label(
                 today_header,
                 text="Today's Appointments",
                 font=('Segoe UI', 14, 'bold'),
-                bg=BG_CARD,
-                fg=TEXT_PRIMARY
+                bg=t["BG_CARD"],
+                fg=t["TEXT_PRIMARY"]
             ).pack(side=tk.LEFT)
             
             tk.Label(
                 today_header,
                 text="UPCOMING 3 HOURS",
                 font=(FONT_FALLBACK, 9, 'bold'),
-                bg=BG_CARD,
-                fg=TEXT_SECONDARY
+                bg=t["BG_CARD"],
+                fg=t["TEXT_SECONDARY"]
             ).pack(side=tk.RIGHT)
             
-            appointments_list = tk.Frame(today_appts_frame, bg=BG_CARD)
+            appointments_list = tk.Frame(today_appts_frame, bg=t["BG_CARD"])
             appointments_list.pack(fill=tk.BOTH, expand=True, padx=15, pady=(0, 15))
             
             # Get today's appointments
@@ -2428,18 +2532,18 @@ class HospitalManagementSystem:
                     doctor_name = apt.get('doctor_name', '')
                     specialization = apt.get('specialization', '')
                     
-                    apt_item = tk.Frame(appointments_list, bg=BG_CARD)
+                    apt_item = tk.Frame(appointments_list, bg=t["BG_CARD"])
                     apt_item.pack(fill=tk.X, pady=8)
                     tk.Label(apt_item, text=apt_time, font=(FONT_FALLBACK, 10, 'bold'),
-                            bg=BG_CARD, fg=TEXT_PRIMARY).pack(anchor='w')
+                            bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(anchor='w')
                     tk.Label(apt_item, text=f"{patient_name} - {doctor_name}",
-                            font=(FONT_FALLBACK, 10), bg=BG_CARD, fg=TEXT_SECONDARY).pack(anchor='w')
+                            font=(FONT_FALLBACK, 10), bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(anchor='w')
                     if specialization:
                         tk.Label(apt_item, text=specialization, font=(FONT_FALLBACK, 9),
-                                bg=BG_CARD, fg=TEXT_SECONDARY).pack(anchor='w')
+                                bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(anchor='w')
             except Exception as e:
                 tk.Label(appointments_list, text="No appointments today", font=(FONT_FALLBACK, 10), 
-                        bg=BG_CARD, fg=TEXT_SECONDARY).pack(pady=10)
+                        bg=t["BG_CARD"], fg=t["TEXT_SECONDARY"]).pack(pady=10)
             
             # Update scroll region after all content is loaded
             self.root.update_idletasks()

@@ -1,8 +1,11 @@
 """
 Patient Management Module
 """
+import os
+import subprocess
+import sys
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 
 # Backend imports
 from backend.database import Database
@@ -13,18 +16,287 @@ from frontend.theme import (
     ACCENT_BLUE, BORDER_DEFAULT, WARNING, ERROR, SUCCESS, ACCENT_PURPLE, ACCENT_TEAL,
     TABLE_HEADER_BG, BTN_SUCCESS_BG, BTN_SUCCESS_HOVER, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
     BTN_DANGER_BG, BTN_DANGER_HOVER, BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
+    get_theme,
 )
 
 # Utils imports
 from utils.helpers import generate_id, get_current_date
-from utils.logger import (log_button_click, log_dialog_open, log_dialog_close, 
+from utils.logger import (log_button_click, log_dialog_open, log_dialog_close,
                    log_database_operation, log_error, log_info, log_warning, log_debug)
+from utils.xray_storage import save_xray_file, delete_xray_file
 
 # IPD Admissions / Daily Notes
 from frontend.modules.admission_module import AdmissionNotesWindow
 
 # Patient documents PDF (bill, prescription, IPD report)
 from utils.patient_docs_pdf import print_all_patient_documents
+
+
+def _open_file_with_default(path):
+    """Open file with the system default application."""
+    if not path or not os.path.isfile(path):
+        return
+    try:
+        if sys.platform == "win32":
+            os.startfile(path)
+        elif sys.platform == "darwin":
+            subprocess.run(["open", path], check=False)
+        else:
+            subprocess.run(["xdg-open", path], check=False)
+    except Exception as e:
+        log_error("Failed to open file", e)
+        messagebox.showerror("Error", f"Could not open file: {e}")
+
+
+class XRayReportsWindow:
+    """Toplevel window to manage X-ray reports for a patient."""
+
+    BODY_PARTS = ("Chest", "Spine", "Abdomen", "Skull", "Extremity", "Other")
+
+    def __init__(self, parent, db: Database, patient_id: str):
+        self.parent = parent
+        self.db = db
+        self.patient_id = patient_id
+        self.patient = self.db.get_patient_by_id(patient_id)
+        if not self.patient:
+            messagebox.showerror("Error", "Patient not found")
+            return
+        t = get_theme()
+        self.window = tk.Toplevel(parent)
+        self.window.title("X-Ray Reports")
+        self.window.configure(bg=t["BG_DEEP"])
+        self.window.transient(parent)
+        self.window.geometry("720x420")
+        self.window.lift()
+        self.window.focus_force()
+        self._build_ui()
+        self._refresh_list()
+
+    def _build_ui(self):
+        t = get_theme()
+        header = tk.Label(
+            self.window,
+            text=f"X-Ray Reports — {self.patient.get('first_name', '')} {self.patient.get('last_name', '')} ({self.patient_id})",
+            font=("Segoe UI", 16, "bold"),
+            bg=t["BG_DEEP"],
+            fg=t["TEXT_PRIMARY"],
+        )
+        header.pack(pady=12)
+
+        list_frame = tk.Frame(self.window, bg=t["BG_DEEP"])
+        list_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=(0, 10))
+
+        cols = ("report_id", "report_date", "body_part", "file_name")
+        style = ttk.Style()
+        try:
+            style.theme_use("clam")
+        except Exception:
+            pass
+        style.configure(
+            "Treeview",
+            font=("Segoe UI", 10),
+            rowheight=26,
+            background=t["BG_CARD"],
+            foreground=t["TEXT_PRIMARY"],
+            fieldbackground=t["BG_CARD"],
+        )
+        style.configure(
+            "Treeview.Heading",
+            font=("Segoe UI", 10, "bold"),
+            background=t["TABLE_HEADER_BG"],
+            foreground=t["TEXT_PRIMARY"],
+        )
+        self.tree = ttk.Treeview(list_frame, columns=cols, show="headings", height=10)
+        self.tree.heading("report_date", text="Date")
+        self.tree.heading("body_part", text="Body Part")
+        self.tree.heading("file_name", text="File")
+        self.tree.column("report_date", width=120)
+        self.tree.column("body_part", width=120)
+        self.tree.column("file_name", width=380)
+        self.tree["displaycolumns"] = ("report_date", "body_part", "file_name")
+        vsb = ttk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.tree.yview)
+        self.tree.configure(yscrollcommand=vsb.set)
+        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+
+        btn_frame = tk.Frame(self.window, bg=t["BG_DEEP"])
+        btn_frame.pack(fill=tk.X, padx=20, pady=(0, 12))
+        tk.Button(
+            btn_frame,
+            text="+ Add X-Ray Report",
+            command=self._on_add,
+            font=("Segoe UI", 10, "bold"),
+            bg=BTN_SUCCESS_BG,
+            fg="white",
+            padx=18,
+            pady=8,
+            cursor="hand2",
+            relief=tk.FLAT,
+            bd=0,
+            activebackground=BTN_SUCCESS_HOVER,
+            activeforeground="white",
+        ).pack(side=tk.LEFT, padx=6)
+        tk.Button(
+            btn_frame,
+            text="View",
+            command=self._on_view,
+            font=("Segoe UI", 10, "bold"),
+            bg=BTN_PRIMARY_BG,
+            fg="white",
+            padx=18,
+            pady=8,
+            cursor="hand2",
+            relief=tk.FLAT,
+            bd=0,
+            activebackground=BTN_PRIMARY_HOVER,
+            activeforeground="white",
+        ).pack(side=tk.LEFT, padx=6)
+        tk.Button(
+            btn_frame,
+            text="Delete",
+            command=self._on_delete,
+            font=("Segoe UI", 10, "bold"),
+            bg=BTN_DANGER_BG,
+            fg="white",
+            padx=18,
+            pady=8,
+            cursor="hand2",
+            relief=tk.FLAT,
+            bd=0,
+            activebackground=BTN_DANGER_HOVER,
+            activeforeground="white",
+        ).pack(side=tk.LEFT, padx=6)
+
+    def _refresh_list(self):
+        for i in self.tree.get_children():
+            self.tree.delete(i)
+        reports = self.db.get_xray_reports_by_patient(self.patient_id)
+        for r in reports:
+            self.tree.insert(
+                "",
+                tk.END,
+                values=(
+                    r.get("report_id", ""),
+                    r.get("report_date", ""),
+                    r.get("body_part", "") or "—",
+                    r.get("file_name_original", "") or os.path.basename(r.get("file_path", "") or ""),
+                ),
+            )
+
+    def _get_selected_report(self):
+        sel = self.tree.selection()
+        if not sel:
+            messagebox.showwarning("Warning", "Please select a report.")
+            return None
+        item = self.tree.item(sel[0])
+        vals = item.get("values") or ()
+        report_id = vals[0] if vals else None
+        if not report_id:
+            return None
+        return self.db.get_xray_report_by_id(report_id)
+
+    def _on_view(self):
+        report = self._get_selected_report()
+        if not report:
+            return
+        path = report.get("file_path")
+        if not path or not os.path.isfile(path):
+            messagebox.showerror("Error", "File not found.")
+            return
+        _open_file_with_default(path)
+
+    def _on_delete(self):
+        report = self._get_selected_report()
+        if not report:
+            return
+        if not messagebox.askyesno("Confirm", "Delete this X-ray report? The file will be removed."):
+            return
+        report_id = report.get("report_id")
+        file_path = report.get("file_path")
+        delete_xray_file(file_path)
+        if self.db.delete_xray_report(report_id):
+            messagebox.showinfo("Done", "Report deleted.")
+            self._refresh_list()
+        else:
+            messagebox.showerror("Error", "Failed to delete report from database.")
+
+    def _on_add(self):
+        t = get_theme()
+        d = tk.Toplevel(self.window)
+        d.title("Add X-Ray Report")
+        d.configure(bg=t["BG_BASE"])
+        d.transient(self.window)
+        d.geometry("480x380")
+        d.lift()
+        d.focus_force()
+        fields = tk.Frame(d, bg=t["BG_BASE"])
+        fields.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        tk.Label(fields, text="Report date (YYYY-MM-DD):", font=("Segoe UI", 10, "bold"), bg=t["BG_BASE"], fg=t["TEXT_PRIMARY"]).grid(row=0, column=0, sticky="w", pady=6)
+        date_var = tk.StringVar(value=get_current_date())
+        tk.Entry(fields, textvariable=date_var, width=14, font=("Segoe UI", 10), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).grid(row=0, column=1, sticky="w", padx=(8, 0), pady=6)
+        tk.Label(fields, text="Body part:", font=("Segoe UI", 10, "bold"), bg=t["BG_BASE"], fg=t["TEXT_PRIMARY"]).grid(row=1, column=0, sticky="w", pady=6)
+        body_var = tk.StringVar()
+        body_combo = ttk.Combobox(fields, textvariable=body_var, values=list(self.BODY_PARTS), width=18, state="readonly")
+        body_combo.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=6)
+        if self.BODY_PARTS:
+            body_combo.set(self.BODY_PARTS[0])
+        tk.Label(fields, text="Findings (optional):", font=("Segoe UI", 10, "bold"), bg=t["BG_BASE"], fg=t["TEXT_PRIMARY"]).grid(row=2, column=0, sticky="nw", pady=6)
+        findings_text = tk.Text(fields, height=6, width=42, wrap="word", font=("Segoe UI", 10), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"])
+        findings_text.grid(row=2, column=1, sticky="ew", padx=(8, 0), pady=6)
+        tk.Label(fields, text="File (image/PDF):", font=("Segoe UI", 10, "bold"), bg=t["BG_BASE"], fg=t["TEXT_PRIMARY"]).grid(row=3, column=0, sticky="w", pady=6)
+        file_var = tk.StringVar()
+        file_frame = tk.Frame(fields, bg=t["BG_BASE"])
+        file_frame.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=6)
+        tk.Entry(file_frame, textvariable=file_var, width=32, state="readonly", font=("Segoe UI", 9), bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"]).pack(side=tk.LEFT, padx=(0, 8))
+        def choose_file():
+            path = filedialog.askopenfilename(
+                title="Select X-Ray image or PDF",
+                filetypes=[
+                    ("Image/PDF", "*.png *.jpg *.jpeg *.gif *.bmp *.pdf"),
+                    ("Images", "*.png *.jpg *.jpeg *.gif *.bmp"),
+                    ("PDF", "*.pdf"),
+                    ("All files", "*.*"),
+                ],
+            )
+            if path:
+                file_var.set(path)
+        tk.Button(file_frame, text="Choose file…", command=choose_file, font=("Segoe UI", 9, "bold"), bg=BTN_SECONDARY_BG, fg=t["TEXT_PRIMARY"], padx=10, pady=4, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT)
+        btns = tk.Frame(d, bg=t["BG_BASE"])
+        btns.pack(fill=tk.X, padx=20, pady=(0, 16))
+        def save():
+            report_date = date_var.get().strip()
+            if not report_date:
+                messagebox.showwarning("Warning", "Enter report date.")
+                return
+            source_path = file_var.get().strip()
+            if not source_path or not os.path.isfile(source_path):
+                messagebox.showwarning("Warning", "Select an image or PDF file.")
+                return
+            report_id = generate_id("XR")
+            ok, dest_path = save_xray_file(self.patient_id, report_id, source_path)
+            if not ok or not dest_path:
+                messagebox.showerror("Error", "Failed to save file.")
+                return
+            file_name_original = os.path.basename(source_path)
+            body_part = (body_var.get() or "").strip()
+            findings = findings_text.get("1.0", tk.END).strip()
+            rid = self.db.add_xray_report(
+                self.patient_id,
+                report_date,
+                body_part,
+                findings,
+                dest_path,
+                file_name_original,
+                report_id=report_id,
+            )
+            if rid:
+                messagebox.showinfo("Done", "X-Ray report added.")
+                self._refresh_list()
+                d.destroy()
+            else:
+                messagebox.showerror("Error", "Failed to save report to database.")
+        tk.Button(btns, text="Save", command=save, font=("Segoe UI", 10, "bold"), bg=BTN_SUCCESS_BG, fg="white", padx=20, pady=8, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT, padx=6)
+        tk.Button(btns, text="Cancel", command=d.destroy, font=("Segoe UI", 10, "bold"), bg=BTN_SECONDARY_BG, fg=t["TEXT_PRIMARY"], padx=20, pady=8, relief=tk.FLAT, cursor="hand2").pack(side=tk.LEFT, padx=6)
 
 
 class PatientModule:
@@ -42,28 +314,29 @@ class PatientModule:
     
     def create_ui(self):
         """Create user interface"""
-        # Header with modern styling (dark theme)
+        t = get_theme()
+        # Header with modern styling (theme-aware)
         header = tk.Label(
             self.parent,
             text="Patient Management",
             font=('Segoe UI', 24, 'bold'),
-            bg=BG_DEEP,
-            fg=TEXT_PRIMARY
+            bg=t["BG_DEEP"],
+            fg=t["TEXT_PRIMARY"]
         )
         header.pack(pady=20)
         
         # Top frame for search and add button
-        top_frame = tk.Frame(self.parent, bg=BG_DEEP)
+        top_frame = tk.Frame(self.parent, bg=t["BG_DEEP"])
         top_frame.pack(fill=tk.X, padx=25, pady=15)
         
         # Search frame
-        search_frame = tk.Frame(top_frame, bg=BG_DEEP)
+        search_frame = tk.Frame(top_frame, bg=t["BG_DEEP"])
         search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        tk.Label(search_frame, text="Search:", font=('Segoe UI', 11, 'bold'), bg=BG_DEEP, fg=TEXT_SECONDARY).pack(side=tk.LEFT, padx=5)
+        tk.Label(search_frame, text="Search:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
         self.search_var = tk.StringVar()
         self.search_var.trace('w', lambda *args: self.search_patients())
-        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=BORDER_DEFAULT, highlightcolor=ACCENT_BLUE, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
+        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         search_entry.pack(side=tk.LEFT, padx=8)
         
         # Add patient button with modern styling
@@ -85,11 +358,11 @@ class PatientModule:
         add_btn.pack(side=tk.RIGHT, padx=10)
         
         # Container for list and buttons to ensure both are visible
-        content_container = tk.Frame(self.parent, bg=BG_DEEP)
+        content_container = tk.Frame(self.parent, bg=t["BG_DEEP"])
         content_container.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
         # List frame - fixed height to ensure buttons are visible
-        list_frame = tk.Frame(content_container, bg=BG_DEEP)
+        list_frame = tk.Frame(content_container, bg=t["BG_DEEP"])
         list_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
         
         # Treeview for patient list
@@ -105,46 +378,46 @@ class PatientModule:
         style.configure("Treeview", 
                        font=('Segoe UI', 10), 
                        rowheight=30, 
-                       background=BG_CARD, 
-                       foreground=TEXT_PRIMARY,
-                       fieldbackground=BG_CARD)
+                       background=t["BG_CARD"], 
+                       foreground=t["TEXT_PRIMARY"],
+                       fieldbackground=t["BG_CARD"])
         style.configure("Treeview.Heading", 
                        font=('Segoe UI', 11, 'bold'), 
-                       background=TABLE_HEADER_BG, 
-                       foreground=TEXT_PRIMARY,
+                       background=t["TABLE_HEADER_BG"], 
+                       foreground=t["TEXT_PRIMARY"],
                        relief='flat')
         style.map("Treeview.Heading", 
-                 background=[('active', ACCENT_BLUE), ('pressed', ACCENT_BLUE)])
+                 background=[('active', t["ACCENT_BLUE"]), ('pressed', t["ACCENT_BLUE"])])
         style.map("Treeview",
-                 background=[('selected', ACCENT_BLUE)],
+                 background=[('selected', t["ACCENT_BLUE"])],
                  foreground=[('selected', 'white')])
         
         # Create treeview AFTER style is configured
         self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=12)
         
-        # Style scrollbars to match dark theme
+        # Style scrollbars to match theme
         style.configure("Vertical.TScrollbar", 
-                       background=TEXT_MUTED,
-                       troughcolor=BG_BASE,
+                       background=t["TEXT_MUTED"],
+                       troughcolor=t["BG_BASE"],
                        borderwidth=0,
-                       arrowcolor=ACCENT_BLUE,
-                       darkcolor=TEXT_MUTED,
-                       lightcolor=TEXT_MUTED)
+                       arrowcolor=t["ACCENT_BLUE"],
+                       darkcolor=t["TEXT_MUTED"],
+                       lightcolor=t["TEXT_MUTED"])
         style.map("Vertical.TScrollbar",
-                 background=[('active', TEXT_SECONDARY)],
-                 arrowcolor=[('active', ACCENT_BLUE)])
+                 background=[('active', t["TEXT_SECONDARY"])],
+                 arrowcolor=[('active', t["ACCENT_BLUE"])])
         
         style.configure("Horizontal.TScrollbar",
-                       background=TEXT_MUTED,
-                       troughcolor=BG_BASE,
+                       background=t["TEXT_MUTED"],
+                       troughcolor=t["BG_BASE"],
                        borderwidth=1,
-                       arrowcolor=ACCENT_BLUE,
-                       darkcolor=TEXT_MUTED,
-                       lightcolor=TEXT_MUTED,
+                       arrowcolor=t["ACCENT_BLUE"],
+                       darkcolor=t["TEXT_MUTED"],
+                       lightcolor=t["TEXT_MUTED"],
                        relief=tk.FLAT)
         style.map("Horizontal.TScrollbar",
-                 background=[('active', TEXT_SECONDARY), ('pressed', BORDER_DEFAULT)],
-                 arrowcolor=[('active', ACCENT_BLUE)])
+                 background=[('active', t["TEXT_SECONDARY"]), ('pressed', t["BORDER_DEFAULT"])],
+                 arrowcolor=[('active', t["ACCENT_BLUE"])])
         
         # Configure column widths based on content - more appropriate sizes
         column_widths = {
@@ -196,6 +469,7 @@ class PatientModule:
         context_menu.add_command(label="View Details", command=self.view_patient)
         context_menu.add_command(label="✏️ Edit Patient", command=self.edit_patient)
         context_menu.add_command(label="🖨️ Print All Documents", command=self.print_all_documents)
+        context_menu.add_command(label="📷 X-Ray Reports", command=self.open_xray_reports)
         context_menu.add_separator()
         context_menu.add_command(label="Delete Patient", command=self.delete_patient)
         
@@ -214,7 +488,7 @@ class PatientModule:
         self.tree.bind('<Button-2>', show_context_menu)  # Right-click on Mac/Linux
         
         # Action buttons with modern styling - placed in container AFTER list frame so always visible
-        action_frame = tk.Frame(content_container, bg=BG_DEEP)
+        action_frame = tk.Frame(content_container, bg=t["BG_DEEP"])
         action_frame.pack(fill=tk.X, pady=(10, 0))
         
         tk.Button(
@@ -262,6 +536,22 @@ class PatientModule:
             relief=tk.FLAT,
             bd=0,
             activebackground='#0891b2',
+            activeforeground='white'
+        ).pack(side=tk.LEFT, padx=6)
+
+        tk.Button(
+            action_frame,
+            text="📷 X-Ray Reports",
+            command=self.open_xray_reports,
+            font=('Segoe UI', 10, 'bold'),
+            bg=ACCENT_PURPLE,
+            fg='white',
+            padx=20,
+            pady=8,
+            cursor='hand2',
+            relief=tk.FLAT,
+            bd=0,
+            activebackground='#7c3aed',
             activeforeground='white'
         ).pack(side=tk.LEFT, padx=6)
         
@@ -312,7 +602,7 @@ class PatientModule:
             messagebox.showerror("Error", f"Failed to open IPD notes: {e}")
 
     def print_all_documents(self):
-        """Print all patient-related PDFs (bills, prescriptions, IPD reports) in one click."""
+        """Print all patient-related PDFs (bills, prescriptions, IPD reports, X-ray reports) in one click."""
         patient_id = self.get_selected_patient_id()
         if not patient_id:
             return
@@ -321,6 +611,17 @@ class PatientModule:
         except Exception as e:
             log_error("Failed to print patient documents", e)
             messagebox.showerror("Error", f"Failed to generate documents: {e}")
+
+    def open_xray_reports(self):
+        """Open X-Ray Reports window for the selected patient."""
+        patient_id = self.get_selected_patient_id()
+        if not patient_id:
+            return
+        try:
+            XRayReportsWindow(self.parent, self.db, patient_id)
+        except Exception as e:
+            log_error("Failed to open X-Ray reports window", e)
+            messagebox.showerror("Error", f"Failed to open X-Ray reports: {e}")
     
     def _focus_tree(self):
         """Ensure tree widget is immediately interactive for selection"""

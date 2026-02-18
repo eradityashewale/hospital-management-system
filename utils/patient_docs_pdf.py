@@ -1,10 +1,11 @@
 """
 Patient Documents PDF Generator
 
-Generates PDFs for all patient-related documents: bills, prescriptions, IPD reports.
+Generates PDFs for all patient-related documents: bills, prescriptions, IPD reports, X-ray reports.
 Used by the "Print All Documents" feature in the Patient module.
 """
 import os
+import html
 from datetime import datetime
 from typing import Optional
 
@@ -12,13 +13,21 @@ try:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.lib import colors
+    from reportlab.lib.utils import ImageReader
     from reportlab.platypus import (
-        SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak,
+        SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak, Image,
     )
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
+
+# Optional: for sizing X-ray images when embedding in PDF
+try:
+    from PIL import Image as PILImage
+    PILLOW_AVAILABLE = True
+except ImportError:
+    PILLOW_AVAILABLE = False
 
 
 def _get_pdf_styles():
@@ -298,6 +307,115 @@ def _build_ipd_report_elements(admission, notes, patient):
     return elements
 
 
+def _escape_html(text: str) -> str:
+    """Escape text for use inside ReportLab Paragraph (XML-safe)."""
+    if not text:
+        return ""
+    return html.escape(str(text), quote=True)
+
+
+# Image file extensions that can be embedded in the PDF (no PDFs - those would need a link or note)
+_XRAY_IMAGE_EXTS = {".png", ".jpg", ".jpeg", ".gif", ".bmp"}
+
+
+def _xray_image_fit_size(path: str, max_width_mm: float = 170, max_height_mm: float = 200):
+    """Return (width_pt, height_pt) to fit image in max box, preserving aspect ratio."""
+    if not path or not os.path.isfile(path):
+        return None
+    ext = os.path.splitext(path)[1].lower()
+    if ext not in _XRAY_IMAGE_EXTS:
+        return None
+    try:
+        if PILLOW_AVAILABLE:
+            with PILImage.open(path) as im:
+                w_px, h_px = im.size
+        else:
+            # Works for common formats (JPEG/PNG) without Pillow in many environments
+            w_px, h_px = ImageReader(path).getSize()
+    except Exception:
+        return None
+    if w_px <= 0 or h_px <= 0:
+        return None
+    # Convert mm to points (1 mm ≈ 2.83465 pt); reportlab uses points
+    max_w_pt = max_width_mm * mm
+    max_h_pt = max_height_mm * mm
+    scale = min(max_w_pt / w_px, max_h_pt / h_px, 1.0)
+    return (w_px * scale, h_px * scale)
+
+
+def _xray_image_flowable(path: str, max_width_mm: float = 170, max_height_mm: float = 200):
+    """Build a fitted ReportLab Image flowable for a path, or None if not possible."""
+    if not path or not os.path.isfile(path):
+        return None
+    ext = os.path.splitext(path)[1].lower()
+    if ext not in _XRAY_IMAGE_EXTS:
+        return None
+    # Best effort sizing
+    size_pt = _xray_image_fit_size(path, max_width_mm=max_width_mm, max_height_mm=max_height_mm)
+    try:
+        if size_pt:
+            return Image(path, width=size_pt[0], height=size_pt[1])
+        # Fallback: let ReportLab read intrinsic size then scale to fit
+        img = Image(path)
+        iw = getattr(img, "imageWidth", None)
+        ih = getattr(img, "imageHeight", None)
+        if not iw or not ih:
+            return img
+        max_w_pt = max_width_mm * mm
+        max_h_pt = max_height_mm * mm
+        scale = min(max_w_pt / float(iw), max_h_pt / float(ih), 1.0)
+        img.drawWidth = float(iw) * scale
+        img.drawHeight = float(ih) * scale
+        return img
+    except Exception:
+        return None
+
+
+def _build_xray_report_elements(xray_report: dict, patient_name: str) -> list:
+    """Return list of flowables for one X-ray report summary page (for merged PDF)."""
+    s = _get_pdf_styles()
+    elements = []
+    # Support both dict (from sqlite3.Row) and plain dict; ensure string values
+    if not isinstance(xray_report, dict):
+        return elements
+    report_id = _escape_html(xray_report.get("report_id") or "")
+    report_date = _format_date(xray_report.get("report_date") or "")
+    body_part = _escape_html(xray_report.get("body_part") or "—")
+    findings_raw = (xray_report.get("findings") or "") or ""
+    findings = (findings_raw if isinstance(findings_raw, str) else str(findings_raw)).strip()
+    file_name = xray_report.get("file_name_original") or ""
+    if not file_name and xray_report.get("file_path"):
+        file_name = os.path.basename(xray_report["file_path"]) if isinstance(xray_report.get("file_path"), str) else ""
+    file_name = _escape_html(file_name or "—")
+    patient_name_safe = _escape_html(patient_name or "")
+    elements.append(Paragraph("<b>X-RAY REPORT</b>", s["heading"]))
+    elements.append(Spacer(1, 4 * mm))
+    header_data = [[
+        Paragraph(f"<b>Patient:</b> {patient_name_safe}<br/><b>Report ID:</b> {report_id}<br/><b>Date:</b> {report_date}", s["normal"]),
+        Paragraph(f"<b>Body part:</b> {body_part}<br/><b>File:</b> {file_name}", s["normal"]),
+    ]]
+    header_table = Table(header_data, colWidths=[90 * mm, 90 * mm])
+    header_table.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "LEFT"), ("FONTSIZE", (0, 0), (-1, -1), 10)]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 6 * mm))
+    if findings:
+        elements.append(Paragraph("<b>FINDINGS</b>", s["heading"]))
+        findings_escaped = _escape_html(findings).replace("\n", "<br/>")
+        elements.append(Paragraph(findings_escaped, s["normal"]))
+        elements.append(Spacer(1, 4 * mm))
+    # Embed the X-ray image if the file exists and is a supported image format
+    file_path = xray_report.get("file_path")
+    if isinstance(file_path, str) and file_path.strip():
+        path = file_path.strip()
+        img = _xray_image_flowable(path)
+        if img:
+            elements.append(Paragraph("<b>IMAGE</b>", s["heading"]))
+            elements.append(Spacer(1, 2 * mm))
+            elements.append(img)
+    elements.append(Spacer(1, 8 * mm))
+    return elements
+
+
 def _build_ipd_report_pdf(admission, notes, patient, filepath):
     """Build IPD report PDF to file (standalone)."""
     elements = _build_ipd_report_elements(admission, notes, patient)
@@ -309,7 +427,7 @@ def _build_ipd_report_pdf(admission, notes, patient, filepath):
 
 def print_all_patient_documents(parent, db, patient_id: str) -> Optional[list]:
     """
-    Generate all patient documents (bills, prescriptions, IPD reports) into ONE merged PDF file.
+    Generate all patient documents (bills, prescriptions, IPD reports, X-ray reports) into ONE merged PDF file.
     Returns the file path if successful, or None if cancelled/error.
     """
     from tkinter import filedialog, messagebox
@@ -336,8 +454,57 @@ def print_all_patient_documents(parent, db, patient_id: str) -> Optional[list]:
 
     all_elements = []
     doc_count = 0
+    n_bills = 0
+    n_prescriptions = 0
+    n_ipd = 0
+    n_xray = 0
+    patient_name = f"{patient.get('first_name', '')} {patient.get('last_name', '')}".strip()
 
-    # Bills
+    # 1. IPD reports
+    admissions = db.get_admissions_by_patient(patient_id)
+    for adm in admissions:
+        notes = db.get_admission_notes(adm.get('admission_id', ''))
+        if doc_count > 0:
+            all_elements.append(PageBreak())
+        all_elements.extend(_build_ipd_report_elements(adm, notes, patient))
+        doc_count += 1
+        n_ipd += 1
+
+    # 2. Prescriptions
+    prescriptions = db.get_prescriptions_by_patient(patient_id)
+    for rx in prescriptions:
+        patient_ref = db.get_patient_by_id(rx.get('patient_id'))
+        if not patient_ref:
+            continue
+        doctor = db.get_doctor_by_id(rx.get('doctor_id'))
+        if not doctor:
+            doctors = db.get_all_doctors()
+            doctor = doctors[0] if doctors else {}
+        items = db.get_prescription_items(rx.get('prescription_id', ''))
+        if doc_count > 0:
+            all_elements.append(PageBreak())
+        all_elements.extend(_build_prescription_elements(rx, items, patient_ref, doctor or {}))
+        doc_count += 1
+        n_prescriptions += 1
+
+    # 3. X-ray reports
+    try:
+        xray_reports = db.get_xray_reports_by_patient(str(patient_id))
+    except Exception:
+        xray_reports = []
+    for xr in xray_reports:
+        try:
+            if doc_count > 0:
+                all_elements.append(PageBreak())
+            elems = _build_xray_report_elements(xr, patient_name)
+            if elems:
+                all_elements.extend(elems)
+                doc_count += 1
+                n_xray += 1
+        except Exception:
+            continue
+
+    # 4. Bills
     bills = db.get_bills_by_patient_id(patient_id)
     for bill in bills:
         patient_ref = db.get_patient_by_id(bill['patient_id'])
@@ -356,31 +523,7 @@ def print_all_patient_documents(parent, db, patient_id: str) -> Optional[list]:
             all_elements.append(PageBreak())
         all_elements.extend(_build_bill_elements(bill, patient_ref, patient_name_val, doctor))
         doc_count += 1
-
-    # Prescriptions
-    prescriptions = db.get_prescriptions_by_patient(patient_id)
-    for rx in prescriptions:
-        patient_ref = db.get_patient_by_id(rx.get('patient_id'))
-        if not patient_ref:
-            continue
-        doctor = db.get_doctor_by_id(rx.get('doctor_id'))
-        if not doctor:
-            doctors = db.get_all_doctors()
-            doctor = doctors[0] if doctors else {}
-        items = db.get_prescription_items(rx.get('prescription_id', ''))
-        if doc_count > 0:
-            all_elements.append(PageBreak())
-        all_elements.extend(_build_prescription_elements(rx, items, patient_ref, doctor or {}))
-        doc_count += 1
-
-    # IPD reports
-    admissions = db.get_admissions_by_patient(patient_id)
-    for adm in admissions:
-        notes = db.get_admission_notes(adm.get('admission_id', ''))
-        if doc_count > 0:
-            all_elements.append(PageBreak())
-        all_elements.extend(_build_ipd_report_elements(adm, notes, patient))
-        doc_count += 1
+        n_bills += 1
 
     if not all_elements:
         messagebox.showwarning("No Documents", "No documents were found for this patient.")
@@ -390,7 +533,17 @@ def print_all_patient_documents(parent, db, patient_id: str) -> Optional[list]:
         doc = SimpleDocTemplate(filepath, pagesize=A4, rightMargin=15*mm, leftMargin=15*mm,
                                topMargin=15*mm, bottomMargin=15*mm)
         doc.build(all_elements)
-        messagebox.showinfo("Success", f"Generated 1 PDF with {doc_count} document(s) successfully!\n\n{filepath}")
+        parts = []
+        if n_ipd:
+            parts.append(f"{n_ipd} IPD report(s)")
+        if n_prescriptions:
+            parts.append(f"{n_prescriptions} prescription(s)")
+        if n_xray:
+            parts.append(f"{n_xray} X-ray")
+        if n_bills:
+            parts.append(f"{n_bills} bill(s)")
+        summary = ", ".join(parts) if parts else f"{doc_count} document(s)"
+        messagebox.showinfo("Success", f"Generated PDF with {summary}.\n\n{filepath}")
         return [filepath]
     except Exception as e:
         messagebox.showerror("Error", f"Failed to generate PDF: {e}")

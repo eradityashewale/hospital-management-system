@@ -10,6 +10,7 @@ from typing import List, Dict, Optional
 
 # Utils imports
 from utils.logger import log_info, log_error, log_debug, log_database_operation, log_warning
+from utils.helpers import generate_id
 
 
 def get_app_data_dir():
@@ -286,6 +287,26 @@ class Database:
             )
         """)
         
+        # X-ray reports table - patient X-ray report metadata and file path
+        self.cursor.execute("""
+            CREATE TABLE IF NOT EXISTS xray_reports (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                report_id TEXT UNIQUE NOT NULL,
+                patient_id TEXT NOT NULL,
+                report_date TEXT NOT NULL,
+                body_part TEXT,
+                findings TEXT,
+                file_path TEXT NOT NULL,
+                file_name_original TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (patient_id) REFERENCES patients(patient_id)
+            )
+        """)
+        self.cursor.execute("""
+            CREATE INDEX IF NOT EXISTS idx_xray_reports_patient_date
+            ON xray_reports(patient_id, report_date)
+        """)
+        
         # Migration: Add is_pediatric column if it doesn't exist
         try:
             self.cursor.execute("PRAGMA table_info(medicines_master)")
@@ -388,6 +409,36 @@ class Database:
                 log_info("Successfully removed role columns")
         except Exception as e:
             log_error("Error removing role columns from users table", e)
+        
+        # Migration: Create xray_reports table if it doesn't exist (for existing deployments)
+        try:
+            self.cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='xray_reports'"
+            )
+            if self.cursor.fetchone() is None:
+                log_info("Creating xray_reports table (migration)")
+                self.cursor.execute("""
+                    CREATE TABLE xray_reports (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        report_id TEXT UNIQUE NOT NULL,
+                        patient_id TEXT NOT NULL,
+                        report_date TEXT NOT NULL,
+                        body_part TEXT,
+                        findings TEXT,
+                        file_path TEXT NOT NULL,
+                        file_name_original TEXT,
+                        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (patient_id) REFERENCES patients(patient_id)
+                    )
+                """)
+                self.cursor.execute("""
+                    CREATE INDEX IF NOT EXISTS idx_xray_reports_patient_date
+                    ON xray_reports(patient_id, report_date)
+                """)
+                self.conn.commit()
+                log_info("Successfully created xray_reports table")
+        except Exception as e:
+            log_error("Error creating xray_reports table", e)
         
         self.conn.commit()
         log_info("Database initialized successfully")
@@ -1157,6 +1208,81 @@ class Database:
             ORDER BY b.bill_date DESC
         """, (patient_id,))
         return [dict(row) for row in self.cursor.fetchall()]
+
+    # X-ray reports operations
+    def add_xray_report(
+        self,
+        patient_id: str,
+        report_date: str,
+        body_part: str,
+        findings: str,
+        file_path: str,
+        file_name_original: str,
+        report_id: Optional[str] = None,
+    ) -> Optional[str]:
+        """Add an X-ray report. Returns report_id on success, None on failure.
+        If report_id is not provided, one is generated."""
+        if not report_id:
+            report_id = generate_id("XR")
+        try:
+            self.cursor.execute("""
+                INSERT INTO xray_reports (
+                    report_id, patient_id, report_date, body_part,
+                    findings, file_path, file_name_original
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (report_id, patient_id, report_date, body_part or "", findings or "",
+                  file_path, file_name_original or ""))
+            self.conn.commit()
+            log_info(f"X-ray report added: {report_id}")
+            return report_id
+        except sqlite3.IntegrityError as e:
+            log_error(f"Failed to add X-ray report (integrity error): {report_id}", e)
+            return None
+        except Exception as e:
+            log_error(f"Failed to add X-ray report: {report_id}", e)
+            return None
+
+    def get_xray_reports_by_patient(self, patient_id: str) -> List[Dict]:
+        """Get all X-ray reports for a patient, ordered by report_date DESC."""
+        try:
+            self.cursor.execute("""
+                SELECT report_id, patient_id, report_date, body_part, findings, file_path, file_name_original
+                FROM xray_reports
+                WHERE patient_id = ?
+                ORDER BY report_date DESC
+            """, (str(patient_id),))
+            rows = self.cursor.fetchall()
+            # Use column names as keys (sqlite3.Row: dict(row) may not work in all environments)
+            result = []
+            for row in rows:
+                try:
+                    result.append(dict(zip(row.keys(), row)))
+                except Exception:
+                    result.append(dict(row))
+            return result
+        except Exception as e:
+            log_error("get_xray_reports_by_patient failed", e)
+            return []
+
+    def get_xray_report_by_id(self, report_id: str) -> Optional[Dict]:
+        """Get a single X-ray report by report_id."""
+        self.cursor.execute(
+            "SELECT * FROM xray_reports WHERE report_id = ?", (report_id,)
+        )
+        row = self.cursor.fetchone()
+        return dict(row) if row else None
+
+    def delete_xray_report(self, report_id: str) -> bool:
+        """Delete an X-ray report by report_id. Caller should delete file on disk."""
+        try:
+            self.cursor.execute("DELETE FROM xray_reports WHERE report_id = ?", (report_id,))
+            self.conn.commit()
+            log_info(f"X-ray report deleted: {report_id}")
+            return True
+        except Exception as e:
+            log_error(f"Failed to delete X-ray report: {report_id}", e)
+            return False
 
     def get_bills_by_patient_name(self, patient_name: str) -> List[Dict]:
         """Get bills by patient name (searches first name and last name)"""

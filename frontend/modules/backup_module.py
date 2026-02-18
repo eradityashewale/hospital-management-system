@@ -12,6 +12,7 @@ from frontend.theme import (
     BG_BASE, BG_CARD, BG_DEEP, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
     ACCENT_BLUE, SUCCESS, WARNING, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
     BTN_SUCCESS_BG, BTN_DANGER_BG, TABLE_HEADER_BG,
+    get_theme,
 )
 from backend.database import Database
 from backend.cloud_backup import (
@@ -34,13 +35,14 @@ class BackupModule:
 
     def create_ui(self):
         """Create backup/restore interface."""
-        # Header (dark theme)
+        t = get_theme()
+        # Header (theme-aware)
         header = tk.Label(
             self.parent,
             text="☁️ Cloud Backup & Restore",
             font=('Segoe UI', 24, 'bold'),
-            bg=BG_DEEP,
-            fg=TEXT_PRIMARY,
+            bg=t["BG_DEEP"],
+            fg=t["TEXT_PRIMARY"],
         )
         header.pack(pady=20)
 
@@ -48,8 +50,8 @@ class BackupModule:
             self.parent,
             text="Backup your database to Google Cloud Storage. Restore if your account crashes.",
             font=('Segoe UI', 11),
-            bg=BG_DEEP,
-            fg=TEXT_MUTED,
+            bg=t["BG_DEEP"],
+            fg=t["TEXT_MUTED"],
         )
         desc.pack(pady=(0, 20))
 
@@ -65,7 +67,7 @@ class BackupModule:
             self.parent,
             textvariable=self.status_var,
             font=('Segoe UI', 10),
-            bg=BG_DEEP,
+            bg=t["BG_DEEP"],
             fg=status_fg,
         )
         status_label.pack(pady=(0, 15))
@@ -75,41 +77,41 @@ class BackupModule:
             self.parent,
             text="Configuration",
             font=('Segoe UI', 11, 'bold'),
-            bg=BG_DEEP,
-            fg=TEXT_SECONDARY,
+            bg=t["BG_DEEP"],
+            fg=t["TEXT_SECONDARY"],
         )
         config_frame.pack(fill=tk.X, padx=25, pady=10)
 
         # Bucket name
-        row1 = tk.Frame(config_frame, bg=BG_DEEP)
+        row1 = tk.Frame(config_frame, bg=t["BG_DEEP"])
         row1.pack(fill=tk.X, padx=15, pady=10)
-        tk.Label(row1, text="Bucket Name:", font=('Segoe UI', 10), bg=BG_DEEP, fg=TEXT_SECONDARY, width=14, anchor='w').pack(side=tk.LEFT, padx=(0, 8))
-        self.bucket_entry = tk.Entry(row1, font=('Segoe UI', 10), width=35, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
+        tk.Label(row1, text="Bucket Name:", font=('Segoe UI', 10), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"], width=14, anchor='w').pack(side=tk.LEFT, padx=(0, 8))
+        self.bucket_entry = tk.Entry(row1, font=('Segoe UI', 10), width=35, bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         self.bucket_entry.pack(side=tk.LEFT, fill=tk.X, expand=True)
         self.bucket_entry.insert(0, "")
 
         # Credentials - file path or JSON
-        row2 = tk.Frame(config_frame, bg=BG_DEEP)
+        row2 = tk.Frame(config_frame, bg=t["BG_DEEP"])
         row2.pack(fill=tk.X, padx=15, pady=10)
-        tk.Label(row2, text="Credentials:", font=('Segoe UI', 10), bg=BG_DEEP, fg=TEXT_SECONDARY, width=14, anchor='w').pack(side=tk.LEFT, padx=(0, 8))
-        self.creds_path_entry = tk.Entry(row2, font=('Segoe UI', 10), width=30, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
+        tk.Label(row2, text="Credentials:", font=('Segoe UI', 10), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"], width=14, anchor='w').pack(side=tk.LEFT, padx=(0, 8))
+        self.creds_path_entry = tk.Entry(row2, font=('Segoe UI', 10), width=30, bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         self.creds_path_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8))
         browse_btn = tk.Button(
             row2,
             text="Browse...",
             command=self._browse_credentials,
             font=('Segoe UI', 9),
-            bg=BG_BASE,
-            fg=TEXT_PRIMARY,
+            bg=t["BG_BASE"],
+            fg=t["TEXT_PRIMARY"],
             cursor='hand2',
         )
         browse_btn.pack(side=tk.LEFT)
-        tk.Label(config_frame, text="Or paste JSON below:", font=('Segoe UI', 9), bg=BG_DEEP, fg=TEXT_MUTED).pack(anchor='w', padx=15, pady=(0, 4))
-        self.creds_text = tk.Text(config_frame, height=5, font=('Consolas', 9), wrap=tk.WORD, width=60, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
+        tk.Label(config_frame, text="Or paste JSON below:", font=('Segoe UI', 9), bg=t["BG_DEEP"], fg=t["TEXT_MUTED"]).pack(anchor='w', padx=15, pady=(0, 4))
+        self.creds_text = tk.Text(config_frame, height=5, font=('Consolas', 9), wrap=tk.WORD, width=60, bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         self.creds_text.pack(fill=tk.X, padx=15, pady=(0, 10))
 
         # Buttons
-        btn_frame = tk.Frame(config_frame, bg=BG_DEEP)
+        btn_frame = tk.Frame(config_frame, bg=t["BG_DEEP"])
         btn_frame.pack(fill=tk.X, padx=15, pady=(0, 15))
         tk.Button(
             btn_frame,
@@ -141,8 +143,8 @@ class BackupModule:
             self.parent,
             text="Available Backups",
             font=('Segoe UI', 11, 'bold'),
-            bg=BG_DEEP,
-            fg=TEXT_SECONDARY,
+            bg=t["BG_DEEP"],
+            fg=t["TEXT_SECONDARY"],
         )
         list_frame.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
 
@@ -152,9 +154,9 @@ class BackupModule:
             style.theme_use('clam')
         except Exception:
             pass
-        style.configure("Treeview", font=('Segoe UI', 10), rowheight=28, background=BG_CARD, foreground=TEXT_PRIMARY, fieldbackground=BG_CARD)
-        style.configure("Treeview.Heading", font=('Segoe UI', 10, 'bold'), background=TABLE_HEADER_BG, foreground=TEXT_PRIMARY)
-        style.map("Treeview", background=[('selected', ACCENT_BLUE)], foreground=[('selected', 'white')])
+        style.configure("Treeview", font=('Segoe UI', 10), rowheight=28, background=t["BG_CARD"], foreground=t["TEXT_PRIMARY"], fieldbackground=t["BG_CARD"])
+        style.configure("Treeview.Heading", font=('Segoe UI', 10, 'bold'), background=t["TABLE_HEADER_BG"], foreground=t["TEXT_PRIMARY"])
+        style.map("Treeview", background=[('selected', t["ACCENT_BLUE"])], foreground=[('selected', 'white')])
 
         scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
@@ -171,7 +173,7 @@ class BackupModule:
         self.tree.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         self.tree.bind('<<TreeviewSelect>>', self._on_select)
 
-        restore_btn_frame = tk.Frame(list_frame, bg=BG_DEEP)
+        restore_btn_frame = tk.Frame(list_frame, bg=t["BG_DEEP"])
         restore_btn_frame.pack(fill=tk.X, padx=5, pady=(0, 10))
         tk.Button(
             restore_btn_frame,

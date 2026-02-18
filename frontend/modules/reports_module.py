@@ -17,6 +17,7 @@ from frontend.theme import (
     BG_BASE, BG_CARD, BG_DEEP, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
     ACCENT_BLUE, BORDER_DEFAULT, TABLE_HEADER_BG, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
     BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
+    get_theme,
 )
 
 # Try to import reportlab for PDF export
@@ -54,18 +55,19 @@ class ReportsModule:
     
     def create_ui(self):
         """Create enhanced user interface"""
-        # Header with modern styling (dark theme)
+        t = get_theme()
+        # Header with modern styling (theme-aware)
         header = tk.Label(
             self.parent,
             text="Reports & Analytics Dashboard",
             font=('Segoe UI', 24, 'bold'),
-            bg=BG_DEEP,
-            fg=TEXT_PRIMARY
+            bg=t["BG_DEEP"],
+            fg=t["TEXT_PRIMARY"]
         )
         header.pack(pady=15)
         
         # Main content frame
-        content_frame = tk.Frame(self.parent, bg=BG_DEEP)
+        content_frame = tk.Frame(self.parent, bg=t["BG_DEEP"])
         content_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=15)
         
         # Filter frame
@@ -73,23 +75,23 @@ class ReportsModule:
             content_frame,
             text="Report Filters",
             font=('Segoe UI', 12, 'bold'),
-            bg=BG_CARD,
-            fg=TEXT_PRIMARY,
+            bg=t["BG_CARD"],
+            fg=t["TEXT_PRIMARY"],
             relief=tk.FLAT,
             bd=0
         )
         filter_frame.pack(fill=tk.X, pady=(0, 10))
         
         # Date range selection
-        date_frame = tk.Frame(filter_frame, bg=BG_CARD)
+        date_frame = tk.Frame(filter_frame, bg=t["BG_CARD"])
         date_frame.pack(fill=tk.X, padx=15, pady=10)
         
         tk.Label(
             date_frame,
             text="From Date:",
             font=('Segoe UI', 10),
-            bg=BG_CARD,
-            fg=TEXT_SECONDARY
+            bg=t["BG_CARD"],
+            fg=t["TEXT_SECONDARY"]
         ).pack(side=tk.LEFT, padx=5)
         
         if CALENDAR_AVAILABLE:
@@ -113,8 +115,8 @@ class ReportsModule:
                 date_frame,
                 text="To Date:",
                 font=('Segoe UI', 10),
-                bg=BG_CARD,
-                fg=TEXT_SECONDARY
+                bg=t["BG_CARD"],
+                fg=t["TEXT_SECONDARY"]
             ).pack(side=tk.LEFT, padx=5)
             
             default_to_date = datetime.now()
@@ -145,8 +147,8 @@ class ReportsModule:
                 date_frame,
                 text="To Date:",
                 font=('Segoe UI', 10),
-                bg=BG_CARD,
-                fg=TEXT_SECONDARY
+                bg=t["BG_CARD"],
+                fg=t["TEXT_SECONDARY"]
             ).pack(side=tk.LEFT, padx=5)
             
             self.to_date_entry = tk.Entry(

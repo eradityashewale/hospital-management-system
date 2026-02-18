@@ -13,6 +13,7 @@ from frontend.theme import (
     BG_BASE, BG_CARD, BG_DEEP, TEXT_PRIMARY, TEXT_SECONDARY, TEXT_MUTED,
     ACCENT_BLUE, BORDER_DEFAULT, TABLE_HEADER_BG, BTN_PRIMARY_BG, BTN_PRIMARY_HOVER,
     BTN_DANGER_BG, BTN_DANGER_HOVER, BTN_SECONDARY_BG, BTN_SECONDARY_HOVER,
+    get_theme,
 )
 
 # Utils imports
@@ -35,13 +36,14 @@ class RoleModule:
     
     def create_ui(self):
         """Create user interface"""
-        # Header with modern styling (dark theme)
+        t = get_theme()
+        # Header with modern styling (theme-aware)
         header = tk.Label(
             self.parent,
             text="User Management",
             font=('Segoe UI', 24, 'bold'),
-            bg=BG_DEEP,
-            fg=TEXT_PRIMARY
+            bg=t["BG_DEEP"],
+            fg=t["TEXT_PRIMARY"]
         )
         header.pack(pady=20)
         
@@ -50,13 +52,13 @@ class RoleModule:
             self.parent,
             text="Create and manage users with direct module access permissions",
             font=('Segoe UI', 11),
-            bg=BG_DEEP,
-            fg=TEXT_MUTED
+            bg=t["BG_DEEP"],
+            fg=t["TEXT_MUTED"]
         )
         desc_label.pack(pady=(0, 20))
         
         # Top frame for add button
-        top_frame = tk.Frame(self.parent, bg=BG_DEEP)
+        top_frame = tk.Frame(self.parent, bg=t["BG_DEEP"])
         top_frame.pack(fill=tk.X, padx=25, pady=15)
         
         # Add user button
@@ -78,11 +80,11 @@ class RoleModule:
         add_user_btn.pack(side=tk.RIGHT, padx=10)
         
         # Container for list
-        content_container = tk.Frame(self.parent, bg=BG_DEEP)
+        content_container = tk.Frame(self.parent, bg=t["BG_DEEP"])
         content_container.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
         # List frame
-        list_frame = tk.Frame(content_container, bg=BG_DEEP)
+        list_frame = tk.Frame(content_container, bg=t["BG_DEEP"])
         list_frame.pack(fill=tk.BOTH, expand=True)
         
         # Treeview for user list
@@ -98,17 +100,17 @@ class RoleModule:
         style.configure("Treeview", 
                        font=('Segoe UI', 10), 
                        rowheight=35, 
-                       background=BG_CARD, 
-                       foreground=TEXT_PRIMARY,
-                       fieldbackground=BG_CARD)
+                       background=t["BG_CARD"], 
+                       foreground=t["TEXT_PRIMARY"],
+                       fieldbackground=t["BG_CARD"])
         style.configure("Treeview.Heading", 
                        font=('Segoe UI', 11, 'bold'), 
-                       background=TABLE_HEADER_BG, 
-                       foreground=TEXT_PRIMARY,
+                       background=t["TABLE_HEADER_BG"], 
+                       foreground=t["TEXT_PRIMARY"],
                        relief=tk.FLAT)
         style.map("Treeview.Heading",
-                 background=[('active', ACCENT_BLUE)])
-        style.map("Treeview", background=[('selected', ACCENT_BLUE)], foreground=[('selected', 'white')])
+                 background=[('active', t["ACCENT_BLUE"])])
+        style.map("Treeview", background=[('selected', t["ACCENT_BLUE"])], foreground=[('selected', 'white')])
         
         # Scrollbar
         scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL)
@@ -152,7 +154,7 @@ class RoleModule:
         self.tree.bind('<Button-3>', self.show_context_menu)
         
         # Action buttons frame
-        button_frame = tk.Frame(content_container, bg=BG_DEEP)
+        button_frame = tk.Frame(content_container, bg=t["BG_DEEP"])
         button_frame.pack(fill=tk.X, pady=(15, 0))
         
         edit_btn = tk.Button(

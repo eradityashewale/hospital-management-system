@@ -14,6 +14,7 @@ from frontend.theme import (
     ACCENT_BLUE, ACCENT_PURPLE, BORDER_DEFAULT, TABLE_HEADER_BG, BTN_SUCCESS_BG, BTN_SUCCESS_HOVER,
     BTN_PRIMARY_BG, BTN_PRIMARY_HOVER, BTN_DANGER_BG, BTN_DANGER_HOVER,
     BTN_SECONDARY_BG, BTN_SECONDARY_HOVER, WARNING,
+    get_theme,
 )
 
 # Utils imports
@@ -40,62 +41,63 @@ class IPDModule:
     
     def create_ui(self):
         """Create user interface"""
-        # Header with modern styling (dark theme)
+        t = get_theme()
+        # Header with modern styling (theme-aware)
         header = tk.Label(
             self.parent,
             text="IPD Management",
             font=('Segoe UI', 24, 'bold'),
-            bg=BG_DEEP,
-            fg=TEXT_PRIMARY
+            bg=t["BG_DEEP"],
+            fg=t["TEXT_PRIMARY"]
         )
         header.pack(pady=20)
         
         # Top frame for search and add button
-        top_frame = tk.Frame(self.parent, bg=BG_DEEP)
+        top_frame = tk.Frame(self.parent, bg=t["BG_DEEP"])
         top_frame.pack(fill=tk.X, padx=25, pady=15)
         
         # Search frame
-        search_frame = tk.Frame(top_frame, bg=BG_DEEP)
+        search_frame = tk.Frame(top_frame, bg=t["BG_DEEP"])
         search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        tk.Label(search_frame, text="Search:", font=('Segoe UI', 11, 'bold'), bg=BG_DEEP, fg=TEXT_SECONDARY).pack(side=tk.LEFT, padx=5)
+        tk.Label(search_frame, text="Search:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
         self.search_var = tk.StringVar()
         self.search_var.trace('w', lambda *args: self.search_admissions())
-        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=BORDER_DEFAULT, highlightcolor=ACCENT_BLUE, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
+        search_entry = tk.Entry(search_frame, textvariable=self.search_var, font=('Segoe UI', 11), width=30, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         search_entry.pack(side=tk.LEFT, padx=8)
         
         # Filter by status
-        filter_frame = tk.Frame(top_frame, bg=BG_DEEP)
+        filter_frame = tk.Frame(top_frame, bg=t["BG_DEEP"])
         filter_frame.pack(side=tk.LEFT, padx=10)
         
-        tk.Label(filter_frame, text="Status:", font=('Segoe UI', 11, 'bold'), bg=BG_DEEP, fg=TEXT_SECONDARY).pack(side=tk.LEFT, padx=5)
+        tk.Label(filter_frame, text="Status:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
         self.status_filter = tk.StringVar(value="All")
         status_combo = ttk.Combobox(filter_frame, textvariable=self.status_filter, values=["All", "Admitted", "Discharged"], state="readonly", width=12)
         status_combo.pack(side=tk.LEFT, padx=5)
         status_combo.bind("<<ComboboxSelected>>", lambda e: self.refresh_list())
         
         # Filter by date
-        date_filter_frame = tk.Frame(top_frame, bg=BG_DEEP)
+        date_filter_frame = tk.Frame(top_frame, bg=t["BG_DEEP"])
         date_filter_frame.pack(side=tk.LEFT, padx=10)
         
-        tk.Label(date_filter_frame, text="Date:", font=('Segoe UI', 11, 'bold'), bg=BG_DEEP, fg=TEXT_SECONDARY).pack(side=tk.LEFT, padx=5)
+        tk.Label(date_filter_frame, text="Date:", font=('Segoe UI', 11, 'bold'), bg=t["BG_DEEP"], fg=t["TEXT_SECONDARY"]).pack(side=tk.LEFT, padx=5)
         self.date_filter = tk.StringVar()
-        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_filter, font=('Segoe UI', 11), width=12, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=BORDER_DEFAULT, highlightcolor=ACCENT_BLUE, bg=BG_CARD, fg=TEXT_PRIMARY, insertbackground=TEXT_PRIMARY)
+        date_entry = tk.Entry(date_filter_frame, textvariable=self.date_filter, font=('Segoe UI', 11), width=12, relief=tk.FLAT, bd=2, highlightthickness=1, highlightbackground=t["BORDER_DEFAULT"], highlightcolor=t["ACCENT_BLUE"], bg=t["BG_CARD"], fg=t["TEXT_PRIMARY"], insertbackground=t["TEXT_PRIMARY"])
         date_entry.pack(side=tk.LEFT, padx=5)
         date_entry.bind('<KeyRelease>', lambda e: self.refresh_list())
         # Add placeholder text
         date_entry.insert(0, "YYYY-MM-DD")
-        date_entry.config(fg=TEXT_MUTED)
+        date_entry.config(fg=t["TEXT_MUTED"])
         
         def on_date_focus_in(event):
             if date_entry.get() == "YYYY-MM-DD":
                 date_entry.delete(0, tk.END)
-                date_entry.config(fg=TEXT_PRIMARY)
+                date_entry.config(fg=t["TEXT_PRIMARY"])
         
         def on_date_focus_out(event):
             if not date_entry.get().strip():
                 date_entry.insert(0, "YYYY-MM-DD")
-                date_entry.config(fg=TEXT_MUTED)
+                date_entry.config(fg=t["TEXT_MUTED"])
                 self.refresh_list()  # Refresh to show all when cleared
         
         date_entry.bind('<FocusIn>', on_date_focus_in)
@@ -397,7 +399,7 @@ class IPDModule:
         add_btn.pack(side=tk.RIGHT, padx=10)
         
         # Container for list and buttons to ensure both are visible
-        content_container = tk.Frame(self.parent, bg=BG_DEEP)
+        content_container = tk.Frame(self.parent, bg=t["BG_DEEP"])
         content_container.pack(fill=tk.BOTH, expand=True, padx=25, pady=15)
         
         # Use grid layout to ensure buttons are always visible
@@ -406,7 +408,7 @@ class IPDModule:
         content_container.grid_columnconfigure(0, weight=1)
         
         # List frame - use grid to control space better
-        list_frame = tk.Frame(content_container, bg=BG_DEEP)
+        list_frame = tk.Frame(content_container, bg=t["BG_DEEP"])
         list_frame.grid(row=0, column=0, sticky='nsew', pady=(0, 10))
         
         # Treeview for admissions list
@@ -422,46 +424,46 @@ class IPDModule:
         style.configure("Treeview", 
                        font=('Segoe UI', 10), 
                        rowheight=30, 
-                       background=BG_CARD, 
-                       foreground=TEXT_PRIMARY,
-                       fieldbackground=BG_CARD)
+                       background=t["BG_CARD"], 
+                       foreground=t["TEXT_PRIMARY"],
+                       fieldbackground=t["BG_CARD"])
         style.configure("Treeview.Heading", 
                        font=('Segoe UI', 11, 'bold'), 
-                       background=TABLE_HEADER_BG, 
-                       foreground=TEXT_PRIMARY,
+                       background=t["TABLE_HEADER_BG"], 
+                       foreground=t["TEXT_PRIMARY"],
                        relief='flat')
         style.map("Treeview.Heading", 
-                 background=[('active', ACCENT_BLUE), ('pressed', ACCENT_BLUE)])
+                 background=[('active', t["ACCENT_BLUE"]), ('pressed', t["ACCENT_BLUE"])])
         style.map("Treeview",
-                 background=[('selected', ACCENT_BLUE)],
+                 background=[('selected', t["ACCENT_BLUE"])],
                  foreground=[('selected', 'white')])
         
         # Create treeview AFTER style is configured
         self.tree = ttk.Treeview(list_frame, columns=columns, show='headings', height=15)
         
-        # Style scrollbars to match dark theme
+        # Style scrollbars to match theme
         style.configure("Vertical.TScrollbar", 
-                       background=TEXT_MUTED,
-                       troughcolor=BG_BASE,
+                       background=t["TEXT_MUTED"],
+                       troughcolor=t["BG_BASE"],
                        borderwidth=0,
-                       arrowcolor=ACCENT_BLUE,
-                       darkcolor=TEXT_MUTED,
-                       lightcolor=TEXT_MUTED)
+                       arrowcolor=t["ACCENT_BLUE"],
+                       darkcolor=t["TEXT_MUTED"],
+                       lightcolor=t["TEXT_MUTED"])
         style.map("Vertical.TScrollbar",
-                 background=[('active', TEXT_SECONDARY)],
-                 arrowcolor=[('active', ACCENT_BLUE)])
+                 background=[('active', t["TEXT_SECONDARY"])],
+                 arrowcolor=[('active', t["ACCENT_BLUE"])])
         
         style.configure("Horizontal.TScrollbar",
-                       background=TEXT_MUTED,
-                       troughcolor=BG_BASE,
+                       background=t["TEXT_MUTED"],
+                       troughcolor=t["BG_BASE"],
                        borderwidth=1,
-                       arrowcolor=ACCENT_BLUE,
-                       darkcolor=TEXT_MUTED,
-                       lightcolor=TEXT_MUTED,
+                       arrowcolor=t["ACCENT_BLUE"],
+                       darkcolor=t["TEXT_MUTED"],
+                       lightcolor=t["TEXT_MUTED"],
                        relief=tk.FLAT)
         style.map("Horizontal.TScrollbar",
-                 background=[('active', TEXT_SECONDARY), ('pressed', BORDER_DEFAULT)],
-                 arrowcolor=[('active', ACCENT_BLUE)])
+                 background=[('active', t["TEXT_SECONDARY"]), ('pressed', t["BORDER_DEFAULT"])],
+                 arrowcolor=[('active', t["ACCENT_BLUE"])])
         
         # Configure column widths
         column_widths = {
@@ -495,16 +497,16 @@ class IPDModule:
         
         # Action buttons frame - ensure it's always visible at the bottom
         # Create a separator frame first
-        separator = tk.Frame(content_container, bg=BORDER_DEFAULT, height=2)
+        separator = tk.Frame(content_container, bg=t["BORDER_DEFAULT"], height=2)
         separator.grid(row=1, column=0, sticky='ew', pady=(5, 10))
         
-        action_frame = tk.Frame(content_container, bg=BG_DEEP, relief=tk.RAISED, bd=2)
+        action_frame = tk.Frame(content_container, bg=t["BG_DEEP"], relief=tk.RAISED, bd=2)
         action_frame.grid(row=2, column=0, sticky='ew', pady=(0, 0))
         action_frame.grid_columnconfigure(0, weight=1)
         action_frame.grid_columnconfigure(1, weight=0)
         
         # Left side buttons
-        left_buttons = tk.Frame(action_frame, bg=BG_DEEP)
+        left_buttons = tk.Frame(action_frame, bg=t["BG_DEEP"])
         left_buttons.grid(row=0, column=0, sticky='w', padx=10, pady=10)
         
         tk.Button(
@@ -540,7 +542,7 @@ class IPDModule:
         ).pack(side=tk.LEFT, padx=6)
         
         # Right side buttons (Discharge and Refresh) - ensure they're visible
-        right_buttons = tk.Frame(action_frame, bg=BG_DEEP)
+        right_buttons = tk.Frame(action_frame, bg=t["BG_DEEP"])
         right_buttons.grid(row=0, column=1, sticky='e', padx=10, pady=10)
         
         # Store discharge button reference for enabling/disabling
