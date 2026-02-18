@@ -382,40 +382,41 @@ class HospitalManagementSystem:
         self.sidebar = ModernSidebar(sidebar_container, width=SIDEBAR_WIDTH)
         self.sidebar.pack(fill=tk.BOTH, expand=True, pady=(8, 0))
         
+        # (key, display_label, icon, command) - key used for state/permissions, label for sidebar text
         buttons = [
-            ("Dashboard", "📊", self.show_dashboard),
-            ("Patients", "👥", self.show_patients),
-            ("Doctors", "👨‍⚕️", self.show_doctors),
-            ("Appointments", "📅", self.show_appointments),
-            ("Prescriptions", "💊", self.show_prescriptions),
-            ("IPD", "🏥", self.show_ipd),
-            ("Billing", "💰", self.show_billing),
-            ("Reports", "📈", self.show_reports)
+            ("Dashboard", "Dashboard", "📊", self.show_dashboard),
+            ("Patients", "Patients", "👥", self.show_patients),
+            ("Doctors", "Doctors", "👨‍⚕️", self.show_doctors),
+            ("Appointments", "Appointments", "📅", self.show_appointments),
+            ("Prescriptions", "Prescriptions", "💊", self.show_prescriptions),
+            ("IPD", "In-Patient Department", "🏥", self.show_ipd),
+            ("Billing", "Billing", "💰", self.show_billing),
+            ("Reports", "Reports", "📈", self.show_reports),
         ]
         
         filtered_buttons = []
-        for text, icon, command in buttons:
-            if text == "Dashboard" and self.has_permission('dashboard'):
-                filtered_buttons.append((text, icon, command))
-            elif text == "Patients" and self.has_permission('patient'):
-                filtered_buttons.append((text, icon, command))
-            elif text == "Doctors" and self.has_permission('doctor'):
-                filtered_buttons.append((text, icon, command))
-            elif text == "Appointments" and self.has_permission('appointments'):
-                filtered_buttons.append((text, icon, command))
-            elif text == "Prescriptions" and self.has_permission('prescription'):
-                filtered_buttons.append((text, icon, command))
-            elif text == "IPD" and self.has_permission('ipd'):
-                filtered_buttons.append((text, icon, command))
-            elif text == "Billing" and self.has_permission('billing'):
-                filtered_buttons.append((text, icon, command))
-            elif text == "Reports" and self.has_permission('report'):
-                filtered_buttons.append((text, icon, command))
+        for key, label, icon, command in buttons:
+            if key == "Dashboard" and self.has_permission('dashboard'):
+                filtered_buttons.append((key, label, icon, command))
+            elif key == "Patients" and self.has_permission('patient'):
+                filtered_buttons.append((key, label, icon, command))
+            elif key == "Doctors" and self.has_permission('doctor'):
+                filtered_buttons.append((key, label, icon, command))
+            elif key == "Appointments" and self.has_permission('appointments'):
+                filtered_buttons.append((key, label, icon, command))
+            elif key == "Prescriptions" and self.has_permission('prescription'):
+                filtered_buttons.append((key, label, icon, command))
+            elif key == "IPD" and self.has_permission('ipd'):
+                filtered_buttons.append((key, label, icon, command))
+            elif key == "Billing" and self.has_permission('billing'):
+                filtered_buttons.append((key, label, icon, command))
+            elif key == "Reports" and self.has_permission('report'):
+                filtered_buttons.append((key, label, icon, command))
         
         try:
             if self.is_admin():
-                filtered_buttons.append(("User Management", "👤", self.show_roles))
-                filtered_buttons.append(("Backup", "☁️", self.show_backup))
+                filtered_buttons.append(("User Management", "User Management", "👤", self.show_roles))
+                filtered_buttons.append(("Backup", "Backup & Restore", "☁️", self.show_backup))
         except Exception as e:
             log_error("Error checking admin status for User Management button", e)
         
@@ -423,15 +424,15 @@ class HospitalManagementSystem:
         self.button_commands = {}
         self.current_module = "Dashboard"
         
-        for text, icon, command in filtered_buttons:
-            self.button_commands[text] = command
+        for key, label, icon, command in filtered_buttons:
+            self.button_commands[key] = command
             def make_handler(btn_name):
                 def handler():
                     self._handle_navigation(btn_name)
                 return handler
-            self.sidebar.add_item(text, icon, text, make_handler(text))
-            self.nav_buttons[text] = None  # Sidebar handles visual state
-            log_debug(f"Navigation '{text}' created and bound to {command.__name__}")
+            self.sidebar.add_item(key, icon, label, make_handler(key))
+            self.nav_buttons[key] = None  # Sidebar handles visual state
+            log_debug(f"Navigation '{label}' created and bound to {command.__name__}")
         
         def update_nav_button_colors(active_button_name):
             if hasattr(self, 'sidebar'):
