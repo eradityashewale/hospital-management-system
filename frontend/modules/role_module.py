@@ -516,6 +516,7 @@ class RoleModule:
             ('doctor', 'Doctor Management'),
             ('appointments', 'Appointments'),
             ('prescription', 'Prescriptions'),
+            ('medicine', 'Medicines Catalogue'),
             ('ipd', 'IPD (Inpatient)'),
             ('billing', 'Billing'),
             ('report', 'Reports')

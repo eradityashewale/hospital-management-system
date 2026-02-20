@@ -30,6 +30,7 @@ from frontend.modules.reports_module import ReportsModule
 from frontend.modules.role_module import RoleModule
 from frontend.modules.ipd_module import IPDModule
 from frontend.modules.backup_module import BackupModule
+from frontend.modules.medicine_module import MedicineModule
 
 
 class HospitalManagementSystem:
@@ -389,6 +390,7 @@ class HospitalManagementSystem:
             ("Doctors", "Doctors", "👨‍⚕️", self.show_doctors),
             ("Appointments", "Appointments", "📅", self.show_appointments),
             ("Prescriptions", "Prescriptions", "💊", self.show_prescriptions),
+            ("Medicines", "Medicines", "📦", self.show_medicines),
             ("IPD", "In-Patient Department", "🏥", self.show_ipd),
             ("Billing", "Billing", "💰", self.show_billing),
             ("Reports", "Reports", "📈", self.show_reports),
@@ -405,6 +407,8 @@ class HospitalManagementSystem:
             elif key == "Appointments" and self.has_permission('appointments'):
                 filtered_buttons.append((key, label, icon, command))
             elif key == "Prescriptions" and self.has_permission('prescription'):
+                filtered_buttons.append((key, label, icon, command))
+            elif key == "Medicines" and self.has_permission('medicine'):
                 filtered_buttons.append((key, label, icon, command))
             elif key == "IPD" and self.has_permission('ipd'):
                 filtered_buttons.append((key, label, icon, command))
@@ -568,6 +572,8 @@ class HospitalManagementSystem:
             self.show_appointments()
         elif self.current_module == "Prescriptions":
             self.show_prescriptions()
+        elif self.current_module == "Medicines":
+            self.show_medicines()
         elif self.current_module == "IPD":
             self.show_ipd()
         elif self.current_module == "Billing":
@@ -2675,6 +2681,24 @@ class HospitalManagementSystem:
         except Exception as e:
             log_error("Failed to load Prescriptions module", e)
             messagebox.showerror("Error", f"Failed to load Prescriptions module: {str(e)}")
+    
+    def show_medicines(self):
+        """Show medicine catalogue module – add and list medicines"""
+        if not self.has_permission('medicine'):
+            messagebox.showerror("Access Denied", "You do not have permission to access the Medicines module.")
+            return
+        try:
+            log_info("Loading Medicines module...")
+            self.clear_content()
+            self.root.update_idletasks()
+            scrollable = self._create_scrollable_content()
+            MedicineModule(scrollable, self.db)
+            self.root.update_idletasks()
+            self.root.update()
+            log_info("Medicines module loaded successfully")
+        except Exception as e:
+            log_error("Failed to load Medicines module", e)
+            messagebox.showerror("Error", f"Failed to load Medicines module: {str(e)}")
     
     def show_ipd(self):
         """Show IPD (In-Patient Department) module"""
